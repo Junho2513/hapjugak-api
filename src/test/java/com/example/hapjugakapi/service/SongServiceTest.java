@@ -35,25 +35,27 @@ class SongServiceTest {
     @Autowired
     private EventRepository eventRepository;
 
-    private Member 준호;
+    private Member 기타리스트;
     private Member 드러머;
 
     @BeforeEach
     void setUp() {
-        준호 = memberRepository.save(new Member("junho@test.com", "pw", "준호", "서울", ""));
-        드러머 = memberRepository.save(new Member("drum@test.com", "pw", "드러머", "경기", ""));
+        기타리스트 = memberRepository.save(
+                new Member("guitarist@test.com", "pw", "기타리스트", "서울", ""));
+        드러머 = memberRepository.save(
+                new Member("drummer@test.com", "pw", "드러머", "경기", ""));
     }
 
     private Event 일정만들기(LocalDate deadline) {
         return eventRepository.save(
-                new Event("합주", LocalDate.now().plusDays(30), deadline, "홍대", 준호)
+                new Event("합주", LocalDate.now().plusDays(30), deadline, "홍대", 기타리스트)
         );
     }
 
     private SongResponse 곡만들기() {
         return songService.create(
                 new SongRequest("廻廻奇譚", "Eve", null, null, List.of(Part.VOCAL, Part.DRUM)),
-                준호.getId()
+                기타리스트.getId()
         );
     }
 
@@ -65,7 +67,7 @@ class SongServiceTest {
         assertEquals(2, song.totalCount());
         assertEquals(0, song.filledCount());
         assertTrue(song.candidate());
-        assertEquals("준호", song.proposerNickname());
+        assertEquals("기타리스트", song.proposerNickname());
     }
 
     @Test
@@ -100,7 +102,7 @@ class SongServiceTest {
         SongResponse song = 곡만들기();
         Long slotId = song.slots().get(0).id();
 
-        songService.claimSlot(song.id(), slotId, 준호.getId());
+        songService.claimSlot(song.id(), slotId, 기타리스트.getId());
 
         assertThrows(
                 ForbiddenException.class,
@@ -113,7 +115,7 @@ class SongServiceTest {
     void 곡_성립() {
         SongResponse song = 곡만들기();
 
-        songService.claimSlot(song.id(), song.slots().get(0).id(), 준호.getId());
+        songService.claimSlot(song.id(), song.slots().get(0).id(), 기타리스트.getId());
         SongResponse 완성 = songService.claimSlot(song.id(), song.slots().get(1).id(), 드러머.getId());
 
         assertTrue(완성.complete());
@@ -124,7 +126,7 @@ class SongServiceTest {
     @DisplayName("검색 — 비어 있는 파트로 거를 수 있다")
     void 파트_검색() {
         SongResponse song = 곡만들기();
-        songService.claimSlot(song.id(), song.slots().get(0).id(), 준호.getId());
+        songService.claimSlot(song.id(), song.slots().get(0).id(), 기타리스트.getId());
 
         List<SongResponse> 드럼_빈곡 = songService.search(
                 new SongSearchCondition(null, Part.DRUM, null, null));
