@@ -1,10 +1,10 @@
 # 합주각 (Hapjugak) — Backend API
 
 밴드 합주 멤버를 모으는 서비스의 백엔드 API.
-**Firebase(BaaS)로 운영하던 서비스를 Spring Boot 기반 자체 백엔드로 재설계한 프로젝트입니다.**
+**Firebase(BaaS)로 운영하던 서비스를 Spring Boot 기반 자체 백엔드로 재설계하고, 운영 데이터를 전부 이관한 프로젝트입니다.**
 
 - 서비스: https://hapjugak.com
-- API: (배포 예정) https://api.hapjugak.com
+- API: https://api.hapjugak.com — 예) [`/songs/candidates`](https://api.hapjugak.com/songs/candidates)
 
 ---
 
@@ -13,7 +13,7 @@
 밴드 합주를 하려면 "이 곡 할 사람?" → "드럼 할게요" → "기타는 누가?" 를 카카오톡에서 반복해야 합니다.
 누가 어느 파트인지 흩어지고, 중복 신청이 생기고, 언제까지 모집하는지도 흐지부지됩니다.
 
-직접 겪은 문제라 2026년 Firebase + 정적 HTML로 먼저 만들어 배포했고, 실제 사용자를 받으며 운영했습니다.
+직접 겪은 문제라 2026년 8월 Firebase + 정적 HTML로 먼저 만들어 배포했고, **회원 26명이 곡 80건을 올리며 두 차례 합주를 성사시킬 때까지 약 두 달 반을 운영**했습니다.
 그 과정에서 BaaS 구조의 한계를 만나 백엔드를 분리하게 됐습니다.
 
 ### Firebase에서 옮긴 이유
@@ -39,7 +39,21 @@
 | Auth | JWT (jjwt), Google OAuth 2.0 (ID Token 검증) |
 | Test | JUnit 5, MockMvc |
 | Build | Gradle |
-| Infra | (예정) Docker, AWS EC2 / RDS, Nginx, GitHub Actions |
+| Infra | Docker Compose, AWS EC2 (Ubuntu 24.04), Nginx, Let's Encrypt |
+
+### 배포 구성
+
+```
+https://hapjugak.com        Netlify (프론트엔드)
+https://api.hapjugak.com    AWS EC2
+                              └ Nginx  (443 → 127.0.0.1:8080, Let's Encrypt)
+                                  └ Spring Boot 컨테이너
+                                      └ MySQL 8.0 컨테이너 (named volume)
+```
+
+관리형 DB(RDS) 대신 **EC2 한 대에 애플리케이션과 MySQL을 함께 올렸습니다.** 월 $32 → $10.
+대신 1GB 메모리 안에 둘을 욱여넣어야 해서 `-Xmx400m`, `innodb-buffer-pool-size=128M`, 스왑 2GB로 조정했습니다.
+트래픽이 커지면 DB를 분리하는 게 맞지만, 현재 규모에서는 비용이 더 중요한 제약이었습니다.
 
 ---
 
@@ -50,14 +64,18 @@ Member ──주최──> Event ──포함──> Song ──구성──> Sl
    ▲                              ▲              │
    └──────────── 제안 ─────────────┘              │
    └───────────────── 점유 ───────────────────────┘
+                                  └──기록──> ActivityLog
 ```
 
 | 테이블 | 역할 |
 |---|---|
 | `member` | 회원. 자체 가입(LOCAL)과 구글 가입(GOOGLE)을 함께 지원 |
-| `event` | 합주 일정. 날짜, 곡 신청 마감일, 완료 여부 |
+| `member_instrument` | 회원이 다루는 악기 (N개) |
+| `event` | 합주 일정. 날짜, 시간, 합주실, 정원, 곡 신청 마감일, 완료 여부 |
+| `event_default_part` | 그 합주에서 기본으로 잡는 파트 구성 |
 | `song` | 곡. `event_id`가 **NULL이면 곡 후보**, 값이 있으면 일정에 배정됨 |
 | `slot` | **파트 자리 하나**. 곡 하나당 여러 개, 비어 있거나 한 명이 점유 |
+| `activity_log` | 누가 언제 어느 자리에 들어오고 나갔는지의 기록 |
 
 ### `slot`을 별도 테이블로 분리한 이유
 
@@ -165,6 +183,46 @@ private void checkOpen(Song song) {
 
 ---
 
+## 운영 데이터 이관 (Firestore → MySQL)
+
+토이 데이터가 아니라 **실제로 두 달 반 돌아간 서비스의 데이터**를 그대로 옮겼습니다.
+
+```
+회원      26명
+합주 일정  2건
+곡        80건
+파트 자리  398개 (그중 117개 점유)
+활동 로그  270건
+```
+
+### 문서형 → 관계형에서 실제로 걸린 것들
+
+| 문제 | 어떻게 드러났나 | 처리 |
+|---|---|---|
+| **빈 문자열 ≠ NULL** | Firestore는 "값 없음"을 `""`로 저장. `LocalDate.parse("")` 에서 예외 | 읽는 쪽에서 빈 문자열을 `null`로 정규화 |
+| **맵 → 행 전개** | `slots: {"Drum": {...}}` 를 `slot` 테이블 행으로 풀어야 함 | `requiredParts`로 자리를 먼저 만들고, 점유자를 찾아 채움 |
+| **스키마가 데이터보다 작았음** | 커버 이미지·정원·시간대 등 15개 필드가 엔티티에 없었음 | 실데이터를 먼저 조사하고 엔티티를 확장한 뒤 이관 |
+| **이미지가 컬럼에 안 들어감** | 프로필 사진이 URL이 아니라 **68KB base64**. `Data too long for column` | `LONGTEXT`로 변경. (본래는 객체 스토리지가 맞음 — 아래 "앞으로") |
+
+### 이관 코드에 넣은 안전장치
+
+| 장치 | 효과 |
+|---|---|
+| `@Profile("migrate")` | 평소 실행에는 빈으로 등록조차 되지 않음. 운영 중 오작동 불가 |
+| `if (memberRepository.count() > 0) return;` | 멱등성. 두 번 돌려도 데이터가 중복되지 않음 |
+| `@Transactional` | 실제로 `photo_url` 길이 초과로 중단됐을 때 **26건 전부 롤백**되어, 반쯤 이관된 상태가 남지 않았음 |
+
+### 로그는 당시의 값을 복제해 저장한다
+
+`activity_log`는 `actor`(FK)를 두고도 `actor_name`을 문자열로 **중복 저장**합니다. 의도한 비정규화입니다.
+
+> 회원이 닉네임을 바꾸면, 조인으로 이름을 가져오는 방식은 **과거 로그의 이름까지 전부 바뀝니다.**
+> 일어나지 않은 일이 기록에 남는 셈입니다. 기록은 그 시점의 값을 박아둬야 합니다.
+
+같은 이유로 `type`은 enum이 아니라 `String`입니다. 로그 종류는 기능과 함께 늘어나는데, enum이면 새 값을 만난 과거 데이터를 읽다가 애플리케이션이 죽습니다. **고정된 값(파트·악기·권한)은 enum, 늘어나는 값(로그 종류)은 String** 으로 나눴습니다.
+
+---
+
 ## API
 
 | Method | Path | 인증 | 설명 |
@@ -218,11 +276,11 @@ SlotConcurrencyTest          1개   동시성 — 실제 MySQL
 ## 실행 방법
 
 ```bash
-# 1. MySQL 데이터베이스 생성
+# 1. 데이터베이스 생성
 CREATE DATABASE hapjugak      DEFAULT CHARACTER SET utf8mb4;
 CREATE DATABASE hapjugak_test DEFAULT CHARACTER SET utf8mb4;
 
-# 2. 환경변수 설정
+# 2. 환경변수
 DB_PASSWORD=<MySQL 비밀번호>
 JWT_SECRET=<32바이트 이상 문자열>      # 미설정 시 개발용 기본값 사용
 GOOGLE_CLIENT_ID=<구글 OAuth 클라이언트 ID>
@@ -234,12 +292,30 @@ GOOGLE_CLIENT_ID=<구글 OAuth 클라이언트 ID>
 민감정보는 코드에 두지 않고 환경변수로 주입합니다.
 `application.properties`에는 `${DB_PASSWORD}` 형태의 참조만 들어 있습니다.
 
+### 서버 배포
+
+```bash
+docker compose up -d --build      # .env 에서 환경변수를 읽습니다
+```
+
+### Firestore 데이터 이관 (1회성)
+
+```bash
+# data/firestore-backup.json 을 둔 뒤
+./gradlew bootRun --args='--spring.profiles.active=migrate'
+```
+
+백업 JSON에는 실제 회원 정보가 들어 있어 `.gitignore`로 저장소에서 제외합니다.
+
 ---
 
 ## 앞으로
 
-- [ ] Docker 이미지화
-- [ ] AWS EC2 + RDS 배포, Nginx + HTTPS
-- [ ] Firestore → MySQL 데이터 마이그레이션
+- [x] Docker 이미지화
+- [x] AWS EC2 배포, Nginx + HTTPS
+- [x] Firestore → MySQL 데이터 마이그레이션
 - [ ] 프론트엔드를 Firebase SDK에서 자체 API로 전환
+- [ ] SSE로 실시간 갱신 복원 (Firestore `onSnapshot` 대체)
 - [ ] GitHub Actions 무중단 배포
+- [ ] 커버·프로필 이미지를 `LONGTEXT`에서 객체 스토리지로 이전
+- [ ] `ddl-auto=update` → Flyway 기반 스키마 버전 관리
