@@ -9,6 +9,9 @@ public class Slot {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    private Long version;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "song_id", nullable = false)
     private Song song;
@@ -44,6 +47,7 @@ public class Slot {
     }
 
     public Long getId() { return id; }
+    public Long getVersion() { return version; }
     public Song getSong() { return song; }
     public Part getPart() { return part; }
     public Member getMember() { return member; }
