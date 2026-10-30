@@ -2,6 +2,7 @@ package com.example.hapjugakapi.domain;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,6 +18,7 @@ public class Song {
 
     private String artist;
 
+    @Column(length = 500)
     private String youtubeUrl;
 
     @Column(length = 1000)
@@ -33,7 +35,11 @@ public class Song {
     @OneToMany(mappedBy = "song", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Slot> slots = new ArrayList<>();
 
-    protected Song() {}
+    @Column(nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    protected Song() {
+    }
 
     public Song(String title, String artist, String youtubeUrl, String description, Member proposer) {
         this.title = title;
@@ -67,12 +73,44 @@ public class Song {
         return !slots.isEmpty() && getFilledCount() == slots.size();
     }
 
-    public Long getId() { return id; }
-    public String getTitle() { return title; }
-    public String getArtist() { return artist; }
-    public String getYoutubeUrl() { return youtubeUrl; }
-    public String getDescription() { return description; }
-    public Member getProposer() { return proposer; }
-    public Event getEvent() { return event; }
-    public List<Slot> getSlots() { return slots; }
+    /** Firestore 이관 전용. */
+    public void restoreCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getArtist() {
+        return artist;
+    }
+
+    public String getYoutubeUrl() {
+        return youtubeUrl;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public Member getProposer() {
+        return proposer;
+    }
+
+    public Event getEvent() {
+        return event;
+    }
+
+    public List<Slot> getSlots() {
+        return slots;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
 }
