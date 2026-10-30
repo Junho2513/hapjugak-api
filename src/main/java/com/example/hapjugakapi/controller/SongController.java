@@ -1,7 +1,9 @@
 package com.example.hapjugakapi.controller;
 
+import com.example.hapjugakapi.domain.Part;
 import com.example.hapjugakapi.dto.SongRequest;
 import com.example.hapjugakapi.dto.SongResponse;
+import com.example.hapjugakapi.dto.SongSearchCondition;
 import com.example.hapjugakapi.service.SongService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +29,18 @@ public class SongController {
     @GetMapping("/candidates")
     public List<SongResponse> findCandidates() {
         return songService.findCandidates();
+    }
+
+    @GetMapping("/search")
+    public List<SongResponse> search(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Part openPart,
+            @RequestParam(required = false) Boolean candidateOnly,
+            @RequestParam(required = false) Long eventId
+    ) {
+        return songService.search(
+                new SongSearchCondition(keyword, openPart, candidateOnly, eventId)
+        );
     }
 
     @GetMapping

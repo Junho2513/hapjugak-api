@@ -246,3 +246,22 @@ Authorization: Bearer {{token}}
 
 ### 6-6. 완료된 일정만 (= 추억 저장소)
 GET http://localhost:8080/events/completed
+
+###############################################
+# 7. 검색 (QueryDSL)
+###############################################
+
+### 7-1. 조건 없음 — 전체
+GET http://localhost:8080/songs/search
+
+### 7-2. 키워드 — 제목이나 가수에 eve 포함
+GET http://localhost:8080/songs/search?keyword=eve
+
+### 7-3. 드럼 자리가 비어 있는 곡
+GET http://localhost:8080/songs/search?openPart=DRUM
+
+### 7-4. 곡 후보 중에서 베이스가 비어 있는 것
+GET http://localhost:8080/songs/search?candidateOnly=true&openPart=BASS
+
+### 7-5. 조건 세 개 동시에
+GET http://localhost:8080/songs/search?keyword=eve&openPart=VOCAL&candidateOnly=true

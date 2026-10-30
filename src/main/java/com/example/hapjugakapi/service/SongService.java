@@ -7,6 +7,7 @@ import com.example.hapjugakapi.domain.Slot;
 import com.example.hapjugakapi.domain.Song;
 import com.example.hapjugakapi.dto.SongRequest;
 import com.example.hapjugakapi.dto.SongResponse;
+import com.example.hapjugakapi.dto.SongSearchCondition;
 import com.example.hapjugakapi.exception.ConflictException;
 import com.example.hapjugakapi.exception.ForbiddenException;
 import com.example.hapjugakapi.exception.NotFoundException;
@@ -59,6 +60,12 @@ public class SongService {
 
     public List<SongResponse> findByEvent(Long eventId) {
         return songRepository.findByEventId(eventId).stream()
+                .map(SongResponse::from)
+                .toList();
+    }
+
+    public List<SongResponse> search(SongSearchCondition condition) {
+        return songRepository.search(condition).stream()
                 .map(SongResponse::from)
                 .toList();
     }
