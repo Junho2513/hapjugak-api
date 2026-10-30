@@ -1,4 +1,4 @@
-package com.example.hapjugakapi;
+package com.example.hapjugakapi.domain;
 
 import jakarta.persistence.*;
 

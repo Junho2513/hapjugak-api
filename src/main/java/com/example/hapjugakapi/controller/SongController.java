@@ -1,6 +1,8 @@
-package com.example.hapjugakapi;
+package com.example.hapjugakapi.controller;
 
+import com.example.hapjugakapi.domain.Song;
 import org.springframework.web.bind.annotation.*;
+import com.example.hapjugakapi.repository.SongRepository;
 
 import java.util.List;
 
