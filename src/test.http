@@ -1,49 +1,61 @@
-### 회원 가입
-POST http://localhost:8080/members
+### 일정 전체 조회
+GET http://localhost:8080/events
+
+
+### 곡 후보 등록
+POST http://localhost:8080/songs
 Content-Type: application/json
 
 {
-  "email": "wnsgh409@gmail.com",
-  "nickname": "준호",
-  "area": "서울",
-  "bio": "기타 칩니다"
+  "title": "廻廻奇譚",
+  "artist": "Eve",
+  "youtubeUrl": "https://youtu.be/gsq4lF9ONKQ",
+  "description": "주술회전 1기 오프닝",
+  "proposerId": 1,
+  "parts": ["VOCAL", "GUITAR1", "BASS", "DRUM", "KEY1"]
 }
 
-### 회원 가입 2
-POST http://localhost:8080/members
+### 곡 후보 목록 (eventId 없는 곡들)
+GET http://localhost:8080/songs/candidates
+
+
+
+### 곡 하나 조회 — slot id 확인용
+GET http://localhost:8080/songs/1
+
+### 파트 참여 (slotId는 위 응답에서 확인)
+POST http://localhost:8080/songs/1/slots/1/claim?memberId=1
+
+### 같은 자리에 다른 사람 (409 나와야 정상)
+POST http://localhost:8080/songs/1/slots/1/claim?memberId=2
+
+### 남의 자리 빼기 시도 (403 나와야 정상)
+DELETE http://localhost:8080/songs/1/slots/1/claim?memberId=2
+
+### 본인 자리 빼기
+DELETE http://localhost:8080/songs/1/slots/1/claim?memberId=1
+
+### 열려 있는 일정 만들기
+POST http://localhost:8080/events
 Content-Type: application/json
 
 {
-  "email": "drummer@example.com",
-  "nickname": "드러머",
-  "area": "경기",
-  "bio": "드럼 20년"
+  "title": "12월 합주",
+  "date": "2026-12-25",
+  "deadline": "2026-12-20",
+  "place": "홍대",
+  "hostId": 1
 }
 
-### 이메일 중복 테스트 (400 또는 500이 나와야 정상)
-POST http://localhost:8080/members
-Content-Type: application/json
+### 곡을 일정으로 보내기 (eventId는 위 응답의 id)
+PATCH http://localhost:8080/songs/1/event/3
 
-{
-  "email": "wnsgh409@gmail.com",
-  "nickname": "가짜",
-  "area": "부산",
-  "bio": ""
-}
+### 일정에 배정된 곡 보기
+GET http://localhost:8080/songs?eventId=3
 
-### 회원 전체 조회
-GET http://localhost:8080/members
+### 마감 지난 일정으로 보내기 (409 나와야 정상 — eventId는 "이미 마감된 합주"의 id)
+PATCH http://localhost:8080/songs/1/event/2
 
-### 회원 하나 조회
-GET http://localhost:8080/members/1
+### 곡 후보로 되돌리기
+PATCH http://localhost:8080/songs/1/event
 
-### 회원 정보 수정
-PUT http://localhost:8080/members/1
-Content-Type: application/json
-
-{
-  "email": "무시됨",
-  "nickname": "준호수정",
-  "area": "경기",
-  "bio": "베이스도 칩니다"
-}
