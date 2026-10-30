@@ -1,21 +1,32 @@
 ###############################################
-# 1. 인증
+#  합주각 API 테스트
+#
+#  사용법: 1번 섹션부터 순서대로 ▶ 실행
+#  토큰과 id는 자동 저장됩니다 ({{token}}, {{songId}} ...)
+#  토큰 만료(2시간) 시 1-3 로그인만 다시 실행
+###############################################
+
+@host = http://localhost:8080
+
+
+###############################################
+#  1. 인증
 ###############################################
 
 ### 1-1. 회원가입
-POST http://localhost:8080/members
+POST {{host}}/members
 Content-Type: application/json
 
 {
-  "email": "wnsgh409@gmail.com",
+  "email": "guitarist@example.com",
   "password": "test1234",
-  "nickname": "준호",
+  "nickname": "기타리스트",
   "area": "서울",
-  "bio": "기타 칩니다"
+  "bio": "일렉기타 칩니다"
 }
 
 ### 1-2. 회원가입 — 두 번째 사람 (권한 테스트용)
-POST http://localhost:8080/members
+POST {{host}}/members
 Content-Type: application/json
 
 {
@@ -26,24 +37,12 @@ Content-Type: application/json
   "bio": "드럼 20년"
 }
 
-### 1-3. 이메일 중복 (409 기대)
-POST http://localhost:8080/members
+### 1-3. 로그인 → token 자동 저장
+POST {{host}}/auth/login
 Content-Type: application/json
 
 {
-  "email": "wnsgh409@gmail.com",
-  "password": "test1234",
-  "nickname": "가짜",
-  "area": "부산",
-  "bio": ""
-}
-
-### 1-4. 로그인 → 토큰 자동 저장
-POST http://localhost:8080/auth/login
-Content-Type: application/json
-
-{
-  "email": "wnsgh409@gmail.com",
+  "email": "guitarist@example.com",
   "password": "test1234"
 }
 
@@ -52,8 +51,8 @@ Content-Type: application/json
     client.global.set("myId", response.body.memberId);
 %}
 
-### 1-5. 두 번째 사람 로그인 → token2 저장
-POST http://localhost:8080/auth/login
+### 1-4. 두 번째 사람 로그인 → token2 자동 저장
+POST {{host}}/auth/login
 Content-Type: application/json
 
 {
@@ -65,51 +64,83 @@ Content-Type: application/json
     client.global.set("token2", response.body.accessToken);
 %}
 
-### 1-6. 비밀번호 틀림 (401 기대)
-POST http://localhost:8080/auth/login
+### 1-5. [실패] 이메일 중복 → 409
+POST {{host}}/members
 Content-Type: application/json
 
 {
-  "email": "wnsgh409@gmail.com",
-  "password": "틀린비밀번호"
+  "email": "guitarist@example.com",
+  "password": "test1234",
+  "nickname": "가짜",
+  "area": "부산",
+  "bio": ""
+}
+
+### 1-6. [실패] 비밀번호 틀림 → 401
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "guitarist@example.com",
+  "password": "wrong-password"
+}
+
+### 1-7. [실패] 없는 계정 → 401 (같은 메시지여야 함: 계정 열거 방지)
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "nobody@example.com",
+  "password": "test1234"
+}
+
+### 1-8. [실패] 구글 로그인 — 위조 토큰 → 401
+POST {{host}}/auth/google
+Content-Type: application/json
+
+{
+  "idToken": "this.is.not.a.real.token"
 }
 
 
 ###############################################
-# 2. 회원
+#  2. 회원
 ###############################################
 
-### 2-1. 내 정보 (200)
-GET http://localhost:8080/members/me
+### 2-1. 내 정보
+GET {{host}}/members/me
 Authorization: Bearer {{token}}
 
-### 2-2. 내 정보 — 토큰 없이 (401 기대)
-GET http://localhost:8080/members/me
+### 2-2. 특정 회원 프로필 (공개)
+GET {{host}}/members/{{myId}}
 
-### 2-3. 회원 목록 — 일반 사용자 (403 기대)
-GET http://localhost:8080/members
-Authorization: Bearer {{token}}
-
-### 2-4. 내 정보 수정
-PUT http://localhost:8080/members/me
+### 2-3. 내 정보 수정 (email·password는 무시되어야 함)
+PUT {{host}}/members/me
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "email": "무시됨",
-  "password": "무시됨",
-  "nickname": "준호",
+  "email": "hacker@example.com",
+  "password": "hacked",
+  "nickname": "기타리스트",
   "area": "경기",
-  "bio": "기타랑 베이스 칩니다"
+  "bio": "일렉기타와 베이스를 칩니다"
 }
 
+### 2-4. [실패] 내 정보 — 토큰 없이 → 401
+GET {{host}}/members/me
+
+### 2-5. [실패] 회원 목록 — 일반 사용자 → 403
+GET {{host}}/members
+Authorization: Bearer {{token}}
+
 
 ###############################################
-# 3. 합주 일정
+#  3. 합주 일정
 ###############################################
 
-### 3-1. 일정 만들기 (마감 안 지남) → eventId 저장
-POST http://localhost:8080/events
+### 3-1. 일정 만들기 (마감 전) → eventId 저장
+POST {{host}}/events
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
@@ -124,8 +155,8 @@ Authorization: Bearer {{token}}
     client.global.set("eventId", response.body.id);
 %}
 
-### 3-2. 마감 지난 일정 만들기 → closedEventId 저장
-POST http://localhost:8080/events
+### 3-2. 일정 만들기 (마감 지남) → closedEventId 저장
+POST {{host}}/events
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
@@ -140,8 +171,14 @@ Authorization: Bearer {{token}}
     client.global.set("closedEventId", response.body.id);
 %}
 
-### 3-3. 일정 만들기 — 토큰 없이 (401 기대)
-POST http://localhost:8080/events
+### 3-3. 일정 전체 조회 (공개)
+GET {{host}}/events
+
+### 3-4. 일정 하나 조회
+GET {{host}}/events/{{eventId}}
+
+### 3-5. [실패] 일정 만들기 — 토큰 없이 → 401
+POST {{host}}/events
 Content-Type: application/json
 
 {
@@ -151,19 +188,14 @@ Content-Type: application/json
   "place": "어딘가"
 }
 
-### 3-4. 일정 전체 조회 (토큰 불필요)
-GET http://localhost:8080/events
-
-### 3-5. 일정 하나 조회
-GET http://localhost:8080/events/{{eventId}}
-
 
 ###############################################
-# 4. 곡
+#  4. 곡
 ###############################################
 
 ### 4-1. 곡 후보 등록 → songId, slotId 저장
-POST http://localhost:8080/songs
+#       proposerId를 안 보내는데 proposerNickname이 채워져야 함
+POST {{host}}/songs
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
@@ -180,8 +212,25 @@ Authorization: Bearer {{token}}
     client.global.set("slotId", response.body.slots[0].id);
 %}
 
-### 4-2. 곡 등록 — 토큰 없이 (401 기대)
-POST http://localhost:8080/songs
+### 4-2. 곡 하나 더 등록 (검색 테스트용)
+POST {{host}}/songs
+Content-Type: application/json
+Authorization: Bearer {{token2}}
+
+{
+  "title": "奏",
+  "artist": "스키마스위치",
+  "parts": ["VOCAL", "ACOUSTIC", "KEY1"]
+}
+
+### 4-3. 곡 후보 목록 (공개)
+GET {{host}}/songs/candidates
+
+### 4-4. 곡 하나 조회
+GET {{host}}/songs/{{songId}}
+
+### 4-5. [실패] 곡 등록 — 토큰 없이 → 401
+POST {{host}}/songs
 Content-Type: application/json
 
 {
@@ -190,78 +239,90 @@ Content-Type: application/json
   "parts": ["VOCAL"]
 }
 
-### 4-3. 곡 후보 목록 (토큰 불필요)
-GET http://localhost:8080/songs/candidates
-
-### 4-4. 곡 하나 조회
-GET http://localhost:8080/songs/{{songId}}
-
 
 ###############################################
-# 5. 파트 참여 — 핵심
+#  5. 파트 참여 — 핵심 기능
 ###############################################
 
-### 5-1. 보컬 자리 잡기 (200)
-POST http://localhost:8080/songs/{{songId}}/slots/{{slotId}}/claim
+### 5-1. 보컬 자리 잡기
+POST {{host}}/songs/{{songId}}/slots/{{slotId}}/claim
 Authorization: Bearer {{token}}
 
-### 5-2. 같은 자리에 다른 사람 (409 기대)
-POST http://localhost:8080/songs/{{songId}}/slots/{{slotId}}/claim
+### 5-2. [실패] 같은 자리에 다른 사람 → 409
+POST {{host}}/songs/{{songId}}/slots/{{slotId}}/claim
 Authorization: Bearer {{token2}}
 
-### 5-3. 남의 자리 빼기 (403 기대)
-DELETE http://localhost:8080/songs/{{songId}}/slots/{{slotId}}/claim
+### 5-3. [실패] 남의 자리 빼기 → 403
+DELETE {{host}}/songs/{{songId}}/slots/{{slotId}}/claim
 Authorization: Bearer {{token2}}
 
-### 5-4. 자리 잡기 — 토큰 없이 (401 기대)
-POST http://localhost:8080/songs/{{songId}}/slots/{{slotId}}/claim
+### 5-4. [실패] 자리 잡기 — 토큰 없이 → 401
+POST {{host}}/songs/{{songId}}/slots/{{slotId}}/claim
 
-### 5-5. 본인 자리 빼기 (200)
-DELETE http://localhost:8080/songs/{{songId}}/slots/{{slotId}}/claim
+### 5-5. 본인 자리 빼기
+DELETE {{host}}/songs/{{songId}}/slots/{{slotId}}/claim
 Authorization: Bearer {{token}}
 
 
 ###############################################
-# 6. 곡 ↔ 일정 배정
+#  6. 곡 ↔ 일정 배정
 ###############################################
 
-### 6-1. 곡을 일정으로 보내기 (200)
-PATCH http://localhost:8080/songs/{{songId}}/event/{{eventId}}
+### 6-1. 곡을 일정으로 보내기
+PATCH {{host}}/songs/{{songId}}/event/{{eventId}}
 Authorization: Bearer {{token}}
 
 ### 6-2. 일정에 배정된 곡 보기
-GET http://localhost:8080/songs?eventId={{eventId}}
+GET {{host}}/songs?eventId={{eventId}}
 
-### 6-3. 마감 지난 일정으로 보내기 (409 기대)
-PATCH http://localhost:8080/songs/{{songId}}/event/{{closedEventId}}
+### 6-3. [실패] 마감 지난 일정으로 보내기 → 409
+PATCH {{host}}/songs/{{songId}}/event/{{closedEventId}}
 Authorization: Bearer {{token}}
 
-### 6-4. 곡 후보로 되돌리기 (200)
-PATCH http://localhost:8080/songs/{{songId}}/event
+### 6-4. 곡 후보로 되돌리기
+PATCH {{host}}/songs/{{songId}}/event
 Authorization: Bearer {{token}}
 
 ### 6-5. 합주 완료 처리
-PATCH http://localhost:8080/events/{{eventId}}/complete
+PATCH {{host}}/events/{{eventId}}/complete
 Authorization: Bearer {{token}}
 
-### 6-6. 완료된 일정만 (= 추억 저장소)
-GET http://localhost:8080/events/completed
+### 6-6. 완료된 일정 (= 추억 저장소)
+GET {{host}}/events/completed
+
 
 ###############################################
-# 7. 검색 (QueryDSL)
+#  7. 검색 (QueryDSL 동적 쿼리)
+#     콘솔의 SQL이 조건마다 달라지는 걸 확인
 ###############################################
 
-### 7-1. 조건 없음 — 전체
-GET http://localhost:8080/songs/search
+### 7-1. 조건 없음 — where 절이 없어야 함
+GET {{host}}/songs/search
 
-### 7-2. 키워드 — 제목이나 가수에 eve 포함
-GET http://localhost:8080/songs/search?keyword=eve
+### 7-2. 키워드 — title 또는 artist
+GET {{host}}/songs/search?keyword=eve
 
-### 7-3. 드럼 자리가 비어 있는 곡
-GET http://localhost:8080/songs/search?openPart=DRUM
+### 7-3. 드럼 자리가 비어 있는 곡 — exists 서브쿼리
+GET {{host}}/songs/search?openPart=DRUM
 
-### 7-4. 곡 후보 중에서 베이스가 비어 있는 것
-GET http://localhost:8080/songs/search?candidateOnly=true&openPart=BASS
+### 7-4. 곡 후보 중에서 보컬이 비어 있는 것
+GET {{host}}/songs/search?candidateOnly=true&openPart=VOCAL
 
-### 7-5. 조건 세 개 동시에
-GET http://localhost:8080/songs/search?keyword=eve&openPart=VOCAL&candidateOnly=true
+### 7-5. 특정 일정 안에서 검색
+GET {{host}}/songs/search?eventId={{eventId}}
+
+### 7-6. 조건 세 개 동시에 — and로 묶여야 함
+GET {{host}}/songs/search?keyword=eve&openPart=GUITAR1&candidateOnly=true
+
+
+###############################################
+#  8. 정리
+###############################################
+
+### 8-1. 곡 삭제 (올린 사람만)
+DELETE {{host}}/songs/{{songId}}
+Authorization: Bearer {{token}}
+
+### 8-2. 일정 삭제
+DELETE {{host}}/events/{{eventId}}
+Authorization: Bearer {{token}}

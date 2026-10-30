@@ -1,5 +1,6 @@
 package com.example.hapjugakapi.controller;
 
+import com.example.hapjugakapi.dto.GoogleLoginRequest;
 import com.example.hapjugakapi.dto.LoginRequest;
 import com.example.hapjugakapi.dto.TokenResponse;
 import com.example.hapjugakapi.service.AuthService;
@@ -21,5 +22,10 @@ public class AuthController {
     @PostMapping("/login")
     public TokenResponse login(@RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    @PostMapping("/google")
+    public TokenResponse googleLogin(@RequestBody GoogleLoginRequest request) {
+        return authService.googleLogin(request);
     }
 }

@@ -12,7 +12,6 @@ public class Member {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
     private String password;
 
     @Column(nullable = false, length = 20)
@@ -21,6 +20,12 @@ public class Member {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role = Role.USER;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private AuthProvider provider = AuthProvider.LOCAL;
+
+    private String providerId;
 
     private String area;
 
@@ -36,6 +41,36 @@ public class Member {
         this.area = area;
         this.bio = bio;
         this.role = Role.USER;
+        this.provider = AuthProvider.LOCAL;
+    }
+
+    public static Member google(String email, String nickname, String providerId) {
+        Member member = new Member();
+        member.email = email;
+        member.nickname = trim(nickname);
+        member.providerId = providerId;
+        member.provider = AuthProvider.GOOGLE;
+        member.role = Role.USER;
+        return member;
+    }
+
+    private static String trim(String nickname) {
+        if (nickname == null || nickname.isBlank()) {
+            return "회원";
+        }
+        return nickname.length() > 20 ? nickname.substring(0, 20) : nickname;
+    }
+
+    public void linkGoogle(String providerId) {
+        this.providerId = providerId;
+    }
+
+    public boolean hasPassword() {
+        return password != null;
+    }
+
+    public boolean isLinkedWithGoogle() {
+        return providerId != null;
     }
 
     public Long getId() { return id; }
@@ -43,6 +78,8 @@ public class Member {
     public String getPassword() { return password; }
     public String getNickname() { return nickname; }
     public Role getRole() { return role; }
+    public AuthProvider getProvider() { return provider; }
+    public String getProviderId() { return providerId; }
     public String getArea() { return area; }
     public String getBio() { return bio; }
 
