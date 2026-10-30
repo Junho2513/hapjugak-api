@@ -3,6 +3,7 @@ package com.example.hapjugakapi.controller;
 import com.example.hapjugakapi.dto.SongRequest;
 import com.example.hapjugakapi.dto.SongResponse;
 import com.example.hapjugakapi.service.SongService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,8 +19,9 @@ public class SongController {
     }
 
     @PostMapping
-    public SongResponse create(@RequestBody SongRequest request) {
-        return songService.create(request);
+    public SongResponse create(@RequestBody SongRequest request,
+                               @AuthenticationPrincipal Long memberId) {
+        return songService.create(request, memberId);
     }
 
     @GetMapping("/candidates")
@@ -50,19 +52,20 @@ public class SongController {
     @PostMapping("/{songId}/slots/{slotId}/claim")
     public SongResponse claimSlot(@PathVariable Long songId,
                                   @PathVariable Long slotId,
-                                  @RequestParam Long memberId) {
+                                  @AuthenticationPrincipal Long memberId) {
         return songService.claimSlot(songId, slotId, memberId);
     }
 
     @DeleteMapping("/{songId}/slots/{slotId}/claim")
     public SongResponse releaseSlot(@PathVariable Long songId,
                                     @PathVariable Long slotId,
-                                    @RequestParam Long memberId) {
+                                    @AuthenticationPrincipal Long memberId) {
         return songService.releaseSlot(songId, slotId, memberId);
     }
 
     @DeleteMapping("/{songId}")
-    public void delete(@PathVariable Long songId, @RequestParam Long memberId) {
+    public void delete(@PathVariable Long songId,
+                       @AuthenticationPrincipal Long memberId) {
         songService.delete(songId, memberId);
     }
 }

@@ -25,8 +25,8 @@ public class EventService {
     }
 
     @Transactional
-    public EventResponse create(EventRequest request) {
-        Member host = memberRepository.findById(request.hostId())
+    public EventResponse create(EventRequest request, Long hostId) {
+        Member host = memberRepository.findById(hostId)
                 .orElseThrow(() -> new NotFoundException("주최자를 찾을 수 없습니다."));
 
         Event event = new Event(

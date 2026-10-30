@@ -6,6 +6,7 @@ import com.example.hapjugakapi.dto.MemberResponse;
 import com.example.hapjugakapi.exception.ConflictException;
 import com.example.hapjugakapi.exception.NotFoundException;
 import com.example.hapjugakapi.repository.MemberRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,9 +17,11 @@ import java.util.List;
 public class MemberService {
 
     private final MemberRepository memberRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public MemberService(MemberRepository memberRepository) {
+    public MemberService(MemberRepository memberRepository, PasswordEncoder passwordEncoder) {
         this.memberRepository = memberRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
@@ -28,6 +31,7 @@ public class MemberService {
         }
         Member member = new Member(
                 request.email(),
+                passwordEncoder.encode(request.password()),
                 request.nickname(),
                 request.area(),
                 request.bio()
@@ -42,18 +46,20 @@ public class MemberService {
     }
 
     public MemberResponse findById(Long id) {
-        Member member = memberRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("회원을 찾을 수 없습니다."));
-        return MemberResponse.from(member);
+        return MemberResponse.from(getMember(id));
     }
 
     @Transactional
     public MemberResponse update(Long id, MemberRequest request) {
-        Member member = memberRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("회원을 찾을 수 없습니다."));
+        Member member = getMember(id);
         member.setNickname(request.nickname());
         member.setArea(request.area());
         member.setBio(request.bio());
         return MemberResponse.from(member);
+    }
+
+    private Member getMember(Long id) {
+        return memberRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("회원을 찾을 수 없습니다."));
     }
 }

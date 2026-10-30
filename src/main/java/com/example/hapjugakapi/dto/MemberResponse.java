@@ -1,11 +1,13 @@
 package com.example.hapjugakapi.dto;
 
 import com.example.hapjugakapi.domain.Member;
+import com.example.hapjugakapi.domain.Role;
 
 public record MemberResponse(
         Long id,
         String email,
         String nickname,
+        Role role,
         String area,
         String bio
 ) {
@@ -14,6 +16,7 @@ public record MemberResponse(
                 member.getId(),
                 member.getEmail(),
                 member.getNickname(),
+                member.getRole(),
                 member.getArea(),
                 member.getBio()
         );

@@ -9,7 +9,6 @@ public record SongRequest(
         String artist,
         String youtubeUrl,
         String description,
-        Long proposerId,
         List<Part> parts
 ) {
 }

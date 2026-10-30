@@ -97,6 +97,6 @@ class SlotConcurrencyTest {
 
     private Member newMember(String nickname) {
         String email = UUID.randomUUID() + "@test.com";
-        return new Member(email, nickname, "서울", "");
+        return new Member(email, "test1234", nickname, "서울", "");
     }
 }

@@ -35,8 +35,8 @@ public class SongService {
     }
 
     @Transactional
-    public SongResponse create(SongRequest request) {
-        Member proposer = getMember(request.proposerId());
+    public SongResponse create(SongRequest request, Long proposerId) {
+        Member proposer = getMember(proposerId);
 
         Song song = new Song(
                 request.title(),

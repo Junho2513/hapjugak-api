@@ -3,6 +3,7 @@ package com.example.hapjugakapi.controller;
 import com.example.hapjugakapi.dto.MemberRequest;
 import com.example.hapjugakapi.dto.MemberResponse;
 import com.example.hapjugakapi.service.MemberService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,13 +28,19 @@ public class MemberController {
         return memberService.findAll();
     }
 
+    @GetMapping("/me")
+    public MemberResponse me(@AuthenticationPrincipal Long memberId) {
+        return memberService.findById(memberId);
+    }
+
     @GetMapping("/{id}")
     public MemberResponse findById(@PathVariable Long id) {
         return memberService.findById(id);
     }
 
-    @PutMapping("/{id}")
-    public MemberResponse update(@PathVariable Long id, @RequestBody MemberRequest request) {
-        return memberService.update(id, request);
+    @PutMapping("/me")
+    public MemberResponse updateMe(@AuthenticationPrincipal Long memberId,
+                                   @RequestBody MemberRequest request) {
+        return memberService.update(memberId, request);
     }
 }

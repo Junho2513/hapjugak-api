@@ -4,6 +4,7 @@ import com.example.hapjugakapi.dto.EventRequest;
 import com.example.hapjugakapi.dto.EventResponse;
 import com.example.hapjugakapi.service.EventService;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.util.List;
 
@@ -18,8 +19,9 @@ public class EventController {
     }
 
     @PostMapping
-    public EventResponse create(@RequestBody EventRequest request) {
-        return eventService.create(request);
+    public EventResponse create(@RequestBody EventRequest request,
+                                @AuthenticationPrincipal Long memberId) {
+        return eventService.create(request, memberId);
     }
 
     @GetMapping
