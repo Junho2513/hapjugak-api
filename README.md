@@ -7,7 +7,7 @@
 
 ```
 2026.08   Firebase + 정적 HTML 로 배포. 회원 26명이 곡 80건을 올리며 두 달 반 운영
-2026.10   백엔드를 직접 만들어 AWS에 배포, 운영 데이터 이관, 프론트엔드 전환 완료
+2026.10   백엔드를 직접 만들어 AWS에 배포, 운영 데이터 이관, 프론트엔드 전환, 배포 자동화 완료
 ```
 
 ---
@@ -48,6 +48,7 @@
 | Test | JUnit 5, MockMvc |
 | Build | Gradle |
 | Infra | Docker Compose, AWS EC2 (Ubuntu 24.04), Nginx, Let's Encrypt |
+| CI/CD | GitHub Actions, GHCR, 웹훅 기반 자동 배포 |
 | Frontend | 단일 HTML + 바닐라 JS (직접 작성) |
 
 ## 아키텍처
@@ -360,6 +361,103 @@ contextLoads                 1개
 
 ---
 
+## 배포 자동화 — SSH를 열지 않고 배포하기
+
+처음에는 서버에 들어가 세 줄을 직접 쳤습니다.
+
+```bash
+git pull
+sudo cp frontend/*.html /var/www/hapjugak/
+docker compose up -d --build api
+```
+
+문제가 두 가지였습니다. **빌드를 서버에서 했고**(1GB 메모리에서 Gradle 빌드는 수 분이 걸리고 OOM 위험도 있습니다), **테스트를 거치지 않았습니다**. 깨진 코드도 그대로 올라갔습니다.
+
+### 막힌 지점 — CI는 서버에 들어올 수 없다
+
+GitHub Actions가 테스트하고 이미지를 빌드해 GHCR에 올리는 것까지는 쉬웠습니다.
+마지막 "서버에서 그 이미지로 교체" 단계에서 막혔습니다.
+
+```
+dial tcp ***:22: i/o timeout
+```
+
+Security Group이 SSH를 **제 IP에서만** 허용하고 있었고, GitHub 러너의 IP는 실행마다 바뀝니다.
+
+| 선택지 | 왜 택하지 않았나 |
+|---|---|
+| 22번 포트를 `0.0.0.0/0` 으로 개방 | 공개된 SSH 포트는 상시 자동 로그인 시도의 대상이 됩니다 |
+| GitHub Actions IP 대역만 허용 | 대역이 수천 개이고 수시로 바뀝니다. 유지보수가 불가능하고, 실질적으로는 전체 개방에 가깝습니다 |
+| 서버가 주기적으로 당겨오기(cron pull) | 포트는 안 열지만 최대 1분의 지연이 생기고, 평소에는 대부분 헛돌게 됩니다 |
+
+### 택한 방법 — 이미 열려 있는 443으로 신호만 받는다
+
+```mermaid
+flowchart LR
+    DEV["git push<br/>master"]
+    subgraph GH["GitHub Actions"]
+        direction TB
+        TEST["테스트 22개<br/>MySQL 서비스 컨테이너"]
+        BUILD["이미지 빌드<br/>GHCR : 커밋해시"]
+        TEST --> BUILD
+    end
+    subgraph EC2["AWS EC2"]
+        direction TB
+        NGINX["Nginx 443<br/>location = /deploy-hook"]
+        HOOK["webhook 데몬<br/>127.0.0.1:9000"]
+        SH["deploy.sh"]
+        API["api 컨테이너 교체"]
+        NGINX -->|"토큰 헤더 검사"| HOOK --> SH --> API
+    end
+    DEV --> TEST
+    BUILD -->|"POST + X-Deploy-Token"| NGINX
+```
+
+웹훅 데몬은 `127.0.0.1:9000` 에만 바인딩되어 **바깥에서 직접 닿을 수 없습니다.**
+Nginx가 `location = /deploy-hook` 하나만 그쪽으로 넘기고, 토큰 헤더가 정확히 일치할 때만 스크립트가 돕니다.
+
+**이 설계로 지킨 세 가지**
+
+| | |
+|---|---|
+| **새 포트를 열지 않았다** | 이미 쓰고 있던 443 하나만 씁니다. 방화벽 구성은 그대로입니다 |
+| **CI가 서버 열쇠를 갖지 않는다** | SSH 개인키를 GitHub Secret에 올리지 않습니다. 저장소가 뚫려도 서버 접속 수단은 넘어가지 않습니다 |
+| **호출자가 명령을 고를 수 없다** | 실행 대상이 `deploy.sh` 하나로 고정입니다. 토큰이 유출돼도 할 수 있는 일은 "재배포 한 번"이 전부입니다 |
+
+### 배포 스크립트의 안전장치
+
+| 장치 | 막는 상황 |
+|---|---|
+| `flock` | 연속 푸시로 배포가 겹쳐 돌며 서로를 덮어쓰는 것 |
+| `docker manifest inspect` 로 이미지 존재 확인 | 아직 업로드되지 않은 태그로 교체를 시도해 **멀쩡히 돌던 컨테이너를 내려버리는 것** |
+| `IMAGE_TAG=$(커밋 해시)` | `:latest` 로는 "지금 돌고 있는 게 어느 커밋인지" 확인할 방법이 없습니다. 해시 태그면 `docker inspect` 한 줄로 확정됩니다 |
+
+### 겪은 것 — 실패가 로그를 남기지 않았다
+
+처음 몇 번의 배포가 조용히 실패했습니다. 로그에는 `배포 시작` 만 찍히고 끝이었습니다.
+
+원인은 `docker-compose.yml` 이었습니다. `services:` 가 두 줄 연속으로 들어가 전체 들여쓰기가 한 단계 밀려 있었고, Docker가 `services.services.api` 로 읽어 거부했습니다.
+
+**정작 디버깅을 어렵게 만든 건 다른 것이었습니다.** 스크립트 맨 위의 `set -e` 가 실패 즉시 종료시켜, `배포 완료` 로그는 물론 **실패 사유도 남기지 않았습니다.** 웹훅을 거치지 않고 스크립트를 손으로 실행해서야 에러 메시지가 보였습니다.
+
+> 성공 경로에만 로그를 심어두면, 정작 로그가 필요한 순간에 아무것도 없습니다.
+
+### 무중단은 아니다
+
+`docker compose up -d api` 는 컨테이너를 내리고 새로 띄우는 방식이라 **수 초의 공백**이 있습니다.
+진짜 무중단을 하려면 새 컨테이너를 먼저 띄우고 헬스체크를 통과한 뒤 Nginx upstream을 바꾸는 블루-그린 구성이 필요한데, 현재 규모에서는 과하다고 판단해 남겨뒀습니다.
+
+### 결과
+
+```
+git push → 테스트 22개(1분 4초) → 이미지 빌드·업로드(23초) → 서버 교체(22초)
+                                                        총 1분 33초
+```
+
+테스트가 깨지면 `needs: test` 에서 멈추므로, 배포 단계까지 내려오지 않습니다.
+
+---
+
 ## 운영
 
 ### 자동 백업
@@ -403,10 +501,15 @@ JWT_SECRET=<32바이트 이상 문자열>
 
 ### 서버 배포
 
+손으로 할 일이 없습니다. `master` 에 푸시하면 테스트 → 이미지 빌드 → 서버 교체가 이어집니다.
+(GitHub Actions 화면의 **Run workflow** 로 수동 실행도 가능합니다.)
+
+서버에 필요한 설정은 `~/hapjugak-api/.env` 하나입니다.
+
 ```bash
-git pull
-sudo cp frontend/*.html /var/www/hapjugak/
-docker compose up -d --build api
+DB_PASSWORD=...
+JWT_SECRET=...
+GOOGLE_CLIENT_ID=...
 ```
 
 ### Firestore 데이터 이관 (1회성)
@@ -428,7 +531,8 @@ docker compose up -d --build api
 - [x] SSE로 실시간 갱신 복원
 - [x] 구글 로그인 직접 연동 (Firebase 제거)
 - [x] DB 자동 백업
-- [ ] GitHub Actions 무중단 배포
+- [x] GitHub Actions 자동 배포 (테스트 → 이미지 빌드 → 웹훅으로 서버 교체)
+- [ ] 블루-그린으로 배포 공백 제거 — 지금은 컨테이너 교체 중 수 초가 끊깁니다
 - [ ] 커버·프로필 이미지를 `LONGTEXT`에서 객체 스토리지로 이전
 - [ ] `ddl-auto=update` → Flyway 기반 스키마 버전 관리
 - [ ] 백업본을 서버 밖(S3)으로 이전
