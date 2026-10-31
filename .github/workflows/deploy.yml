@@ -1,0 +1,91 @@
+name: 배포
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:          # 깃허브 화면에서 손으로도 실행 가능
+
+env:
+  IMAGE: ghcr.io/junho2513/hapjugak-api
+
+jobs:
+  test:
+    name: 테스트
+    runs-on: ubuntu-latest
+
+    # 동시성 테스트는 진짜 MySQL이 있어야 의미가 있습니다.
+    # 인메모리 DB는 락 동작이 달라서 통과해도 증명되는 게 없습니다.
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci-password
+          MYSQL_DATABASE: hapjugak_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pci-password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - run: chmod +x gradlew
+
+      - name: 테스트 22개
+        run: ./gradlew test --no-daemon
+        env:
+          DB_PASSWORD: ci-password
+
+  deploy:
+    name: 배포
+    needs: test               # 테스트가 깨지면 배포하지 않습니다
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: GHCR 로그인
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 이미지 빌드 및 업로드
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 서버에 반영
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            cd ~/hapjugak-api
+            git fetch origin
+            git reset --hard origin/master
+            sudo cp frontend/index.html frontend/privacy.html /var/www/hapjugak/
+            docker compose pull api
+            docker compose up -d api
+            docker image prune -f
