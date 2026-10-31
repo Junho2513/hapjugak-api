@@ -55,7 +55,7 @@ public record EventResponse(
                 event.getMaxSongsPerUser(),
                 event.getVisibility(),
                 List.copyOf(event.getDefaultParts()),
-                event.getCoverForDisplay(),   // 이관 전이면 옛 base64, 후면 S3 주소
+                event.getCoverUrl(),
                 event.getHost().getId(),
                 event.getHost().getNickname(),
                 event.isCompleted(),

@@ -6,6 +6,6 @@ public record SettingsDto(
         String heroUrl
 ) {
     public static SettingsDto from(SiteSettings settings) {
-        return new SettingsDto(settings.getHeroForDisplay());
+        return new SettingsDto(settings.getHeroUrl());
     }
 }

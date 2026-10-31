@@ -65,11 +65,7 @@ public class Event {
     @Column(name = "part", length = 20)
     private Set<Part> defaultParts = new LinkedHashSet<>();
 
-    /** 옛 저장 방식. 이미지 자체(base64)가 이 컬럼에 들어 있었다. V3에서 제거한다. */
-    @Column(columnDefinition = "LONGTEXT")
-    private String coverImage;
-
-    /** 지금 방식. S3에 올라간 이미지의 공개 주소만 저장한다. */
+    /** S3에 올라간 이미지의 공개 주소. 이미지 자체는 DB에 두지 않는다. */
     @Column(length = 500)
     private String coverUrl;
 
@@ -205,17 +201,8 @@ public class Event {
         return defaultParts;
     }
 
-    public String getCoverImage() {
-        return coverImage;
-    }
-
     public String getCoverUrl() {
         return coverUrl;
-    }
-
-    /** 이관이 끝난 일정은 S3 주소를, 아직 안 끝난 일정은 옛 base64를 돌려준다. */
-    public String getCoverForDisplay() {
-        return coverUrl != null ? coverUrl : coverImage;
     }
 
     public Member getHost() {
@@ -294,14 +281,7 @@ public class Event {
         this.visibility = visibility;
     }
 
-    /** Firestore 이관 전용. 새 코드에서는 쓰지 않는다. */
-    public void setCoverImage(String coverImage) {
-        this.coverImage = coverImage;
-    }
-
-    /** 새 주소를 넣으면서 옛 base64를 같이 비운다. */
     public void setCoverUrl(String coverUrl) {
         this.coverUrl = coverUrl;
-        this.coverImage = null;
     }
 }

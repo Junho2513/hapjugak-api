@@ -29,7 +29,7 @@ public record MemberResponse(
                 member.getProvider(),
                 member.getArea(),
                 member.getBio(),
-                member.getPhotoForDisplay(),   // 이관 전이면 옛 base64, 후면 S3 주소
+                member.getPhotoUrl(),
                 List.copyOf(member.getInstruments()),
                 member.getCreatedAt()
         );

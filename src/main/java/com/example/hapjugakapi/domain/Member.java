@@ -36,14 +36,7 @@ public class Member {
     @Column(length = 1000)
     private String bio;
 
-    /**
-     * 옛 저장 방식. 이미지 자체(base64)가 이 컬럼에 들어 있었다.
-     * S3로 옮기는 중이라 아직 남겨둔다. 이관이 끝나면 V3에서 컬럼째 지운다.
-     */
-    @Column(columnDefinition = "LONGTEXT")
-    private String photoImage;
-
-    /** 지금 방식. S3에 올라간 이미지의 공개 주소만 저장한다. */
+    /** S3에 올라간 이미지의 공개 주소. 이미지 자체는 DB에 두지 않는다. */
     @Column(length = 500)
     private String photoUrl;
 
@@ -140,23 +133,8 @@ public class Member {
         return bio;
     }
 
-    public String getPhotoImage() {
-        return photoImage;
-    }
-
     public String getPhotoUrl() {
         return photoUrl;
-    }
-
-    /**
-     * 화면에 내보낼 값.
-     *
-     * 이관이 끝난 회원은 S3 주소를, 아직 안 끝난 회원은 옛 base64를 돌려준다.
-     * 이 한 줄 덕분에 "컬럼 추가 → 데이터 이관 → 컬럼 제거" 사이 어느 시점에
-     * 서버가 떠도 프로필 사진이 비지 않는다.
-     */
-    public String getPhotoForDisplay() {
-        return photoUrl != null ? photoUrl : photoImage;
     }
 
     public Set<Instrument> getInstruments() {
@@ -179,17 +157,7 @@ public class Member {
         this.bio = bio;
     }
 
-    /** Firestore 이관 전용. 새 코드에서는 쓰지 않는다. */
-    public void setPhotoImage(String photoImage) {
-        this.photoImage = photoImage;
-    }
-
-    /**
-     * 새 주소를 넣으면서 옛 base64를 같이 비운다.
-     * 둘 다 들고 있으면 어느 쪽이 진짜인지 코드마다 달라질 수 있다.
-     */
     public void setPhotoUrl(String photoUrl) {
         this.photoUrl = photoUrl;
-        this.photoImage = null;
     }
 }
