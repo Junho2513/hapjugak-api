@@ -96,7 +96,7 @@ C곡에 기타 한 명만 더 들어오면 합주가 성사된다고 해봅시�
 | 구분 | 기술 |
 |---|---|
 | **깊게 다룬 것** | Java 17 · Spring Boot 4.1 · Spring Data JPA (Hibernate 7) · MySQL 8.0 · QueryDSL · Spring Security + JWT · JUnit 5 |
-| **직접 구성해 운영 중인 것** | Docker Compose · Nginx · AWS EC2 · GitHub Actions · Flyway · SSE · Let's Encrypt |
+| **직접 구성해 운영 중인 것** | Docker Compose · Nginx · AWS EC2 · AWS S3 · GitHub Actions · Flyway · SSE · Let's Encrypt |
 | **써본 것** | Firebase (Auth · Firestore) · Netlify |
 
 ### 이 조합을 고른 이유
@@ -104,6 +104,7 @@ C곡에 기타 한 명만 더 들어오면 합주가 성사된다고 해봅시�
 - **QueryDSL** — 검색 조건 4개의 조합이 16가지입니다. 메서드 이름 기반 쿼리로는 메서드가 16개 필요한데, QueryDSL은 조건이 `null`이면 무시하므로 코드 한 벌로 끝납니다. 단순 CRUD는 기본 메서드를 그대로 씁니다.
 - **낙관적 락** — 경합이 자리 단위로 잘게 쪼개져 충돌 확률이 낮습니다. 비관적 락은 락 대기 비용을 상시로 치르는데 이 도메인에선 수지가 안 맞습니다. 반대로 단일 재고를 다투는 선착순이었다면 재시도 폭증으로 불리했을 선택입니다.
 - **SSE** — 서버에서 클라이언트로 한 방향만 보내면 됩니다. WebSocket은 양방향이 필요 없는데 연결 관리와 프록시 설정 부담만 늘어납니다.
+- **presigned URL** — 업로드 파일이 서버를 통과하지 않습니다. EC2가 1GB라 동시 업로드가 몰리면 서버 경유 방식은 메모리와 대역폭이 바로 압박받는데, 서명 방식은 서버가 주고받는 게 URL 문자열 하나뿐입니다. 대신 파일 크기는 서명으로 제한할 수 없어 업로드 후 검증 단계를 따로 뒀습니다.
 - **EC2 한 대에 앱 + DB** — RDS를 붙이면 월 $32, 한 대에 몰면 $10입니다. 대신 1GB 메모리에 둘을 넣어야 해서 `-Xmx400m`, `innodb-buffer-pool-size=128M`, 스왑 2GB로 맞췄습니다. 트래픽이 커지면 DB부터 분리하는 게 맞습니다.
 
 ---
@@ -236,6 +237,8 @@ public class ChangeNotifyFilter extends OncePerRequestFilter {
 | **결과** | `@Transactional` 덕분에 **26건 전부 롤백되어 반쯤 이관된 상태가 남지 않았습니다.** 재실행으로 회원 26 · 곡 80 · 자리 398 · 로그 270건 전부 이관 완료 |
 | **배운 점** | 컬럼 이름은 데이터의 내용을 보장하지 않습니다. 이관은 스키마를 먼저 만드는 게 아니라 데이터를 먼저 조사하는 일입니다 |
 
+`LONGTEXT`는 "일단 들어가게" 한 임시 조치였습니다. 이미지가 DB 행 안에 있다는 문제 자체는 그대로 남았고, 나중에 7번에서 S3로 옮겼습니다.
+
 문서형 → 관계형에서 함께 걸린 것들입니다.
 
 | 문제 | 처리 |
@@ -288,6 +291,42 @@ public class ChangeNotifyFilter extends OncePerRequestFilter {
 implementation 'org.flywaydb:flyway-core'                        // 아무 일도 일어나지 않음
 implementation 'org.springframework.boot:spring-boot-starter-flyway'  // 자동설정 모듈 포함
 ```
+
+### 7. 이미지가 DB 행 안에 들어 있던 문제
+
+| | |
+|---|---|
+| **문제** | 프로필 사진과 커버 이미지가 base64 문자열로 `LONGTEXT` 컬럼에 저장돼 있었습니다 (최대 68,863자) |
+| **원인 분석** | Firebase 시절 프론트가 `canvas.toDataURL()` 결과를 그대로 저장하던 구조를 이관 때 그대로 받았습니다. 1GB 메모리 서버에서 `innodb-buffer-pool-size=128M`인데, 회원 목록을 한 번 조회하면 **쓰지도 않는 이미지까지 버퍼풀에 올라와** 다른 데이터를 밀어냅니다. 백업 덤프도 이미지 때문에 부풀어 있었습니다 |
+| **해결** | S3로 옮기고 DB에는 주소만 남겼습니다. 업로드는 브라우저가 S3로 직접 보내고(presigned URL), 서버는 서명 발급과 사후 검증만 합니다 |
+| **결과** | 백업 덤프 **247KB → 21KB (-91%)**, 전체 DB **0.73MB → 0.39MB (-47%)**. DB 안에 68,863자로 들어 있던 프로필 사진 한 장이 S3에서 **16KB WebP** 파일이 되었습니다 |
+| **배운 점** | "일단 들어가게" 한 조치는 문제를 미룬 것이지 푼 게 아니었습니다. 당장 돌아가는 것과 구조가 맞는 것은 다릅니다 |
+
+presigned에는 구멍이 하나 있습니다. **Content-Type은 서명에 포함되지만, 파일 크기는 서명으로 제한할 방법이 없습니다.** 서명을 받은 뒤 한도보다 큰 파일을 올려도 S3는 받아줍니다. 그래서 서명 단계에서 못 막는 것을 저장 단계에서 막았습니다.
+
+```
+브라우저에서 자르고 줄여서 WebP로 인코딩
+  → 서버에 서명 요청 (종류·타입 검사, 한도 확인)
+  → S3에 직접 PUT
+  → 그 주소를 저장할 때 서버가 headObject 로 실제 크기·타입을 재확인
+     기준을 넘겼으면 DB에 남기지 않고 S3에서도 삭제
+```
+
+브라우저 쪽은 자르기·리사이즈·압축이 `drawImage` 한 번과 `toBlob` 한 번으로 끝납니다. 사용자가 드래그와 확대로 영역을 맞추면, 자르기 창이 하는 일은 **그릴 위치와 배율 네 숫자를 정하는 것**뿐입니다. 라이브러리를 붙이면 오히려 이 파이프라인이 두 단계로 쪼개집니다.
+
+`createImageBitmap(file, { imageOrientation: "from-image" })` 로 EXIF 회전을 반영합니다. 이게 없으면 폰으로 세로로 찍은 사진이 90도 누운 채 올라갑니다.
+
+### 8. 컬럼을 지웠는데 용량이 그대로였던 문제
+
+| | |
+|---|---|
+| **문제** | `ALTER TABLE member DROP COLUMN photo_image` 가 1초 만에 끝났는데, 테이블 크기가 0.25MB 그대로였습니다 |
+| **원인 분석** | MySQL 8.0의 `DROP COLUMN`은 기본이 **`ALGORITHM=INSTANT`** 입니다. 메타데이터에서 컬럼을 떼어낼 뿐 데이터 파일은 건드리지 않습니다. 빨리 끝난 것이 바로 단서였습니다 |
+| **해결** | `OPTIMIZE TABLE`로 테이블을 재구성했습니다. 덧붙여 `information_schema`가 통계를 24시간 캐싱해서(`information_schema_stats_expiry`) 처음엔 재구성 뒤에도 옛 숫자가 보였습니다 — `.ibd` 파일 크기를 직접 보고서야 확인됐습니다 |
+| **결과** | `member` **0.25MB → 0.03MB**, `event` **0.16MB → 0.03MB** — 재구성 후에야 실제로 줄었습니다 |
+| **배운 점** | 빨리 끝난 DDL은 의심해볼 만합니다. 그리고 "줄었는지"를 통계가 아니라 파일로 확인하는 습관이 생겼습니다 |
+
+> `OPTIMIZE TABLE`은 테이블을 통째로 다시 씁니다. 26행이라 몇 초였지만, 수백만 행이라면 그동안 쓰기가 막히므로 운영 시간에 가볍게 돌릴 명령은 아닙니다.
 
 ---
 
@@ -385,6 +424,47 @@ spring.flyway.baseline-version=1
 
 `validate`로 바꾼 뒤로는 엔티티에 필드를 추가하면 `V2__xxx.sql`을 같이 써야 합니다. 안 쓰면 테스트가 깨지고, 깨진 채로는 배포 단계로 내려가지 않습니다.
 
+### 돌아가는 서비스에서 컬럼을 바꾸는 방법
+
+이미지를 S3로 옮기려면 `photo_image(LONGTEXT)` 를 `photo_url(VARCHAR)` 로 바꿔야 했습니다. 한 번에 갈아치우면 **데이터를 옮기는 동안 사진이 비는 구간**이 생깁니다. 세 단계로 나눴습니다.
+
+| 단계 | 한 일 | 그 시점에 서버가 뜨면 |
+|---|---|---|
+| **V2 — 추가** | `photo_url` 컬럼만 추가. 옛 컬럼은 그대로 | 옛 base64로 화면이 뜸 |
+| **이관** | base64를 디코드해 S3에 올리고 주소를 저장, 옛 컬럼은 비움 | 옮긴 건 S3, 안 옮긴 건 base64 — 둘 다 보임 |
+| **V3 — 제거** | 옛 컬럼을 DROP | 전부 S3 |
+
+중간 상태를 버티게 해준 것은 이 한 줄이었습니다.
+
+```java
+public String getPhotoForDisplay() {
+    return photoUrl != null ? photoUrl : photoImage;
+}
+```
+
+이관 러너에는 세 가지를 넣었습니다.
+
+| 장치 | 효과 |
+|---|---|
+| `@Profile("s3migrate")` | 평소 실행에는 빈으로 등록조차 되지 않음 |
+| 이미 옮긴 대상은 건너뜀 | 멱등성. 실제로 두 번 돌렸고 두 번째는 전부 "건너뜀"이었음 |
+| 전체를 한 트랜잭션으로 묶지 않음 | S3 업로드는 롤백되지 않습니다. DB만 되돌리면 올라간 파일이 고아로 남습니다. 한 건씩 커밋하면 DB와 S3가 어긋난 상태가 한 건을 넘지 않습니다 |
+
+저장된 값이 `data:image/jpeg;base64,...` 였는데, 그 접두사에 적힌 타입은 믿지 않고 **바이트 앞머리로 형식을 판별**했습니다. 그 문자열은 옛 프론트가 적어 넣은 값이라 실제 내용과 다를 수 있습니다.
+
+### 서버에 액세스 키를 두지 않기
+
+EC2에 IAM 역할을 붙여서, 서버에는 자격 증명 파일이 없습니다. AWS SDK의 기본 체인이 **환경 변수 → EC2 인스턴스 역할** 순으로 찾기 때문에, 개발 PC에서는 환경 변수를 쓰고 운영 서버에서는 역할을 쓰는데도 **코드는 한 글자도 달라지지 않습니다.**
+
+권한도 버킷 하나의 객체로만 좁혔습니다.
+
+```json
+{ "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
+  "Resource": "arn:aws:s3:::hapjugak-media/*" }
+```
+
+버킷 정책은 `s3:GetObject` 만 공개합니다. 누구나 이미지를 볼 수는 있지만 올리거나 지우는 건 서명이 있어야 합니다.
+
 ---
 
 ## API
@@ -408,6 +488,7 @@ spring.flyway.baseline-version=1
 | POST · PATCH | `.../slots/{slotId}/takeover` · `/handover` | 필요 · 본인 | 자리 양도·넘겨받기 |
 | PUT | `.../slots/{slotId}` | 주최자·ADMIN | 자리 강제 지정·비우기 |
 | GET · POST | `/songs/{id}/logs` | 조회 — / 기록 필요 | 활동 기록 |
+| POST | `/uploads/presign` | 필요 | 이미지 업로드용 서명 발급 |
 | GET · PUT | `/settings` | 조회 — / 수정 ADMIN | 사이트 설정 |
 | GET | `/stream` | — | SSE 변경 알림 |
 
@@ -521,7 +602,12 @@ CREATE DATABASE hapjugak_test DEFAULT CHARACTER SET utf8mb4;
 DB_PASSWORD=<MySQL 비밀번호>
 JWT_SECRET=<32바이트 이상 문자열>
 
-# 3. 실행
+# 3. 이미지 업로드를 쓰려면 AWS 자격 증명 (운영 서버는 IAM 역할을 쓰므로 불필요)
+AWS_ACCESS_KEY_ID=<버킷 전용 IAM 사용자 키>
+AWS_SECRET_ACCESS_KEY=<비밀 키>
+AWS_REGION=ap-southeast-2
+
+# 4. 실행
 ./gradlew bootRun
 ```
 
@@ -529,13 +615,11 @@ JWT_SECRET=<32바이트 이상 문자열>
 - 민감정보는 환경변수로 주입하고 **기본값을 두지 않습니다.** 설정을 빠뜨리면 공개된 키로 조용히 실행되는 쪽보다 시끄럽게 죽는 쪽이 낫습니다
 - 엔티티를 고치면 `src/main/resources/db/migration/`에 `V2__...sql`을 같이 써야 합니다
 
-### Firestore 데이터 이관 (1회성)
+### 1회성 이관 코드에 대해
 
-```bash
-./gradlew bootRun --args='--spring.profiles.active=migrate'
-```
+Firestore → MySQL 이관(`migrate` 프로필)과 base64 → S3 이관(`s3migrate` 프로필) 러너는 각각 한 번씩 역할을 마치고 **제거했습니다.** 역할이 끝난 코드를 남겨두면 다음 사람이 "이거 아직 돌려야 하나"를 매번 확인해야 합니다. 구현 내용은 git 기록에 남아 있습니다.
 
-백업 JSON에는 실제 회원 정보가 들어 있어 `.gitignore`로 저장소에서 제외합니다.
+Firestore 백업 JSON에는 실제 회원 정보가 들어 있어 `.gitignore`로 저장소에서 제외합니다.
 
 ---
 
@@ -546,7 +630,8 @@ JWT_SECRET=<32바이트 이상 문자열>
 - [x] AWS EC2 배포, Nginx + HTTPS, DB 자동 백업
 - [x] GitHub Actions 자동 배포 (SSH 포트를 열지 않는 웹훅 방식)
 - [x] Flyway 기반 스키마 버전 관리 (운영 DB를 기준선으로 도입)
-- [ ] 커버·프로필 이미지를 `LONGTEXT`에서 객체 스토리지로 이전
+- [x] 이미지를 DB(`LONGTEXT`)에서 S3로 이전 — presigned 업로드 + 브라우저 자르기
+- [ ] S3 수명 주기 규칙 — 업로드만 하고 저장되지 않은 고아 객체 자동 삭제
 - [ ] 백업본을 서버 밖(S3)으로 이전
 - [ ] 응답 페이징 — 곡이 수천 건이 되면 전체 조회가 버거워집니다
 - [ ] 블루-그린으로 배포 공백 제거
