@@ -110,30 +110,7 @@ C곡에 기타 한 명만 더 들어오면 합주가 성사된다고 해봅시�
 
 ## 아키텍처
 
-```mermaid
-flowchart TB
-    USER["사용자 브라우저<br/>hapjugak.com"]
-    GOOGLE["Google Identity Services"]
-
-    subgraph EC2["AWS EC2 · Ubuntu 24.04 · ap-southeast-2"]
-        direction TB
-        NGINX["Nginx 443<br/>정적 서빙 + 리버스 프록시"]
-        STATIC["index.html · privacy.html"]
-        subgraph COMPOSE["Docker Compose"]
-            direction TB
-            API["Spring Boot 4<br/>Security · JPA · QueryDSL · SSE"]
-            DB[("MySQL 8.0<br/>named volume")]
-        end
-        NGINX -->|"/"| STATIC
-        NGINX -->|"/api/**"| API
-        API --> DB
-    end
-
-    USER -->|HTTPS| NGINX
-    API -.->|"SSE 변경 알림"| USER
-    USER -->|로그인| GOOGLE
-    GOOGLE -.->|"ID 토큰 → 자체 JWT"| API
-```
+![합주각 서비스 아키텍처](docs/architecture.png)
 
 도메인 하나(`hapjugak.com`)로 정적 파일과 API를 함께 서빙합니다. Nginx가 `/api/**` 만 백엔드로 넘기고 나머지는 정적 파일로 응답합니다. CORS 설정이 필요 없고, 프론트와 백엔드가 같은 저장소·같은 배포에 묶입니다.
 
