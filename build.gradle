@@ -28,6 +28,11 @@ dependencies {
     // Spring Boot 4부터 자동설정이 기술별 모듈로 분리됐습니다.
     // flyway-core 만 넣으면 라이브러리는 있어도 Boot가 켜주지 않습니다.
     implementation 'org.springframework.boot:spring-boot-starter-flyway'
+
+    // AWS SDK는 Spring Boot가 버전을 관리해주지 않아 BOM을 직접 가져옵니다.
+    implementation platform('software.amazon.awssdk:bom:2.46.7')
+    implementation 'software.amazon.awssdk:s3'
+
     annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:7.4.0:jpa'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.7'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.7'

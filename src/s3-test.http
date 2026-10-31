@@ -1,0 +1,89 @@
+###############################################
+#  S3 업로드 서명 테스트
+#  위에서부터 순서대로 ▶ 실행
+###############################################
+
+@host = http://localhost:8080/api
+
+
+### 1. 테스트 계정 만들기 (이미 있으면 409가 나옵니다 — 그냥 2번으로)
+POST {{host}}/members
+Content-Type: application/json
+
+{
+  "email": "s3test@example.com",
+  "password": "test1234",
+  "nickname": "S3테스터",
+  "area": "서울"
+}
+
+
+### 2. 로그인 → 토큰 자동 저장
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "s3test@example.com",
+  "password": "test1234"
+}
+
+> {% client.global.set("token", response.body.accessToken); %}
+
+
+### 3. 토큰 없이 서명 요청 → 401 이 나와야 정상
+POST {{host}}/uploads/presign
+Content-Type: application/json
+
+{
+  "kind": "PROFILE",
+  "contentType": "image/webp",
+  "size": 45000
+}
+
+
+### 4. 이미지가 아닌 타입 → 409 "이미지 파일만 올릴 수 있습니다."
+POST {{host}}/uploads/presign
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "kind": "PROFILE",
+  "contentType": "application/pdf",
+  "size": 45000
+}
+
+
+### 5. 한도 초과 → 409 "이미지가 너무 큽니다. (최대 300KB)"
+POST {{host}}/uploads/presign
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "kind": "PROFILE",
+  "contentType": "image/webp",
+  "size": 900000
+}
+
+
+### 6. 정상 요청 → uploadUrl / publicUrl 발급
+POST {{host}}/uploads/presign
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "kind": "PROFILE",
+  "contentType": "image/png",
+  "size": 45000
+}
+
+
+### 7. 커버 이미지용 (1MB 한도) — 경로가 cover/ 로 나오는지 확인
+POST {{host}}/uploads/presign
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "kind": "COVER",
+  "contentType": "image/png",
+  "size": 800000
+}

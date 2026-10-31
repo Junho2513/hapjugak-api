@@ -44,6 +44,12 @@ jobs:
         run: ./gradlew test --no-daemon
         env:
           DB_PASSWORD: ci-password
+          # 테스트는 S3를 호출하지 않습니다.
+          # 다만 자격 증명이 아예 없으면 SDK가 EC2 메타데이터 주소를 찾아보느라
+          # 몇 초씩 지연될 수 있어, 찾을 필요가 없도록 가짜 값을 미리 넣어둡니다.
+          AWS_ACCESS_KEY_ID: ci-dummy
+          AWS_SECRET_ACCESS_KEY: ci-dummy
+          AWS_REGION: ap-southeast-2
 
   deploy:
     name: 배포

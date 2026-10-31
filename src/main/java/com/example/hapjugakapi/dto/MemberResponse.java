@@ -16,7 +16,7 @@ public record MemberResponse(
         AuthProvider provider,
         String area,
         String bio,
-        String photoImage,
+        String photoUrl,
         List<Instrument> instruments,
         LocalDateTime createdAt
 ) {
@@ -29,7 +29,7 @@ public record MemberResponse(
                 member.getProvider(),
                 member.getArea(),
                 member.getBio(),
-                member.getPhotoImage(),
+                member.getPhotoForDisplay(),   // 이관 전이면 옛 base64, 후면 S3 주소
                 List.copyOf(member.getInstruments()),
                 member.getCreatedAt()
         );

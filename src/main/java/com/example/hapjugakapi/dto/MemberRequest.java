@@ -10,7 +10,7 @@ public record MemberRequest(
         String nickname,
         String area,
         String bio,
-        String photoImage,
+        String photoUrl,
         List<Instrument> instruments
 ) {
 }
