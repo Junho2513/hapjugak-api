@@ -25,10 +25,15 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-api:0.12.7'
     implementation 'io.github.openfeign.querydsl:querydsl-jpa:7.4.0'
     implementation 'org.springframework.security:spring-security-oauth2-jose'
+    // Spring Boot 4부터 자동설정이 기술별 모듈로 분리됐습니다.
+    // flyway-core 만 넣으면 라이브러리는 있어도 Boot가 켜주지 않습니다.
+    implementation 'org.springframework.boot:spring-boot-starter-flyway'
     annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:7.4.0:jpa'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.7'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.7'
     runtimeOnly 'com.mysql:mysql-connector-j'
+    // Flyway 8.2부터 DB별 지원이 모듈로 쪼개졌습니다. MySQL은 이게 따로 필요합니다.
+    runtimeOnly 'org.flywaydb:flyway-mysql'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
