@@ -3,9 +3,9 @@ package com.example.hapjugakapi.dto;
 import com.example.hapjugakapi.domain.SiteSettings;
 
 public record SettingsDto(
-        String heroImage
+        String heroUrl
 ) {
     public static SettingsDto from(SiteSettings settings) {
-        return new SettingsDto(settings.getHeroImage());
+        return new SettingsDto(settings.getHeroForDisplay());
     }
 }

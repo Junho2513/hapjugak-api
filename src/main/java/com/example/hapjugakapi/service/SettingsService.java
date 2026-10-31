@@ -2,6 +2,7 @@ package com.example.hapjugakapi.service;
 
 import com.example.hapjugakapi.domain.Role;
 import com.example.hapjugakapi.domain.SiteSettings;
+import com.example.hapjugakapi.domain.UploadKind;
 import com.example.hapjugakapi.dto.SettingsDto;
 import com.example.hapjugakapi.exception.ForbiddenException;
 import com.example.hapjugakapi.exception.NotFoundException;
@@ -16,11 +17,14 @@ public class SettingsService {
 
     private final SiteSettingsRepository siteSettingsRepository;
     private final MemberRepository memberRepository;
+    private final StorageService storageService;
 
     public SettingsService(SiteSettingsRepository siteSettingsRepository,
-                           MemberRepository memberRepository) {
+                           MemberRepository memberRepository,
+                           StorageService storageService) {
         this.siteSettingsRepository = siteSettingsRepository;
         this.memberRepository = memberRepository;
+        this.storageService = storageService;
     }
 
     public SettingsDto find() {
@@ -34,8 +38,15 @@ public class SettingsService {
         checkAdmin(memberId);
         SiteSettings settings = siteSettingsRepository.findById(SiteSettings.SINGLETON_ID)
                 .orElseGet(() -> siteSettingsRepository.save(SiteSettings.createDefault()));
-        if (request.heroImage() != null) {
-            settings.setHeroImage(request.heroImage());
+
+        String requested = request.heroUrl();
+        if (requested != null) {
+            String current = settings.getHeroUrl();
+            if (!requested.equals(current)) {
+                String verified = storageService.verify(requested, UploadKind.HERO);
+                settings.setHeroUrl(verified);
+                storageService.deleteByUrl(current);
+            }
         }
         return SettingsDto.from(settings);
     }

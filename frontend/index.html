@@ -1097,7 +1097,7 @@ function toUiEvent(e){
     maxSongsPerUser: e.maxSongsPerUser || 0,
     visibility: (e.visibility || "PUBLIC").toLowerCase(),
     defaultParts: (e.defaultParts || []).map(p => PART_FROM_API[p] || p),
-    cover: e.coverImage || "",
+    cover: e.coverUrl || "",
     tags: [],
     hostUid: String(e.hostId),
     hostName: e.hostNickname || "",
@@ -1166,7 +1166,7 @@ function toApiEvent(d){
   if (has(d, "maxSongsPerUser")) body.maxSongsPerUser = d.maxSongsPerUser;
   if (has(d, "visibility")) body.visibility = String(d.visibility || "public").toUpperCase();
   if (has(d, "defaultParts")) body.defaultParts = (d.defaultParts || []).map(p => PART_TO_API[p]).filter(Boolean);
-  if (has(d, "cover")) body.coverImage = d.cover;
+  if (has(d, "cover")) body.coverUrl = d.cover;
   if (has(d, "completed")) body.completed = d.completed;
   return body;
 }
@@ -1208,7 +1208,7 @@ async function refreshSongs(){
 async function refreshSettings(){
   try {
     const s = await call("GET", "/settings");
-    cacheSettings = { heroImage: (s && s.heroImage) || "" };
+    cacheSettings = { heroImage: (s && s.heroUrl) || "" };
     emitSettings();
   } catch (e) { /* 설정이 없어도 화면은 떠야 합니다 */ }
 }
@@ -1290,8 +1290,8 @@ store = {
     return () => subs.settings.delete(cb);
   },
   async saveSettings(patch){
-    const s = await call("PUT", "/settings", { heroImage: patch.heroImage || "" });
-    cacheSettings = { heroImage: (s && s.heroImage) || "" };
+    const s = await call("PUT", "/settings", { heroUrl: patch.heroImage || "" });
+    cacheSettings = { heroImage: (s && s.heroUrl) || "" };
     emitSettings();
   },
 
@@ -1613,60 +1613,20 @@ function requireLogin(){
   return true;
 }
 
-/* 메인 배너: 가운데 기준 가로로 길게 잘라 1280px 폭 JPEG로 줄입니다. */
-function toBannerDataURL(file, w = 1280, h = 520){
-  return new Promise((resolve, reject) => {
-    if (!file.type.startsWith("image/")) return reject(new Error("이미지 파일만 올릴 수 있습니다"));
-    if (file.size > 16 * 1024 * 1024) return reject(new Error("16MB 이하 이미지만 올릴 수 있습니다"));
-    const fr = new FileReader();
-    fr.onerror = () => reject(new Error("파일을 읽지 못했습니다"));
-    fr.onload = () => {
-      const img = new Image();
-      img.onerror = () => reject(new Error("이미지를 열지 못했습니다"));
-      img.onload = () => {
-        const srcR = img.width / img.height, dstR = w / h;
-        let sw = img.width, sh = img.height;
-        if (srcR > dstR) sw = img.height * dstR; else sh = img.width / dstR;
-        const c = document.createElement("canvas");
-        c.width = w; c.height = h;
-        const g = c.getContext("2d");
-        g.imageSmoothingQuality = "high";
-        g.drawImage(img, (img.width-sw)/2, (img.height-sh)/2, sw, sh, 0, 0, w, h);
-        resolve(c.toDataURL("image/jpeg", 0.74));
-      };
-      img.src = fr.result;
-    };
-    fr.readAsDataURL(file);
-  });
+/** 합주 커버: 16:9로 잘라 1280px WebP로 올린다. 취소하면 null. */
+async function pickCoverImage(file){
+  const blob = await cropImage(file, { aspect: 16 / 9, out: 1280, quality: 0.82, title: "커버 이미지 자르기" });
+  if (!blob) return null;
+  return await uploadImage(blob, "COVER");
 }
 
-/* 합주 대표 이미지: 가운데 기준 16:9로 잘라 640px 폭 JPEG로 줄입니다. */
-function toCoverDataURL(file, w = 640){
-  return new Promise((resolve, reject) => {
-    if (!file.type.startsWith("image/")) return reject(new Error("이미지 파일만 올릴 수 있습니다"));
-    if (file.size > 12 * 1024 * 1024) return reject(new Error("12MB 이하 이미지만 올릴 수 있습니다"));
-    const h = Math.round(w * 9 / 16);
-    const fr = new FileReader();
-    fr.onerror = () => reject(new Error("파일을 읽지 못했습니다"));
-    fr.onload = () => {
-      const img = new Image();
-      img.onerror = () => reject(new Error("이미지를 열지 못했습니다"));
-      img.onload = () => {
-        const srcRatio = img.width / img.height, dstRatio = w / h;
-        let sw = img.width, sh = img.height;
-        if (srcRatio > dstRatio) sw = img.height * dstRatio; else sh = img.width / dstRatio;
-        const c = document.createElement("canvas");
-        c.width = w; c.height = h;
-        const g = c.getContext("2d");
-        g.imageSmoothingQuality = "high";
-        g.drawImage(img, (img.width - sw)/2, (img.height - sh)/2, sw, sh, 0, 0, w, h);
-        resolve(c.toDataURL("image/jpeg", 0.78));
-      };
-      img.src = fr.result;
-    };
-    fr.readAsDataURL(file);
-  });
+/** 메인 배너: 가로로 길게(1280×520 비율) 잘라 1600px WebP로 올린다. 취소하면 null. */
+async function pickHeroImage(file){
+  const blob = await cropImage(file, { aspect: 1280 / 520, out: 1600, quality: 0.8, title: "배너 이미지 자르기" });
+  if (!blob) return null;
+  return await uploadImage(blob, "HERO");
 }
+
 
 /* ============================================================
    5-b. 이미지 자르기와 업로드
@@ -3348,7 +3308,8 @@ function adminSiteTab(box){
     err.textContent = "";
     lab.textContent = "올리는 중";
     try {
-      const data = await toBannerDataURL(f);
+      const data = await pickHeroImage(f);
+      if (!data) return;
       await store.saveSettings({heroImage: data});
       siteSettings.heroImage = data;
       paint(); toast("배너 사진을 바꿨습니다");
@@ -3601,7 +3562,10 @@ function eventModal(ev){
     root.querySelector("#f-file").onchange = async e => {
       const f = e.target.files?.[0]; if (!f) return;
       const err = root.querySelector("#f-err"); err.textContent = "";
-      try { cover = await toCoverDataURL(f); paintCover(); }
+      try {
+        const url = await pickCoverImage(f);
+        if (url){ cover = url; paintCover(); }
+      }
       catch(ex){ err.textContent = ex.message; }
       e.target.value = "";
     };

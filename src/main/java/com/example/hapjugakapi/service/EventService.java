@@ -3,6 +3,7 @@ package com.example.hapjugakapi.service;
 import com.example.hapjugakapi.domain.Event;
 import com.example.hapjugakapi.domain.Member;
 import com.example.hapjugakapi.domain.Role;
+import com.example.hapjugakapi.domain.UploadKind;
 import com.example.hapjugakapi.dto.EventRequest;
 import com.example.hapjugakapi.dto.EventResponse;
 import com.example.hapjugakapi.exception.ForbiddenException;
@@ -20,10 +21,14 @@ public class EventService {
 
     private final EventRepository eventRepository;
     private final MemberRepository memberRepository;
+    private final StorageService storageService;
 
-    public EventService(EventRepository eventRepository, MemberRepository memberRepository) {
+    public EventService(EventRepository eventRepository,
+                        MemberRepository memberRepository,
+                        StorageService storageService) {
         this.eventRepository = eventRepository;
         this.memberRepository = memberRepository;
+        this.storageService = storageService;
     }
 
     @Transactional
@@ -67,12 +72,28 @@ public class EventService {
         if (request.capacity() != null) event.setCapacity(request.capacity());
         if (request.maxSongsPerUser() != null) event.setMaxSongsPerUser(request.maxSongsPerUser());
         if (request.visibility() != null) event.setVisibility(request.visibility());
-        if (request.coverImage() != null) event.setCoverImage(request.coverImage());
+        applyCover(event, request.coverUrl());
         if (request.defaultParts() != null) event.replaceDefaultParts(request.defaultParts());
         if (request.completed() != null) {
             if (request.completed()) event.complete();
             else event.reopen();
         }
+    }
+
+    /**
+     * null  — 커버를 건드리지 않는다
+     * ""    — 커버를 지운다
+     * 그 외 — 업로드된 파일을 검증하고 주소를 저장한다
+     */
+    private void applyCover(Event event, String requested) {
+        if (requested == null) return;
+
+        String current = event.getCoverUrl();
+        if (requested.equals(current)) return;   // 안 바뀌었으면 S3를 부를 이유가 없다
+
+        String verified = storageService.verify(requested, UploadKind.COVER);
+        event.setCoverUrl(verified);
+        storageService.deleteByUrl(current);     // 교체되었으니 옛 파일은 지운다
     }
 
     public List<EventResponse> findAll() {
@@ -103,7 +124,9 @@ public class EventService {
     public void delete(Long id, Long memberId) {
         Event event = getEvent(id);
         checkHostOrAdmin(event, memberId);
+        String cover = event.getCoverUrl();
         eventRepository.delete(event);
+        storageService.deleteByUrl(cover);
     }
 
     private void checkHostOrAdmin(Event event, Long memberId) {

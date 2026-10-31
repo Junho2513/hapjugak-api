@@ -29,7 +29,7 @@ public record EventRequest(
         Integer maxSongsPerUser,
         Event.Visibility visibility,
         List<Part> defaultParts,
-        String coverImage,
+        String coverUrl,
         Boolean completed
 ) {
 }

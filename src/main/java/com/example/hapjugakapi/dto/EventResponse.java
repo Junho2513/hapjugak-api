@@ -27,7 +27,7 @@ public record EventResponse(
         int maxSongsPerUser,
         Event.Visibility visibility,
         List<Part> defaultParts,
-        String coverImage,
+        String coverUrl,
         Long hostId,
         String hostNickname,
         boolean completed,
@@ -55,7 +55,7 @@ public record EventResponse(
                 event.getMaxSongsPerUser(),
                 event.getVisibility(),
                 List.copyOf(event.getDefaultParts()),
-                event.getCoverImage(),
+                event.getCoverForDisplay(),   // 이관 전이면 옛 base64, 후면 S3 주소
                 event.getHost().getId(),
                 event.getHost().getNickname(),
                 event.isCompleted(),
