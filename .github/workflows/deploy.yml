@@ -56,6 +56,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 기본 드라이버는 캐시 내보내기를 지원하지 않습니다.
+      # buildx를 먼저 띄워야 cache-to 가 동작합니다.
+      - name: buildx 준비
+        uses: docker/setup-buildx-action@v3
+
       - name: GHCR 로그인
         uses: docker/login-action@v3
         with:
@@ -88,4 +93,4 @@ jobs:
             sudo cp frontend/index.html frontend/privacy.html /var/www/hapjugak/
             docker compose pull api
             docker compose up -d api
-            docker image prune -f
+            docker image prune -fK
