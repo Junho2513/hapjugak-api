@@ -79,18 +79,11 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: 서버에 반영
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            set -e
-            cd ~/hapjugak-api
-            git fetch origin
-            git reset --hard origin/master
-            sudo cp frontend/index.html frontend/privacy.html /var/www/hapjugak/
-            docker compose pull api
-            docker compose up -d api
-            docker image prune -fK
+      # 서버에 SSH로 들어가지 않습니다.
+      # 이미 열려 있는 443 포트로 "배포해라" 신호만 보냅니다.
+      # CI는 서버 열쇠를 갖지 않고, 실행할 명령을 고를 수도 없습니다.
+      - name: 서버에 배포 요청
+        run: |
+          curl -fsS --retry 3 --retry-delay 5 -X POST \
+            -H "X-Deploy-Token: ${{ secrets.DEPLOY_TOKEN }}" \
+            https://hapjugak.com/deploy-hook

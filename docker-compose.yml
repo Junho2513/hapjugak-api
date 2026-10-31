@@ -1,43 +1,43 @@
 services:
-  services:
-    db:
-      image: mysql:8.0
-      container_name: hapjugak-db
-      restart: always
-      environment:
-        MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-        MYSQL_DATABASE: hapjugak
-        TZ: Asia/Seoul
-      command:
-        - --character-set-server=utf8mb4
-        - --collation-server=utf8mb4_unicode_ci
-        - --innodb-buffer-pool-size=128M
-      volumes:
-        - db-data:/var/lib/mysql
-      healthcheck:
-        test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASSWORD}" ]
-        interval: 10s
-        timeout: 5s
-        retries: 10
+  db:
+    image: mysql:8.0
+    container_name: hapjugak-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: hapjugak
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb-buffer-pool-size=128M
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASSWORD}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
-    api:
-      # 서버에서 빌드하지 않습니다. GitHub Actions가 만들어 올린 이미지를 받아 씁니다.
-      image: ghcr.io/junho2513/hapjugak-api:latest
-      container_name: hapjugak-api
-      restart: always
-      depends_on:
-        db:
-          condition: service_healthy
-      environment:
-        SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/hapjugak?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-        DB_PASSWORD: ${DB_PASSWORD}
-        JWT_SECRET: ${JWT_SECRET}
-        GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-        JAVA_TOOL_OPTIONS: "-Xmx400m -Xms128m"
-        TZ: Asia/Seoul
-      ports:
-        # 바깥에서 직접 못 들어옵니다. Nginx만 접근합니다.
-        - "127.0.0.1:8080:8080"
+  api:
+    # 서버에서 빌드하지 않습니다. GitHub Actions가 만들어 올린 이미지를 받아 씁니다.
+    # IMAGE_TAG는 deploy.sh가 커밋 해시로 넣어줍니다. 없으면 latest를 씁니다.
+    image: ghcr.io/junho2513/hapjugak-api:${IMAGE_TAG:-latest}
+    container_name: hapjugak-api
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/hapjugak?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      JAVA_TOOL_OPTIONS: "-Xmx400m -Xms128m"
+      TZ: Asia/Seoul
+    ports:
+      # 바깥에서 직접 못 들어옵니다. Nginx만 접근합니다.
+      - "127.0.0.1:8080:8080"
 
-  volumes:
-    db-data:
+volumes:
+  db-data:
