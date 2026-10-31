@@ -69,6 +69,10 @@ public class EventService {
         if (request.visibility() != null) event.setVisibility(request.visibility());
         if (request.coverImage() != null) event.setCoverImage(request.coverImage());
         if (request.defaultParts() != null) event.replaceDefaultParts(request.defaultParts());
+        if (request.completed() != null) {
+            if (request.completed()) event.complete();
+            else event.reopen();
+        }
     }
 
     public List<EventResponse> findAll() {

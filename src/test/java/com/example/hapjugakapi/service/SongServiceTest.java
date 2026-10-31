@@ -166,8 +166,8 @@ class SongServiceTest {
     }
 
     @Test
-    @DisplayName("편성을 바꿔도 이미 사람이 들어온 자리는 남는다")
-    void 편성_변경시_참여자_보존() {
+    @DisplayName("편성에서 뺀 파트는 사람이 있어도 자리가 사라진다")
+    void 편성에서_뺀_파트는_비워진다() {
         SongResponse song = 곡만들기();
         Long 보컬자리 = song.slots().get(0).id();
         songService.claimSlot(song.id(), 보컬자리, 드러머.getId(), false);
@@ -178,7 +178,8 @@ class SongServiceTest {
                 기타리스트.getId()
         );
 
-        assertEquals(2, 바뀜.totalCount());
-        assertEquals(1, 바뀜.filledCount());
+        assertEquals(1, 바뀜.totalCount());
+        assertEquals(0, 바뀜.filledCount());
+        assertEquals(Part.BASS, 바뀜.slots().get(0).part());
     }
 }

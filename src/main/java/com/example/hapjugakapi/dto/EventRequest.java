@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * 생성과 수정에 함께 쓴다.
  * 수정(PATCH)에서는 null인 항목을 "바꾸지 않음"으로 해석하므로,
- * 숫자도 int가 아닌 Integer로 받는다.
+ * 숫자와 참·거짓도 int/boolean이 아닌 Integer/Boolean으로 받는다.
  */
 public record EventRequest(
         String title,
@@ -29,6 +29,7 @@ public record EventRequest(
         Integer maxSongsPerUser,
         Event.Visibility visibility,
         List<Part> defaultParts,
-        String coverImage
+        String coverImage,
+        Boolean completed
 ) {
 }

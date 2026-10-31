@@ -56,13 +56,13 @@ public class Song {
 
     /**
      * 편성(파트 구성)을 주어진 목록에 맞춘다.
-     * 이미 사람이 들어온 자리는 목록에서 빠져도 지우지 않는다.
-     * 편성을 고쳤다는 이유로 참여자를 말없이 쫓아내면 안 되기 때문이다.
+     * 목록에서 빠진 파트는 이미 사람이 들어와 있어도 함께 비운다.
+     * "모집하지 않는 파트에는 자리가 남지 않는다"가 이 서비스의 규칙이다.
      */
     public void syncParts(Collection<Part> parts) {
         if (parts == null) return;
         List<Part> wanted = new ArrayList<>(parts);
-        slots.removeIf(slot -> !slot.isTaken() && !wanted.contains(slot.getPart()));
+        slots.removeIf(slot -> !wanted.contains(slot.getPart()));
         for (Part part : wanted) {
             boolean exists = slots.stream().anyMatch(slot -> slot.getPart() == part);
             if (!exists) addSlot(part);

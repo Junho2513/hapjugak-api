@@ -1,0 +1,3896 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>합주각 — 곡별로 파트 모아서 합주하기</title>
+<meta name="description" content="합주 오프모임을 열고, 곡마다 파트별로 손들고, 자리가 차면 성립. 한국 합주실 세션 매칭.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gasoek+One&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0C0F17;
+  --ink-2:#171C29;
+  --ink-3:#222939;
+  --line:#39425C;
+  --line-2:#59648A;
+  --paper:#EEF1F7;
+  --muted:#A3ABC4;
+  --amber:#FFB020;
+  --amber-dim:#4A3413;
+  --cyan:#35D6C4;
+  --cyan-dim:#123B38;
+  --coral:#FF6B57;
+  --r:10px;
+  --maxw:1080px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ink);
+  color:var(--paper);
+  font-family:"IBM Plex Sans KR",system-ui,sans-serif;
+  font-weight:400;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;color:inherit;cursor:pointer;border:0;background:none}
+input,select,textarea{font-family:inherit;font-size:15px}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:4px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px}
+.hide{display:none !important}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:50;
+  background:rgba(15,18,32,.86);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
+}
+.topbar .wrap{display:flex;align-items:center;gap:16px;height:78px}
+.brand{display:flex;align-items:baseline;gap:12px;min-width:0}
+.brand-mark{
+  font-family:"Gasoek One",sans-serif;font-weight:400;font-synthesis:none;
+  font-size:31px;letter-spacing:.04em;line-height:1;
+}
+.brand-mark b{color:var(--amber);font-weight:inherit}
+.brand-sub{
+  font-size:12.5px;color:var(--muted);white-space:nowrap;
+  padding-left:12px;border-left:1px solid var(--line);
+}
+.brand:hover .brand-mark{opacity:.85}
+.topbar .spacer{flex:1}
+
+.btn{
+  border:1px solid var(--line);background:var(--ink-2);
+  padding:8px 15px;border-radius:var(--r);font-size:14px;font-weight:500;
+  transition:border-color .15s,background .15s,transform .1s;
+}
+.btn:hover{border-color:var(--muted)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--amber);color:#1A1204;border-color:var(--amber);font-weight:600}
+.btn.cyan{background:var(--cyan);color:#062320;border-color:var(--cyan);font-weight:600}
+.btn.cyan:hover{background:#4EE6D5;border-color:#4EE6D5}
+.btn.primary:hover{background:#FFC249;border-color:#FFC249}
+.btn.ghost{background:transparent}
+.btn.sm{padding:5px 11px;font-size:13px}
+.avatar{width:28px;height:28px;border-radius:6px;background:var(--ink-3);object-fit:cover;flex:none}
+.profile-btn{
+  display:flex;align-items:center;gap:11px;font-size:15px;font-weight:500;
+  border:1px solid var(--line);background:var(--ink-2);
+  padding:7px 16px 7px 8px;border-radius:12px;transition:.15s;max-width:220px;
+}
+.profile-btn .avatar{width:34px;height:34px;border-radius:8px}
+.profile-btn:hover{border-color:var(--line-2);background:var(--ink-3)}
+.btn.login{
+  padding:13px 24px;font-size:15px;font-weight:600;border-radius:12px;
+  background:var(--amber);color:#1A1204;border-color:var(--amber);
+}
+.btn.login:hover{background:#FFC249;border-color:#FFC249}
+.profile-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ava-row{display:flex;gap:16px;align-items:flex-start;margin-bottom:20px}
+.ava-big{width:96px;height:96px;border-radius:10px;object-fit:cover;background:var(--ink-3);border:1px solid var(--line);flex:none}
+.ava-note{font-size:12px;color:var(--muted);margin:8px 0 0;line-height:1.5}
+.req{color:var(--coral);font-weight:400;font-size:10px;letter-spacing:.06em;margin-left:5px}
+
+/* ---------- hero banner ---------- */
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line);background:#0C0F17}
+.hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;display:none}
+.hero-bg.on{display:block}
+.hero-bg.on::after{content:"";position:absolute;inset:0;background:rgba(8,10,18,.72)}
+.hero-beams{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.hero-beams i{position:absolute;top:-80px;height:520px;display:block}
+.hero-bg.on ~ .hero-beams{opacity:.4}
+.hero-crowd{position:absolute;left:0;right:0;bottom:0;width:100%;height:88px;display:block;fill:#05070C;opacity:.9}
+.hero-inner{position:relative;z-index:1;text-align:center;padding:64px 20px 82px}
+
+h1.headline{
+  font-family:"Gasoek One",sans-serif;font-weight:400;font-synthesis:none;
+  font-size:clamp(44px,7.4vw,74px);line-height:1.12;margin:0 0 20px;letter-spacing:.04em;
+}
+h1.headline em{font-style:normal;color:var(--amber)}
+.hero .sub{font-size:16px;color:var(--muted);margin:0 auto 30px;line-height:1.7;max-width:44ch}
+.hero .cta{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.btn.big{padding:19px 34px;font-size:18px;font-weight:600;border-radius:12px;letter-spacing:-.01em}
+
+.steps{display:flex;align-items:stretch;justify-content:center;gap:10px;margin-top:42px;flex-wrap:wrap}
+.step{
+  flex:1;max-width:196px;min-width:158px;
+  background:rgba(23,28,41,.82);border:1px solid var(--line);border-radius:12px;
+  padding:18px 16px;text-align:center;transition:.15s;
+}
+a.step:hover{border-color:var(--line-2);background:rgba(34,41,57,.92)}
+.step.is-last{background:rgba(28,27,26,.88);border-color:var(--amber)}
+.step-en{display:block;font-size:11px;letter-spacing:.14em;color:var(--muted)}
+.step b{display:block;font-size:19px;font-weight:700;color:var(--amber);margin:6px 0 8px}
+.step-d{display:block;font-size:12.5px;line-height:1.6;color:var(--muted)}
+.step-arrow{display:flex;align-items:center;color:var(--line-2);font-size:22px}
+
+/* ---------- sections ---------- */
+section{padding:52px 0}
+.sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+h2{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
+.sec-head .note{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted)}
+.filters{display:flex;gap:8px;flex-wrap:wrap}
+.chip{
+  border:1px solid var(--line);background:transparent;border-radius:999px;
+  padding:5px 13px;font-size:13px;color:var(--muted);transition:.15s;
+}
+.chip:hover{color:var(--paper)}
+.chip.on{background:var(--paper);color:var(--ink);border-color:var(--paper);font-weight:600}
+
+/* event cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.card{
+  background:var(--ink-2);border:1px solid var(--line);border-radius:var(--r);
+  padding:18px;display:block;transition:border-color .15s,transform .15s;
+}
+.card:hover{border-color:var(--line-2);transform:translateY(-2px)}
+.card .when{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--amber);letter-spacing:.04em}
+.card h3{font-size:17px;margin:7px 0 4px;font-weight:600;line-height:1.35}
+.card .where{font-size:13px;color:var(--muted);margin-bottom:14px}
+.meter{display:flex;gap:3px;margin-bottom:10px}
+.meter b{height:5px;flex:1;background:var(--ink-3);border-radius:99px;display:block}
+.meter b.on{background:var(--amber)}
+.card .stats{display:flex;gap:14px;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted)}
+.card .stats u{text-decoration:none;color:var(--paper)}
+.empty{
+  border:1px dashed var(--line);border-radius:var(--r);padding:38px 20px;
+  text-align:center;color:var(--muted);font-size:14px;
+}
+
+/* ---------- event detail ---------- */
+.back{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);display:inline-block;margin-bottom:18px}
+.back:hover{color:var(--paper)}
+.ev-head{
+  border-bottom:1px solid var(--line);padding-bottom:24px;margin-bottom:26px;
+  display:flex;gap:28px;align-items:flex-start;
+}
+.ev-main{flex:1;min-width:0}
+.ev-head h1{font-size:clamp(24px,4vw,34px);margin:8px 0 10px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.ev-meta{display:flex;gap:20px;flex-wrap:wrap;font-size:14px;color:var(--muted);margin-bottom:14px}
+.ev-meta span u{text-decoration:none;color:var(--paper)}
+.ev-desc{font-size:15px;color:var(--muted);max-width:66ch;white-space:pre-wrap}
+
+/* ---------- song cards — the signature ---------- */
+.songs{display:flex;flex-direction:column;gap:14px}
+.songs:has(.song.compact){gap:6px}
+
+/* 한 줄 보기 — 슬롯을 그대로 압축해 한 행에 담습니다 */
+.song.compact{padding:0;overflow:hidden}
+.song-line{display:flex;align-items:center;gap:12px;padding:11px 14px}
+.song.compact .led{margin-top:0}
+.song.compact .song-id{width:172px;flex:none;min-width:0}
+.song.compact .song-t{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.song.compact .song-a{font-size:12px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.song.compact .slots{flex:1;min-width:0;display:flex;gap:4px}
+.slots.mini .slot{
+  flex:1;min-width:0;min-height:44px;padding:6px 4px;gap:2px;border-radius:7px;
+}
+.slots.mini .slot b{font-size:12px;letter-spacing:-.02em}
+.slots.mini .slot span{font-size:11.5px}
+.line-right{display:flex;align-items:center;gap:8px;flex:none}
+.line-unset{
+  flex:1;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  border:1px dashed var(--line-2);border-radius:8px;padding:8px 12px;
+  font-size:12.5px;color:var(--muted);
+}
+.group-head{display:flex;align-items:baseline;gap:10px;padding-bottom:2px;margin-top:8px}
+.group-head:first-child{margin-top:0}
+.group-head h3{font-size:16px;font-weight:700;margin:0;letter-spacing:-.01em}
+.group-head.is-done h3{color:var(--amber)}
+.group-head .group-n{font-size:12px;color:var(--muted)}
+.group-head::after{content:"";flex:1;height:1px;background:var(--line)}
+.badge.near{border-color:var(--coral);color:var(--coral)}
+.group-head.is-unset h3{color:var(--muted)}
+.song-unset{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  background:var(--ink);border:1px dashed var(--line-2);border-radius:10px;padding:14px 16px;
+}
+.song-unset p{margin:0;font-size:13.5px;color:var(--muted);flex:1;min-width:200px}
+.partpick.dimmed{opacity:.35;pointer-events:none}
+
+.song{
+  background:var(--ink-2);border:1px solid var(--line);border-radius:12px;
+  padding:16px 18px 18px;transition:border-color .2s,background .2s;
+}
+.song.done{border-color:var(--amber);background:#1C1B1A}
+@keyframes lightup{0%{box-shadow:0 0 0 3px rgba(255,176,32,.45)}100%{box-shadow:0 0 0 0 rgba(255,176,32,0)}}
+.song.justdone{animation:lightup 1.2s ease-out}
+
+.song-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
+.led{width:9px;height:9px;border-radius:50%;background:var(--ink-3);border:1px solid var(--line);flex:none;margin-top:7px}
+.song.done .led{background:var(--amber);border-color:var(--amber);box-shadow:0 0 10px var(--amber)}
+.song-id{flex:1;min-width:0}
+.song-t{font-size:17px;font-weight:600;line-height:1.35;letter-spacing:-.01em}
+.song.done .song-t{color:var(--amber)}
+.song-a{font-size:13px;color:var(--muted);margin-top:3px}
+.song-tools{display:flex;align-items:center;gap:8px;flex:none}
+.song-desc{
+  font-size:13.5px;color:var(--muted);line-height:1.6;white-space:pre-wrap;
+  margin:0 0 14px;padding:11px 13px;background:var(--ink);border-radius:9px;
+  border-left:2px solid var(--line-2);
+}
+
+.song-yt{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:12px;font-weight:600;color:#fff;background:#FF0033;
+  border-radius:7px;padding:6px 11px;white-space:nowrap;transition:.15s;
+}
+.song-yt:hover{background:#D9002B}
+.song-yt i{font-style:normal;font-size:9px;line-height:1}
+.song-edit{
+  font-size:12px;color:var(--muted);border:1px solid var(--line);
+  border-radius:7px;padding:6px 11px;white-space:nowrap;transition:.15s;
+}
+.song-edit:hover{color:var(--paper);border-color:var(--line-2);background:var(--ink-3)}
+
+.badge{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.06em;
+  border-radius:999px;padding:4px 11px;white-space:nowrap;
+  border:1px solid var(--line);color:var(--muted);
+}
+.badge.on{background:var(--amber);border-color:var(--amber);color:#1A1204;font-weight:600}
+
+/* part slots */
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(116px,1fr));gap:8px}
+.slot{
+  border:1px solid var(--line);border-radius:9px;background:var(--ink-3);
+  padding:11px 8px;text-align:center;transition:.15s;min-height:68px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+}
+.slot b{
+  font-family:"IBM Plex Sans KR",sans-serif;font-size:15px;font-weight:700;
+  letter-spacing:-.01em;color:var(--paper);display:block;line-height:1.2;
+}
+.slot span{font-size:13.5px;font-weight:500;color:#AEB6CF;line-height:1.2;overflow:hidden;text-overflow:ellipsis;max-width:100%;white-space:nowrap}
+
+.slot.open{background:transparent;border-style:dashed;border-color:var(--line-2);cursor:pointer}
+.slot.open span{color:#98A0BA}
+.slot.open:hover{background:var(--cyan-dim);border-color:var(--cyan);border-style:solid}
+.slot.open:hover span,.slot.open:hover b{color:var(--cyan)}
+
+.slot.taken{cursor:default}
+.slot.taken span{color:var(--paper)}
+.slot.mine{background:var(--cyan-dim);border-color:var(--cyan);cursor:pointer}
+.slot.mine b{color:var(--cyan)}
+.slot.mine span{color:var(--cyan);font-weight:600}
+.slot.mine:hover{background:rgba(255,107,87,.18);border-color:var(--coral)}
+.slot.mine:hover b,.slot.mine:hover span{color:var(--coral)}
+
+.slot.locked{cursor:not-allowed;background:transparent;border-style:dashed;border-color:var(--line)}
+.slot.locked b{color:#7C86A6}
+.slot.locked span{color:var(--line-2)}
+
+.slot.na{
+  border-color:var(--line);cursor:default;
+  background:repeating-linear-gradient(45deg,var(--ink-2),var(--ink-2) 6px,var(--line) 6px,var(--line) 8px);
+}
+.slot.na b{color:#8F97B2;text-decoration:line-through;text-decoration-thickness:2px}
+.slot.yield{border-style:dashed;border-color:var(--cyan);cursor:pointer}
+.slot.yield:hover{background:var(--cyan-dim)}
+.yield-mark{font-style:normal;font-size:11px;color:var(--cyan);margin-left:4px}
+.slot.mine .yield-mark{color:inherit}
+.note-closed{color:var(--coral)}
+.ev-done{
+  display:inline-block;margin-top:14px;padding:8px 14px;border-radius:9px;
+  background:var(--cyan-dim);border:1px solid var(--cyan);color:var(--cyan);
+  font-size:13px;font-weight:600;
+}
+.badge.played{background:var(--cyan-dim);border-color:var(--cyan);color:var(--cyan)}
+.card-done{
+  display:inline-block;font-size:11px;letter-spacing:.08em;margin-bottom:8px;
+  background:var(--cyan-dim);border:1px solid var(--cyan);color:var(--cyan);
+  border-radius:999px;padding:2px 9px;
+}
+.past-chip{border-style:dashed}
+h1.is-done{color:var(--muted)}
+.move-btn{border-color:var(--amber);color:var(--amber)}
+.move-btn:hover{background:var(--amber-dim);border-color:var(--amber);color:var(--amber)}
+.move-list{display:flex;flex-direction:column;gap:8px;max-height:46vh;overflow-y:auto}
+.move-item{
+  display:flex;flex-direction:column;gap:4px;text-align:left;
+  background:var(--ink);border:1px solid var(--line);border-radius:10px;padding:13px 15px;transition:.15s;
+}
+.move-item:hover:not(:disabled){border-color:var(--amber);background:#1C1B1A}
+.move-item:disabled{opacity:.5;cursor:default}
+.move-item b{font-size:15px;font-weight:600}
+.move-item span{font-size:12.5px;color:var(--muted)}
+.move-now{color:var(--amber) !important}
+.move-locked{border-color:var(--line);color:var(--muted)}
+.move-locked:hover{background:transparent;border-color:var(--line);color:var(--muted)}
+.song-by{font-size:12px;color:var(--line-2);margin-top:3px}
+.song.compact .song-by{font-size:11.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.song.compact .song-line{align-items:center}
+.log-list{display:flex;flex-direction:column;gap:2px;max-height:56vh;overflow-y:auto}
+.log-row{display:flex;gap:12px;align-items:flex-start;padding:11px 4px;border-bottom:1px solid var(--ink-3)}
+.log-row:last-child{border-bottom:0}
+.log-dot{width:7px;height:7px;border-radius:50%;background:var(--line-2);flex:none;margin-top:7px}
+.log-dot.log-enter,.log-dot.log-takeover{background:var(--cyan)}
+.log-dot.log-song,.log-dot.log-parts{background:var(--amber)}
+.log-dot.log-leave,.log-dot.log-admin{background:var(--coral)}
+.log-body{flex:1;min-width:0}
+.log-text{font-size:13.5px;line-height:1.55;word-break:break-word}
+.log-when{font-size:11.5px;color:var(--muted);margin-top:3px}
+.enter-pick{display:flex;flex-direction:column;gap:10px;margin:18px 0 4px}
+.enter-opt{
+  text-align:left;background:var(--ink);border:1px solid var(--line);border-radius:11px;
+  padding:16px 18px;transition:.15s;
+}
+.enter-opt:hover{border-color:var(--amber);background:#1C1B1A}
+.enter-opt b{display:block;font-size:16px;font-weight:700;margin-bottom:5px}
+.enter-opt span{display:block;font-size:13px;color:var(--muted);line-height:1.6}
+.slot.managing{cursor:pointer;border-style:dashed;border-color:var(--amber)}
+.slot.managing:hover{background:var(--amber-dim)}
+.slot.managing b,.slot.managing span{color:var(--paper)}
+.slot.na span{display:none}
+
+.songs-foot{
+  display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+  margin-top:16px;padding-top:14px;border-top:1px solid var(--line);
+  font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);
+}
+.legend{display:flex;gap:16px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:1px solid var(--line)}
+
+/* roster */
+.roster{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.tagp{
+  background:var(--ink-2);border:1px solid var(--line);border-radius:999px;
+  padding:6px 14px;font-size:13px;
+}
+.tagp b{color:var(--muted);font-weight:400;font-family:"IBM Plex Mono",monospace;font-size:11px;margin-left:7px}
+
+/* ---------- 달력 ---------- */
+.cal{background:var(--ink-2);border:1px solid var(--line);border-radius:14px;padding:16px 18px 18px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cal-head b{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.cal-nav{width:30px;height:30px;border:1px solid var(--line);border-radius:8px;color:var(--muted);font-size:14px;line-height:1}
+.cal-nav:hover{color:var(--paper);border-color:var(--line-2)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-dow{font-family:"IBM Plex Mono",monospace;font-size:11px;text-align:center;color:var(--muted);padding:3px 0 7px}
+.cal-dow.sun{color:var(--coral)}
+.cal-dow.sat{color:var(--cyan)}
+.cal-day{
+  min-height:34px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  border-radius:8px;font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--paper);
+  border:1px solid transparent;
+}
+.cal-day.out{color:var(--ink-3)}
+.cal-day.today{border-color:var(--line-2)}
+.cal-day.has{color:var(--amber);font-weight:600;cursor:pointer}
+.cal-day.has:hover{background:var(--amber-dim)}
+.cal-day.on{background:var(--amber);color:#1A1204;border-color:var(--amber)}
+.cal-dot{width:4px;height:4px;border-radius:50%;background:var(--amber)}
+.cal-day.on .cal-dot{background:#1A1204}
+.cal-foot{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);margin-top:10px;text-align:center;line-height:1.5}
+
+.list-layout{display:grid;grid-template-columns:300px 1fr;gap:28px;align-items:start}
+.list-side{position:sticky;top:96px}
+.list-main{min-width:0}
+
+/* ---------- 관리자 ---------- */
+.admin-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.stat{background:var(--ink-2);border:1px solid var(--line);border-radius:11px;padding:16px 18px}
+.stat b{display:block;font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.stat span{display:block;font-size:12.5px;color:var(--muted);margin-top:5px}
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar-row{display:flex;align-items:center;gap:12px}
+.bar-l{font-size:13.5px;width:92px;flex:none;color:var(--paper)}
+.bar-t{flex:1;height:9px;background:var(--ink-3);border-radius:99px;overflow:hidden}
+.bar-t i{display:block;height:100%;background:var(--amber);border-radius:99px}
+.bar-n{font-size:12px;color:var(--muted);width:32px;text-align:right;flex:none}
+.admin-acts{display:flex;gap:7px;flex:none;align-items:flex-start}
+.admin-badge{border-color:var(--amber);color:var(--amber)}
+.tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.tool{background:var(--ink-2);border:1px solid var(--line);border-radius:11px;padding:18px;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.tool b{font-size:15px;font-weight:600}
+.banner-prev{
+  width:100%;aspect-ratio:1280/520;border:1px solid var(--line);border-radius:9px;
+  background:var(--ink);overflow:hidden;display:flex;align-items:center;justify-content:center;
+  font-size:12.5px;color:var(--muted);
+}
+.banner-prev img{width:100%;height:100%;object-fit:cover;display:block}
+.tool p{font-size:13px;color:var(--muted);margin:0;line-height:1.6;flex:1}
+@media (max-width:640px){
+  .admin-row{flex-wrap:wrap}
+  .admin-acts{width:100%;justify-content:flex-end}
+  .bar-l{width:74px;font-size:12.5px}
+}
+
+/* ---------- 추억 저장소 ---------- */
+.mem-title{
+  font-family:"Gasoek One",sans-serif;font-weight:400;font-synthesis:none;
+  font-size:clamp(30px,5vw,46px);letter-spacing:.04em;margin:0 0 10px;
+}
+.mem-lead{font-size:15px;color:var(--muted);margin:0 0 26px}
+.mem-stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px}
+.mem-stat{
+  background:var(--ink-2);border:1px solid var(--line);border-radius:11px;
+  padding:14px 20px;min-width:118px;
+}
+.mem-stat b{display:block;font-size:24px;font-weight:700;color:var(--cyan);letter-spacing:-.02em}
+.mem-stat span{display:block;font-size:12.5px;color:var(--muted);margin-top:4px}
+
+.mem-list{display:flex;flex-direction:column;gap:22px}
+.mem-card{
+  display:grid;grid-template-columns:300px 1fr;
+  background:var(--ink-2);border:1px solid var(--line);border-radius:14px;overflow:hidden;
+}
+.mem-cover{position:relative;background:var(--ink-3);min-height:190px}
+.mem-cover img{width:100%;height:100%;object-fit:cover;display:block}
+.mem-cover.no-photo{
+  display:flex;align-items:center;justify-content:center;
+  background:repeating-linear-gradient(135deg,var(--ink-3),var(--ink-3) 10px,var(--ink-2) 10px,var(--ink-2) 20px);
+  color:var(--line-2);font-size:15px;font-weight:600;letter-spacing:.06em;
+}
+.mem-date{
+  position:absolute;left:14px;bottom:14px;
+  background:rgba(8,10,18,.82);border:1px solid var(--cyan);border-radius:10px;
+  padding:8px 13px;backdrop-filter:blur(6px);
+}
+.mem-date b{display:block;font-size:17px;font-weight:700;color:var(--cyan);line-height:1.2}
+.mem-date span{display:block;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);margin-top:2px}
+
+.mem-body{padding:20px 22px;min-width:0}
+.mem-head{display:block;margin-bottom:16px}
+.mem-head h2{font-size:20px;font-weight:700;margin:0 0 5px;letter-spacing:-.01em}
+.mem-head:hover h2{color:var(--cyan)}
+.mem-meta{font-size:13px;color:var(--muted)}
+
+.mem-setlist{display:flex;flex-direction:column}
+.mem-song{
+  display:flex;align-items:baseline;gap:12px;
+  padding:9px 0;border-bottom:1px solid var(--ink-3);
+}
+.mem-song:last-child{border-bottom:0}
+.mem-no{font-size:12px;color:var(--line-2);flex:none;width:22px}
+.mem-song-t{flex:1;min-width:0}
+.mem-song-t b{font-size:14.5px;font-weight:600}
+.mem-song-t span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.mem-who{font-size:12px;color:var(--muted);text-align:right;max-width:46%;line-height:1.5}
+.mem-empty{font-size:13px;color:var(--muted)}
+
+.mem-foot{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.mem-foot-l{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;color:var(--muted);flex:none}
+.mem-people{display:flex;flex-wrap:wrap;gap:6px}
+
+@media (max-width:720px){
+  .mem-card{grid-template-columns:1fr}
+  .mem-cover{min-height:150px;aspect-ratio:16/9}
+  .mem-body{padding:16px 16px 18px}
+  .mem-song{flex-wrap:wrap;gap:8px}
+  .mem-who{text-align:left;max-width:none;width:100%;padding-left:34px}
+  .mem-stat{flex:1;min-width:96px;padding:12px 14px}
+}
+
+/* ---------- 사용법 ---------- */
+.guide-h1{font-size:clamp(26px,4vw,36px);font-weight:700;letter-spacing:-.02em;margin:0 0 10px}
+.guide-lead{font-size:16px;color:var(--muted);margin:0 0 32px;max-width:56ch}
+.guide-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+.guide-nav .chip{color:var(--muted)}
+.guide-nav .chip:hover{color:var(--paper);border-color:var(--line-2)}
+
+.flow{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  background:var(--ink-2);border:1px solid var(--line);border-radius:12px;
+  padding:16px 18px;margin-bottom:24px;
+}
+.flow-step{font-size:13px;color:var(--paper);background:var(--ink);border:1px solid var(--line);border-radius:999px;padding:6px 13px;white-space:nowrap}
+.flow-step.is-done{border-color:var(--amber);color:var(--amber)}
+.flow-step.is-played{border-color:var(--cyan);color:var(--cyan)}
+.flow-arrow{color:var(--line-2);font-size:13px}
+.guide-pick{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.guide-card{
+  display:flex;flex-direction:column;gap:8px;
+  background:var(--ink-2);border:1px solid var(--line);border-radius:14px;
+  padding:34px 28px;transition:.18s;
+}
+.guide-card:hover{border-color:var(--amber);background:#1C1B1A;transform:translateY(-2px)}
+.guide-ico{
+  width:42px;height:42px;border-radius:50%;border:2px solid var(--amber);color:var(--amber);
+  display:flex;align-items:center;justify-content:center;font-size:14px;margin-bottom:6px;
+}
+.guide-card b{font-size:20px;font-weight:700;letter-spacing:-.01em}
+.guide-card span:last-child{font-size:14px;color:var(--muted)}
+
+.guide-steps{display:flex;flex-direction:column;align-items:stretch}
+.guide-step{
+  background:var(--ink-2);border:1px solid var(--line);border-radius:12px;
+  padding:22px 24px;
+}
+.guide-step-head{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.guide-num{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.12em;
+  background:var(--amber);color:#1A1204;border-radius:999px;padding:4px 11px;font-weight:600;
+}
+.guide-step-head h2{font-size:18px;font-weight:700;margin:0;letter-spacing:-.01em}
+.guide-step p{font-size:15px;color:var(--muted);line-height:1.75;margin:0}
+.guide-arrow{
+  text-align:center;color:var(--line-2);font-size:18px;line-height:1;
+  padding:12px 0;
+}
+.guide-end{margin-top:34px;padding-top:26px;border-top:1px solid var(--line);display:flex;justify-content:center}
+
+@media (max-width:640px){
+  .flow{padding:13px 14px;gap:6px}
+  .flow-step{font-size:12px;padding:5px 10px}
+  .mem-title{font-size:clamp(26px,8vw,34px)}
+  .mem-lead{font-size:14px;margin-bottom:20px}
+  .sec-head{flex-direction:column;align-items:stretch;gap:12px}
+  .sec-head > div:last-child{display:flex;gap:8px;flex-wrap:wrap}
+  .guide-pick{grid-template-columns:1fr}
+  .guide-card{padding:26px 22px}
+  .guide-step{padding:18px 18px}
+  .guide-lead{font-size:15px;margin-bottom:24px}
+}
+
+/* ---------- forms / modal ---------- */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(8,10,18,.76);z-index:100;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.modal{
+  background:var(--ink-2);border:1px solid var(--line);border-radius:14px;
+  width:100%;max-width:520px;max-height:86vh;overflow-y:auto;padding:26px;
+}
+.modal h3{margin:0 0 4px;font-size:19px;font-weight:700}
+.modal .hint{font-size:13px;color:var(--muted);margin:0 0 20px}
+.field{margin-bottom:15px}
+.field label{display:block;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;color:var(--muted);margin-bottom:6px}
+.field input,.field select,.field textarea{
+  width:100%;background:var(--ink);border:1px solid var(--line);color:var(--paper);
+  border-radius:8px;padding:10px 12px;
+}
+.field textarea{min-height:78px;resize:vertical;line-height:1.5}
+.field label.unset-toggle{
+  display:flex;align-items:center;gap:10px;margin:12px 0 0;cursor:pointer;
+  font-family:"IBM Plex Sans KR",sans-serif;font-size:14px;font-weight:500;
+  letter-spacing:0;text-transform:none;color:var(--paper);
+  background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:11px 13px;
+  transition:.15s;
+}
+.field label.unset-toggle:hover{border-color:var(--line-2)}
+.field label.unset-toggle input{
+  width:18px;height:18px;flex:none;margin:0;accent-color:var(--amber);cursor:pointer;
+}
+.field label.unset-toggle:has(input:checked){border-color:var(--amber);background:#1C1B1A}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--cyan);outline:none}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.partpick{display:flex;flex-wrap:wrap;gap:7px}
+.partpick button{
+  border:1px solid var(--line);border-radius:8px;padding:7px 13px;
+  font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);
+}
+.partpick button.on{background:var(--cyan-dim);border-color:var(--cyan);color:var(--cyan)}
+.modal-actions{display:flex;gap:9px;justify-content:flex-end;margin-top:22px}
+.err{color:var(--coral);font-size:13px;margin-top:10px;min-height:18px}
+
+/* toast */
+#admin-fab{
+  position:fixed;right:20px;bottom:20px;z-index:80;
+  background:var(--ink-2);border:1px solid var(--line-2);color:var(--paper);
+  border-radius:999px;padding:11px 20px;font-size:14px;font-weight:600;
+  box-shadow:0 6px 22px rgba(0,0,0,.45);transition:.15s;
+}
+#admin-fab:hover{background:var(--amber);border-color:var(--amber);color:#1A1204}
+.modal:has(.admin-wide){max-width:680px}
+.modal:has(.form-wide){max-width:620px}
+.form-sec{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.12em;
+  color:var(--amber);text-transform:uppercase;
+  margin:26px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line);
+}
+.form-sec:first-of-type{margin-top:20px}
+.row3{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px}
+.ev-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.admin-count{font-size:12px;color:var(--muted);margin:2px 0 10px}
+.admin-list{display:flex;flex-direction:column;gap:8px}
+.admin-row{display:flex;gap:12px;align-items:flex-start;padding:12px;background:var(--ink);border:1px solid var(--line);border-radius:10px}
+.admin-row .avatar{width:44px;height:44px;border-radius:8px}
+.admin-info{flex:1;min-width:0}
+.admin-name{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:3px}
+.admin-name b{font-size:15px;font-weight:600}
+.tagp-mini{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
+.admin-sub{font-size:12.5px;color:var(--muted);word-break:break-all}
+.admin-bio{font-size:13px;color:var(--paper);margin:5px 0;white-space:pre-wrap}
+@media (max-width:640px){ #admin-fab{right:14px;bottom:14px;padding:10px 16px} }
+
+#toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,80px);
+  background:var(--paper);color:var(--ink);padding:11px 20px;border-radius:999px;
+  font-size:14px;font-weight:600;z-index:200;opacity:0;transition:.28s;pointer-events:none;
+}
+#toast.on{transform:translate(-50%,0);opacity:1}
+
+footer{border-top:1px solid var(--line);padding:34px 0;color:var(--muted);font-size:13px}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+.banner{
+  background:var(--amber-dim);border-bottom:1px solid #6B4A19;
+  color:#FFD79A;font-size:13px;padding:9px 0;
+}
+.banner .wrap{display:flex;gap:10px;align-items:center;justify-content:center;text-align:center}
+
+/* 대표 이미지 */
+.ev-cover{width:360px;flex:none;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--ink-2)}
+.ev-cover img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+.card-cover{margin:-18px -18px 14px;border-bottom:1px solid var(--line);overflow:hidden}
+.card-cover img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+.cover-pick{display:flex;gap:14px;align-items:flex-start}
+.cover-prev{
+  width:160px;aspect-ratio:16/9;flex:none;border:1px solid var(--line);border-radius:9px;
+  background:var(--ink);overflow:hidden;display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:var(--muted);
+}
+.cover-prev img{width:100%;height:100%;object-fit:cover}
+
+/* ---------- 반응형 ---------- */
+@media (max-width:900px){
+  .hero-inner{padding:48px 20px 70px}
+  section{padding:40px 0}
+  .ev-cover{width:280px}
+  .list-layout{grid-template-columns:1fr;gap:22px}
+  .list-side{position:static}
+}
+@media (max-width:640px){
+  .wrap{padding:0 16px}
+  .topbar .wrap{height:62px;gap:10px}
+  .brand-mark{font-size:25px}
+  .brand-sub{display:none}
+  .btn.login{padding:11px 16px;font-size:14px}
+  .profile-btn{max-width:150px;font-size:14px;padding:6px 12px 6px 6px}
+  .profile-btn .avatar{width:30px;height:30px}
+  .profile-btn{max-width:132px}
+  .hero-inner{padding:36px 16px 54px}
+  h1.headline{font-size:clamp(36px,11vw,50px)}
+  .hero .sub{font-size:14.5px;margin-bottom:22px}
+  .hero .cta{flex-direction:column;align-items:stretch}
+  .steps{flex-direction:column;align-items:stretch;margin-top:30px}
+  .step{max-width:none}
+  .step-arrow{justify-content:center;transform:rotate(90deg)}
+  .btn.big{width:100%;text-align:center;padding:17px 20px;font-size:17px}
+  section{padding:30px 0}
+  .cards{grid-template-columns:1fr}
+  .sec-head{align-items:flex-start}
+  .song{padding:14px 14px 16px}
+  .song.compact{padding:0}
+  .song-line{flex-wrap:wrap;gap:9px;padding:12px 13px}
+  .song.compact .song-id{width:auto;flex:1}
+  .song.compact .slots{flex:1 1 100%;flex-wrap:wrap}
+  .slots.mini .slot{flex:1 1 60px;min-height:48px}
+  .line-right{flex:1 1 100%;justify-content:space-between}
+  .line-unset{flex:1 1 100%}
+  .song-top{flex-wrap:wrap}
+  .song-id{flex:1 1 100%;order:1}
+  .led{order:0}
+  .song-tools{order:2;width:100%;justify-content:flex-start;margin-top:4px}
+  .slots{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px}
+  .slot{min-height:62px;padding:9px 5px}
+  .slot b{font-size:14px}
+  .slot span{font-size:12.5px}
+  .modal{padding:20px 18px;max-height:92vh;border-radius:12px 12px 0 0}
+  .modal-bg{align-items:flex-end;padding:0}
+  .row2,.row3{grid-template-columns:1fr}
+  .cover-pick{flex-direction:column}
+  .cover-prev{width:100%}
+  .ava-row{gap:12px}
+  .ava-big{width:76px;height:76px}
+  .ev-meta{gap:12px;font-size:13px}
+  .ev-head{flex-direction:column;gap:18px}
+  .ev-cover{width:100%;order:-1}
+  .modal-actions{flex-wrap:wrap}
+  .modal-actions .btn{flex:1;text-align:center}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important;transition:none !important}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#/">
+      <span class="brand-mark">합주<b>각</b></span>
+      <span class="brand-sub">합주 오프모임 매칭</span>
+    </a>
+    <div class="spacer"></div>
+    <div id="auth-slot"></div>
+  </div>
+</header>
+
+<main>
+
+<!-- ============ LIST VIEW ============ -->
+<div id="view-list">
+  <div class="hero">
+    <div class="hero-bg" id="hero-bg"></div>
+    <div class="hero-beams" id="hero-beams">
+      <i style="left:10%;width:150px;transform:rotate(16deg);background:#FFB020;opacity:.07"></i>
+      <i style="left:42%;width:110px;transform:rotate(-11deg);background:#35D6C4;opacity:.06"></i>
+      <i style="right:12%;width:170px;transform:rotate(-20deg);background:#FFB020;opacity:.05"></i>
+    </div>
+    <svg class="hero-crowd" viewBox="0 0 680 90" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 90 L0 62 Q14 46 26 62 L34 44 L42 62 Q56 40 68 62 L74 38 L82 62 Q96 48 108 62 L116 34 L124 62 Q140 44 154 62 L160 46 L170 62 Q184 38 198 62 L206 42 L214 62 Q230 50 244 62 L252 36 L260 62 Q276 44 290 62 L298 48 L306 62 Q320 38 334 62 L342 44 L350 62 Q366 50 380 62 L388 34 L396 62 Q412 46 426 62 L434 42 L442 62 Q458 40 472 62 L480 46 L488 62 Q504 48 518 62 L526 38 L534 62 Q550 44 564 62 L572 44 L580 62 Q596 40 610 62 L618 46 L626 62 Q642 48 656 62 L664 40 L672 62 L680 58 L680 90 Z"/>
+    </svg>
+
+    <div class="wrap hero-inner">
+      <h1 class="headline">합주각<br><em>나왔다</em></h1>
+      <p class="sub">하고 싶은 곡과 파트를 올려보세요.<br>함께 연주할 사람을 찾고, 바로 합주를 시작해보세요.</p>
+      <div class="cta">
+        <button class="btn primary big" id="btn-new-hero">합주 열기</button>
+        <a class="btn cyan big" href="#/songs">곡 후보 보기</a>
+        <a class="btn ghost big" href="#list">합주 일정 보기</a>
+        <a class="btn ghost big" href="#/guide">사용법 보기</a>
+        <a class="btn ghost big" href="#/memories">추억 저장소</a>
+      </div>
+
+      <div class="steps">
+        <a class="step" href="#/guide/host">
+          <span class="step-en mono">ORGANIZE</span>
+          <b>합주 열기</b>
+          <span class="step-d">날짜와 곡을 정하고<br>사람을 모읍니다</span>
+        </a>
+        <span class="step-arrow" aria-hidden="true">›</span>
+        <a class="step" href="#/guide/join">
+          <span class="step-en mono">JOIN</span>
+          <b>자리 잡기</b>
+          <span class="step-d">치고 싶은 곡의<br>빈 파트를 누릅니다</span>
+        </a>
+        <span class="step-arrow" aria-hidden="true">›</span>
+        <div class="step is-last">
+          <span class="step-en mono">PLAY</span>
+          <b>합주 성립</b>
+          <span class="step-d">자리가 다 차면<br>그날 바로 칩니다</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section id="list">
+    <div class="wrap list-layout">
+      <aside class="list-side">
+        <div class="cal">
+          <div class="cal-head">
+            <button class="cal-nav" id="cal-prev" aria-label="이전 달">‹</button>
+            <b id="cal-label"></b>
+            <button class="cal-nav" id="cal-next" aria-label="다음 달">›</button>
+          </div>
+          <div class="cal-grid" id="cal-dow"></div>
+          <div class="cal-grid" id="cal-grid"></div>
+          <div class="cal-foot" id="cal-foot"></div>
+        </div>
+      </aside>
+      <div class="list-main">
+        <div class="sec-head">
+          <div>
+            <h2 id="list-title">모집 중인 합주</h2>
+            <div class="note" id="list-note">불러오는 중</div>
+          </div>
+          <div class="filters" id="region-filters"></div>
+        </div>
+        <div class="cards" id="event-cards"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ ADMIN VIEW ============ -->
+<div id="view-admin" class="hide">
+  <section>
+    <div class="wrap">
+      <a class="back" href="#/">← 처음으로</a>
+      <h1 class="guide-h1">관리자</h1>
+      <p class="guide-lead">회원과 합주를 관리하고 데이터를 내려받습니다.</p>
+      <div id="admin-body"></div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ MEMORIES VIEW ============ -->
+<div id="view-memories" class="hide">
+  <section>
+    <div class="wrap">
+      <a class="back" href="#/">← 처음으로</a>
+      <h1 class="mem-title">추억 저장소</h1>
+      <p class="mem-lead">여기까지 함께 친 합주들입니다.</p>
+      <div class="mem-stats" id="mem-stats"></div>
+      <div class="mem-list" id="mem-list"></div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ SONG POOL VIEW ============ -->
+<div id="view-pool" class="hide">
+  <section>
+    <div class="wrap">
+      <a class="back" href="#/">← 처음으로</a>
+      <div class="sec-head">
+        <div>
+          <h1 class="guide-h1" style="margin-bottom:6px">곡 후보</h1>
+          <div class="note" id="pool-note"></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn" id="btn-pool-view">카드로 보기</button>
+          <button class="btn hide" id="btn-pool-manage">자리 관리</button>
+          <button class="btn primary" id="btn-pool-add">곡 올리기</button>
+        </div>
+      </div>
+      <div class="songs" id="pool-songs"></div>
+      <div class="songs-foot">
+        <div class="legend">
+          <span><i style="background:var(--amber);border-color:var(--amber)"></i>성립</span>
+          <span><i style="background:var(--cyan-dim);border-color:var(--cyan)"></i>내 자리</span>
+          <span><i style="background:transparent;border-style:dashed;border-color:var(--line-2)"></i>입장 가능</span>
+          <span><i style="background:var(--ink-3);border-color:var(--cyan);border-style:dashed"></i>양도 가능 ⇄</span>
+        </div>
+        <div id="pool-tally"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ GUIDE VIEW ============ -->
+<div id="view-guide" class="hide">
+  <section>
+    <div class="wrap">
+      <a class="back" href="#/">← 처음으로</a>
+      <div id="guide-body"></div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ EVENT VIEW ============ -->
+<div id="view-event" class="hide">
+  <section>
+    <div class="wrap">
+      <a class="back" href="#/">← 전체 합주</a>
+      <div class="ev-head">
+        <div class="ev-main">
+          <div class="mono" id="ev-when" style="font-size:12px;color:var(--amber);letter-spacing:.06em"></div>
+          <h1 id="ev-title"></h1>
+          <div class="ev-meta" id="ev-meta"></div>
+          <div class="ev-desc" id="ev-desc"></div>
+          <div class="ev-done hide" id="ev-done"></div>
+          <div class="ev-tags" id="ev-tags"></div>
+        </div>
+        <div class="ev-cover hide" id="ev-cover"></div>
+      </div>
+
+      <div class="sec-head">
+        <div>
+          <h2>곡별 파트 모집</h2>
+          <div class="note" id="songs-note"></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn" id="btn-view">카드 보기</button>
+          <button class="btn hide" id="btn-manage">자리 관리</button>
+          <a class="btn primary" href="#/songs">곡 후보에서 가져오기</a>
+        </div>
+      </div>
+
+      <div class="songs" id="songs"></div>
+      <div class="songs-foot">
+        <div class="legend">
+          <span><i style="background:var(--amber);border-color:var(--amber)"></i>성립</span>
+          <span><i style="background:var(--cyan-dim);border-color:var(--cyan)"></i>내 자리</span>
+          <span><i style="background:transparent;border-style:dashed;border-color:var(--line-2)"></i>입장 가능</span>
+          <span><i style="background:var(--ink-3);border-color:var(--cyan);border-style:dashed"></i>양도 가능 ⇄</span>
+          <span><i style="background:repeating-linear-gradient(45deg,var(--ink-2),var(--ink-2) 3px,var(--line) 3px,var(--line) 4px)"></i>이 곡은 안 씀</span>
+        </div>
+        <div id="matrix-tally"></div>
+      </div>
+
+      <div style="margin-top:30px">
+        <h2 style="font-size:17px">참가자 <span class="mono" id="roster-n" style="color:var(--muted);font-size:13px"></span></h2>
+        <div class="roster" id="roster"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>합주각 — 합주 오프모임 파트 매칭</div>
+    <div class="mono" style="font-size:12px">SaAe · <span id="build-tag">—</span></div>
+  </div>
+</footer>
+
+<button id="admin-fab" class="hide" title="관리자 모드">관리자</button>
+<div id="modal-root"></div>
+<div id="toast"></div>
+
+<script type="module">
+/* ============================================================
+   1. 구글 로그인 설정
+
+   데이터는 전부 합주각 서버(/api)에서 오고 갑니다.
+   파이어베이스는 구글 ID 토큰을 받아오는 용도로만 남아 있고,
+   그 토큰은 곧바로 우리 서버의 /auth/google 로 넘깁니다.
+   ============================================================ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyD_4O2p002AaQ-ggUr8q7sHp2-UaelkVJg",
+  authDomain: "hapjugak.firebaseapp.com",
+  projectId: "hapjugak",
+  storageBucket: "hapjugak.firebasestorage.app",
+  messagingSenderId: "1012332237618",
+  appId: "1:1012332237618:web:aac384077128d9649efd2b",
+  measurementId: "G-96Q3S4VHWK"
+};
+
+/* 어느 버전이 떠 있는지 확인용 표시. 화면 맨 아래와 콘솔에 찍힙니다. */
+const BUILD = "0922-0642";
+console.log("합주각 빌드", BUILD);
+
+const PARTS = ["Vocal","Acoustic","Guitar1","Guitar2","Bass","Drum","Key1","Key2"];
+const VOCAL = "Vocal";
+const INSTRUMENTS = PARTS.filter(p => p !== VOCAL);
+const isKey = p => p === "Key1" || p === "Key2";
+/* 한 곡에서 악기는 하나만 맡습니다. 예외 두 가지:
+   보컬은 악기와 겹칠 수 있고, 건반은 두 대를 함께 맡을 수 있습니다.
+   part 자리에 들어가려 할 때 걸리는 다른 파트 이름을, 없으면 null을 돌려줍니다. */
+function heldInstrument(slots, part, uid){
+  if (part === VOCAL) return null;
+  return INSTRUMENTS.find(p =>
+    p !== part && slots?.[p] && slots[p].uid === uid && !(isKey(part) && isKey(p))
+  ) || null;
+}
+const AREAS = ["서울","경기","인천","부산","대구","대전","광주","거제"];
+const REGIONS = ["전체", ...AREAS];
+const MY_PARTS = ["보컬","통기타","일렉기타","베이스기타","드럼","건반"];
+const GENRES = ["J-POP","애니송","보컬로이드","J-록","K-록·K-POP","게임음악","혼합·자유"];
+
+/* 관리자 목록은 서버가 돌려주는 role에서 채워집니다. 하드코딩하지 않습니다. */
+const ADMIN_UIDS = [];
+function markAdmin(uid, isAdminRole){
+  const i = ADMIN_UIDS.indexOf(uid);
+  if (isAdminRole && i < 0) ADMIN_UIDS.push(uid);
+  if (!isAdminRole && i >= 0) ADMIN_UIDS.splice(i, 1);
+}
+
+/* ============================================================
+   2. 저장소 — 합주각 API
+
+   화면 코드는 파이어스토어 시절의 데이터 모양을 그대로 기대합니다.
+   서버가 주는 JSON을 그 모양으로 바꿔주는 일을 이 층이 맡습니다.
+   덕분에 아래 화면 코드 3,000여 줄은 한 줄도 바뀌지 않았습니다.
+   ============================================================ */
+
+/* 개발: 스프링이 이 페이지를 직접 띄우므로 같은 출처입니다.
+   배포: Nginx가 /api 로 들어온 요청만 백엔드로 넘깁니다. */
+const API_BASE = "/api";
+const POLL_MS = 5000;              /* 실시간 갱신. 13-F에서 SSE로 바꿉니다 */
+const TOKEN_KEY = "hapjugak.token";
+
+let store, auth = { user:null, onChange:()=>{}, signIn:()=>{}, signOut:()=>{} };
+
+/* ---------- 토큰 ---------- */
+let token = null;
+try { token = localStorage.getItem(TOKEN_KEY); } catch (e) { token = null; }
+
+function setToken(value){
+  token = value;
+  try {
+    if (value) localStorage.setItem(TOKEN_KEY, value);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch (e) { /* 시크릿 모드처럼 저장이 막힌 환경에서도 계속 동작합니다 */ }
+}
+
+/* ---------- 공통 호출 ----------
+   사용자에게 보일 문장은 서버 한 곳에서만 관리합니다.
+   서버가 내려준 message를 그대로 올려보냅니다. */
+async function call(method, path, body){
+  const headers = {};
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (token) headers["Authorization"] = "Bearer " + token;
+
+  let res;
+  try {
+    res = await fetch(API_BASE + path, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body)
+    });
+  } catch (e) {
+    throw new Error("서버에 연결하지 못했습니다");
+  }
+
+  if (res.status === 401){
+    setToken(null);
+    if (auth.user){ auth.user = null; auth._cb(null); }
+    throw new Error("로그인이 필요합니다");
+  }
+  if (!res.ok){
+    let message = `요청에 실패했습니다 (${res.status})`;
+    try {
+      const data = await res.json();
+      if (data && data.message) message = data.message;
+    } catch (e) { /* 본문이 비어 있을 수 있습니다 */ }
+    throw new Error(message);
+  }
+  if (res.status === 204) return null;
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+/* ---------- 이름 번역 ---------- */
+const PART_TO_API = { Vocal:"VOCAL", Acoustic:"ACOUSTIC", Guitar1:"GUITAR1", Guitar2:"GUITAR2",
+                      Bass:"BASS", Drum:"DRUM", Key1:"KEY1", Key2:"KEY2" };
+const PART_FROM_API = {};
+for (const [ui, api] of Object.entries(PART_TO_API)) PART_FROM_API[api] = ui;
+
+const INST_TO_API = { "보컬":"VOCAL", "통기타":"ACOUSTIC", "일렉기타":"GUITAR",
+                      "베이스기타":"BASS", "드럼":"DRUM", "건반":"KEY" };
+const INST_FROM_API = {};
+for (const [ui, api] of Object.entries(INST_TO_API)) INST_FROM_API[api] = ui;
+
+const msOf = iso => iso ? Date.parse(iso) : 0;
+const hhmm = t => (t || "").slice(0, 5);
+const has = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+
+/* ---------- 서버 → 화면 ---------- */
+function toUiSong(s){
+  const slots = {};
+  const slotId = {};
+  const requiredParts = [];
+  for (const sl of (s.slots || [])){
+    const p = PART_FROM_API[sl.part] || sl.part;
+    requiredParts.push(p);
+    slotId[p] = sl.id;
+    if (sl.taken) slots[p] = { uid:String(sl.memberId), name:sl.memberNickname, open:!!sl.openToHandover };
+  }
+  return {
+    id: String(s.id),
+    title: s.title || "",
+    artist: s.artist || "",
+    youtube: s.youtubeUrl || "",
+    description: s.description || "",
+    requiredParts,
+    slots,
+    eventId: s.eventId == null ? "" : String(s.eventId),
+    proposerUid: String(s.proposerId),
+    proposerName: s.proposerNickname || "",
+    createdAt: msOf(s.createdAt),
+    _slotId: slotId
+  };
+}
+
+function toUiEvent(e){
+  return {
+    id: String(e.id),
+    title: e.title || "",
+    date: e.date || "",
+    entryDeadline: e.deadline || "",
+    timeStart: hhmm(e.timeStart),
+    timeEnd: hhmm(e.timeEnd),
+    region: e.region || "",
+    studio: e.studio || "",
+    room: e.room || "",
+    genre: e.genre || "",
+    fee: e.fee || "",
+    description: e.description || "",
+    afterparty: e.afterparty || "",
+    capacity: e.capacity || 0,
+    maxSongsPerUser: e.maxSongsPerUser || 0,
+    visibility: (e.visibility || "PUBLIC").toLowerCase(),
+    defaultParts: (e.defaultParts || []).map(p => PART_FROM_API[p] || p),
+    cover: e.coverImage || "",
+    tags: [],
+    hostUid: String(e.hostId),
+    hostName: e.hostNickname || "",
+    completed: !!e.completed,
+    completedAt: msOf(e.completedAt) || null,
+    createdAt: msOf(e.createdAt)
+  };
+}
+
+function toUiUser(m){
+  return {
+    uid: String(m.id),
+    name: m.nickname || "",
+    email: m.email || "",
+    region: m.area || "",
+    bio: m.bio || "",
+    photo: m.photoImage || "",
+    parts: (m.instruments || []).map(i => INST_FROM_API[i] || i),
+    role: m.role,
+    joinedAt: msOf(m.createdAt),
+    updatedAt: msOf(m.createdAt)
+  };
+}
+
+/* 지역도 악기도 비어 있으면 아직 프로필을 쓰지 않은 것으로 봅니다.
+   화면은 null을 받으면 프로필 작성 창을 띄웁니다. */
+function toUiProfile(m){
+  if (!m) return null;
+  const u = toUiUser(m);
+  if (!u.region && u.parts.length === 0) return null;
+  return u;
+}
+
+function toUiLog(l){
+  return {
+    id: String(l.id),
+    type: l.type,
+    actorUid: l.actorId == null ? "" : String(l.actorId),
+    actorName: l.actorName || "",
+    songTitle: l.songTitle || "",
+    part: l.part ? (PART_FROM_API[l.part] || l.part) : undefined,
+    detail: l.detail || undefined,
+    targetName: l.targetName || undefined,
+    ts: msOf(l.createdAt)
+  };
+}
+
+/* ---------- 화면 → 서버 ----------
+   보내지 않은 항목은 서버가 "바꾸지 않음"으로 해석합니다.
+   그래서 patch에 들어있는 키만 담습니다. */
+function toApiEvent(d){
+  const body = {};
+  if (has(d, "title")) body.title = d.title;
+  if (has(d, "date")) body.date = d.date || null;
+  if (has(d, "entryDeadline")) body.deadline = d.entryDeadline || null;
+  if (has(d, "timeStart")) body.timeStart = d.timeStart ? d.timeStart + ":00" : null;
+  if (has(d, "timeEnd")) body.timeEnd = d.timeEnd ? d.timeEnd + ":00" : null;
+  if (has(d, "region")) body.region = d.region;
+  if (has(d, "studio")) body.studio = d.studio;
+  if (has(d, "room")) body.room = d.room;
+  if (has(d, "genre")) body.genre = d.genre;
+  if (has(d, "fee")) body.fee = d.fee;
+  if (has(d, "description")) body.description = d.description;
+  if (has(d, "afterparty")) body.afterparty = d.afterparty;
+  if (has(d, "capacity")) body.capacity = d.capacity;
+  if (has(d, "maxSongsPerUser")) body.maxSongsPerUser = d.maxSongsPerUser;
+  if (has(d, "visibility")) body.visibility = String(d.visibility || "public").toUpperCase();
+  if (has(d, "defaultParts")) body.defaultParts = (d.defaultParts || []).map(p => PART_TO_API[p]).filter(Boolean);
+  if (has(d, "cover")) body.coverImage = d.cover;
+  if (has(d, "completed")) body.completed = d.completed;
+  return body;
+}
+
+/* ---------- 캐시와 구독 ----------
+   파이어스토어의 onSnapshot 자리를 지금은 짧은 주기 조회가 대신합니다.
+   첫 콜백은 queueMicrotask로 미룹니다. 구독을 거는 쪽이 아직
+   초기화되지 않은 변수를 쓸 수 있어, 동기로 부르면 그 자리에서 터집니다. */
+const subs = { events:new Set(), songs:new Set(), settings:new Set(), one:new Map() };
+let cacheEvents = [];
+let cacheSongs = [];
+let cacheSettings = {};
+let pollTimer = null;
+
+function emitEvents(){
+  subs.events.forEach(cb => cb(cacheEvents.map(e => ({...e}))));
+  subs.one.forEach((cbs, id) => {
+    const found = cacheEvents.find(e => e.id === id) || null;
+    cbs.forEach(cb => cb(found ? {...found} : null));
+  });
+}
+function emitSongs(){ subs.songs.forEach(cb => cb(cacheSongs.map(s => ({...s})))); }
+function emitSettings(){ subs.settings.forEach(cb => cb({...cacheSettings})); }
+
+async function refreshEvents(){
+  try {
+    const list = await call("GET", "/events");
+    cacheEvents = list.map(toUiEvent).sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+    emitEvents();
+  } catch (e) { console.error("일정을 불러오지 못했습니다:", e.message); }
+}
+async function refreshSongs(){
+  try {
+    const list = await call("GET", "/songs");
+    cacheSongs = list.map(toUiSong).sort((a, b) => a.createdAt - b.createdAt);
+    emitSongs();
+  } catch (e) { console.error("곡을 불러오지 못했습니다:", e.message); }
+}
+async function refreshSettings(){
+  try {
+    const s = await call("GET", "/settings");
+    cacheSettings = { heroImage: (s && s.heroImage) || "" };
+    emitSettings();
+  } catch (e) { /* 설정이 없어도 화면은 떠야 합니다 */ }
+}
+async function refreshAll(){ await Promise.all([refreshEvents(), refreshSongs()]); }
+
+function startPolling(){
+  if (pollTimer) return;
+  pollTimer = setInterval(() => {
+    if (document.hidden) return;   /* 안 보고 있는 탭은 긁지 않습니다 */
+    refreshAll();
+  }, POLL_MS);
+}
+function stopPollingIfIdle(){
+  if (pollTimer && !subs.events.size && !subs.songs.size && !subs.one.size){
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
+/* 서버는 자리를 번호(slotId)로 다루고, 화면은 파트 이름으로 다룹니다. */
+function slotIdOf(songId, part){
+  const song = cacheSongs.find(s => s.id === String(songId));
+  const id = song && song._slotId[part];
+  if (!id) throw new Error("자리를 찾지 못했습니다. 새로고침 후 다시 시도해 주세요");
+  return id;
+}
+
+store = {
+  /* ----- 회원 ----- */
+  async getProfile(uid){
+    const mine = auth.user && auth.user.uid === String(uid);
+    return toUiProfile(await call("GET", mine ? "/members/me" : "/members/" + uid));
+  },
+  async saveProfile(uid, data){
+    const m = await call("PUT", "/members/me", {
+      nickname: data.name,
+      area: data.region,
+      bio: data.bio,
+      photoImage: data.photo || "",
+      instruments: (data.parts || []).map(p => INST_TO_API[p]).filter(Boolean)
+    });
+    if (auth.user){
+      auth.user.name = m.nickname || auth.user.name;
+      auth.user.photo = m.photoImage || "";
+      markAdmin(auth.user.uid, m.role === "ADMIN");
+    }
+  },
+  async listUsers(){
+    const list = (await call("GET", "/members")).map(toUiUser);
+    list.forEach(u => markAdmin(u.uid, u.role === "ADMIN"));
+    return list;
+  },
+  async deleteProfile(uid){
+    await call("DELETE", "/members/" + uid);
+  },
+
+  /* ----- 사이트 설정 ----- */
+  watchSettings(cb){
+    subs.settings.add(cb);
+    queueMicrotask(() => cb({...cacheSettings}));
+    refreshSettings();
+    return () => subs.settings.delete(cb);
+  },
+  async saveSettings(patch){
+    const s = await call("PUT", "/settings", { heroImage: patch.heroImage || "" });
+    cacheSettings = { heroImage: (s && s.heroImage) || "" };
+    emitSettings();
+  },
+
+  /* ----- 합주 일정 ----- */
+  watchEvents(cb){
+    subs.events.add(cb);
+    queueMicrotask(() => cb(cacheEvents.map(e => ({...e}))));
+    refreshEvents();
+    startPolling();
+    return () => { subs.events.delete(cb); stopPollingIfIdle(); };
+  },
+  watchEvent(id, cb){
+    const key = String(id);
+    if (!subs.one.has(key)) subs.one.set(key, new Set());
+    subs.one.get(key).add(cb);
+    const found = cacheEvents.find(e => e.id === key) || null;
+    queueMicrotask(() => cb(found ? {...found} : null));
+    refreshEvents();
+    startPolling();
+    return () => {
+      const set = subs.one.get(key);
+      if (set){ set.delete(cb); if (!set.size) subs.one.delete(key); }
+      stopPollingIfIdle();
+    };
+  },
+  async createEvent(data){
+    const created = await call("POST", "/events", toApiEvent(data));
+    await refreshEvents();
+    return String(created.id);
+  },
+  async updateEvent(id, patch){
+    await call("PATCH", "/events/" + id, toApiEvent(patch));
+    await refreshEvents();
+  },
+  async deleteEvent(id){
+    await call("DELETE", "/events/" + id);
+    await refreshAll();
+  },
+
+  /* ----- 곡 ----- */
+  watchSongs(cb){
+    subs.songs.add(cb);
+    queueMicrotask(() => cb(cacheSongs.map(s => ({...s}))));
+    refreshSongs();
+    startPolling();
+    return () => { subs.songs.delete(cb); stopPollingIfIdle(); };
+  },
+  async addSong(song){
+    const created = await call("POST", "/songs", {
+      title: song.title,
+      artist: song.artist || null,
+      youtubeUrl: song.youtube || null,
+      description: song.description || null,
+      parts: (song.requiredParts || []).map(p => PART_TO_API[p]).filter(Boolean)
+    });
+    const id = String(created.id);
+    if (song.eventId) await call("PATCH", `/songs/${id}/event/${song.eventId}`);
+    await refreshSongs();
+    return id;
+  },
+  async updateSong(songId, patch){
+    /* 일정 배정·해제는 전용 주소가 따로 있습니다. */
+    if (has(patch, "eventId")){
+      if (patch.eventId) await call("PATCH", `/songs/${songId}/event/${patch.eventId}`);
+      else await call("PATCH", `/songs/${songId}/event`);
+    }
+    const body = {};
+    if (has(patch, "title")) body.title = patch.title;
+    if (has(patch, "artist")) body.artist = patch.artist;
+    if (has(patch, "youtube")) body.youtubeUrl = patch.youtube;
+    if (has(patch, "description")) body.description = patch.description;
+    if (has(patch, "requiredParts"))
+      body.parts = (patch.requiredParts || []).map(p => PART_TO_API[p]).filter(Boolean);
+    /* patch.slots 는 무시합니다. 편성에서 빠진 파트의 자리는 서버가 함께 정리합니다. */
+    if (Object.keys(body).length) await call("PATCH", "/songs/" + songId, body);
+    await refreshSongs();
+  },
+  async deleteSong(songId){
+    await call("DELETE", "/songs/" + songId);
+    await refreshSongs();
+  },
+
+  /* ----- 파트 자리 ----- */
+  async setSlot(songId, part, person){
+    const slotId = slotIdOf(songId, part);
+    await call("PUT", `/songs/${songId}/slots/${slotId}`, {
+      memberId: person ? Number(person.uid) : null,
+      openToHandover: person ? !!person.open : false
+    });
+    await refreshSongs();
+  },
+  async enterSlot(songId, part, person, open){
+    const song = cacheSongs.find(s => s.id === String(songId));
+    if (!song) throw new Error("삭제된 곡입니다");
+    const slotId = slotIdOf(songId, part);
+    const cur = song.slots[part];
+
+    if (cur && cur.uid !== person.uid && !cur.open)
+      throw new Error("방금 다른 분이 들어갔습니다");
+    if (!cur || cur.uid !== person.uid){
+      const held = heldInstrument(song.slots, part, person.uid);
+      if (held) throw new Error(`이미 ${held} 자리에 있습니다. ${held}을 먼저 취소해 주세요`);
+    }
+
+    if (cur && cur.uid === person.uid){
+      await call("PATCH", `/songs/${songId}/slots/${slotId}/handover`, { openToHandover: !!open });
+    } else if (cur){
+      await call("POST", `/songs/${songId}/slots/${slotId}/takeover`);
+      if (open) await call("PATCH", `/songs/${songId}/slots/${slotId}/handover`, { openToHandover: true });
+    } else {
+      await call("POST", `/songs/${songId}/slots/${slotId}/claim`, { openToHandover: !!open });
+    }
+    await refreshSongs();
+  },
+  async leaveSlot(songId, part, uid){
+    const slotId = slotIdOf(songId, part);
+    await call("DELETE", `/songs/${songId}/slots/${slotId}/claim`);
+    await refreshSongs();
+  },
+
+  /* ----- 활동 로그 ----- */
+  async addLog(songId, entry){
+    await call("POST", `/songs/${songId}/logs`, {
+      type: entry.type,
+      part: entry.part ? (PART_TO_API[entry.part] || null) : null,
+      detail: entry.detail || null,
+      targetName: entry.targetName || null
+    });
+  },
+  async listLogs(songId){
+    return (await call("GET", `/songs/${songId}/logs`)).map(toUiLog);
+  },
+
+  /* 예전 구조(events/{id}/songs)는 이관하면서 사라졌습니다. */
+  async listLegacySongs(){ return []; },
+  async deleteLegacySong(){ }
+};
+
+/* ---------- 인증 ----------
+   로그인에만 파이어베이스를 한 번 더 거칩니다. 구글이 발급한 ID 토큰을 받아
+   우리 서버(/auth/google)에 넘기고, 그 뒤의 모든 요청은 우리 JWT로 합니다.
+   13-C에서 이 마지막 의존성도 걷어냅니다. */
+let fbMod = null;
+let fbAuth = null;
+
+async function googleIdToken(){
+  if (!fbMod){
+    const appMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    fbMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    const app = appMod.getApps().length ? appMod.getApps()[0] : appMod.initializeApp(FIREBASE_CONFIG);
+    fbAuth = fbMod.getAuth(app);
+  }
+  const result = await fbMod.signInWithPopup(fbAuth, new fbMod.GoogleAuthProvider());
+  const credential = fbMod.GoogleAuthProvider.credentialFromResult(result);
+  if (!credential || !credential.idToken) throw new Error("구글에서 토큰을 받지 못했습니다");
+  return credential.idToken;
+}
+
+function toAuthUser(m){
+  return { uid:String(m.id), name:m.nickname || "", email:m.email || "", photo:m.photoImage || "" };
+}
+
+auth = {
+  user: null,
+  _cb: () => {},
+  async onChange(cb){
+    this._cb = cb;
+    if (token){
+      try {
+        const m = await call("GET", "/members/me");
+        this.user = toAuthUser(m);
+        markAdmin(this.user.uid, m.role === "ADMIN");
+      } catch (e) {
+        setToken(null);
+        this.user = null;
+      }
+    }
+    cb(this.user);
+  },
+  async signIn(){
+    try {
+      const idToken = await googleIdToken();
+      const issued = await call("POST", "/auth/google", { idToken });
+      setToken(issued.accessToken);
+      const m = await call("GET", "/members/me");
+      this.user = toAuthUser(m);
+      markAdmin(this.user.uid, m.role === "ADMIN");
+      this._cb(this.user);
+      await refreshAll();
+    } catch (e) {
+      console.error("로그인 실패:", e);
+      toast(e.message || "로그인에 실패했습니다");
+    }
+  },
+  async signOut(){
+    setToken(null);
+    this.user = null;
+    this._cb(null);
+    try { if (fbMod && fbAuth) await fbMod.signOut(fbAuth); } catch (e) { /* 무시 */ }
+  }
+};
+
+/* ============================================================
+   3. 유틸
+   ============================================================ */
+const $ = s => document.querySelector(s);
+const el = (t,c,txt) => { const n=document.createElement(t); if(c)n.className=c; if(txt!=null)n.textContent=txt; return n; };
+const esc = s => String(s??"").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+const DAYS = ["일","월","화","수","목","금","토"];
+/* 날짜 비교는 반드시 보는 사람의 지역 시간 기준으로 합니다.
+   toISOString()은 UTC라서 한국에서는 오전 9시 이전에 하루가 밀립니다. */
+const pad2n = n => String(n).padStart(2,"0");
+const localISO = (d = new Date()) =>
+  `${d.getFullYear()}-${pad2n(d.getMonth()+1)}-${pad2n(d.getDate())}`;
+const todayISO = () => localISO();
+function fmtDate(iso){
+  const d = new Date(iso+"T00:00:00");
+  if (isNaN(d)) return iso;
+  return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${DAYS[d.getDay()]}`;
+}
+/* 파이어스토어 오류를 사람이 읽을 수 있는 문장으로 바꿉니다. */
+function errText(err){
+  const code = err?.code || "";
+  if (code === "permission-denied")
+    return "권한이 없어 거부됐습니다. 보안 규칙을 다시 게시해 주세요";
+  if (code === "unavailable" || code === "failed-precondition")
+    return "서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요";
+  if (code === "invalid-argument")
+    return "저장할 수 없는 값이 있습니다 (" + (err.message || "").slice(0,60) + ")";
+  if (code) return `저장하지 못했습니다 (${code})`;
+  return err?.message ? `저장하지 못했습니다: ${String(err.message).slice(0,80)}` : "저장하지 못했습니다";
+}
+
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove("on"), 2200);
+}
+const isUnset = s => !(s.requiredParts||[]).length;
+// 파트가 하나도 없으면 성립이 아니라 '편성 미정'입니다.
+// ([].every()는 true를 돌려주므로 반드시 먼저 걸러야 합니다.)
+const isDone = s => !isUnset(s) && s.requiredParts.every(p => s.slots?.[p]);
+function playerCount(songs){
+  const set = new Set();
+  songs.forEach(s => Object.values(s.slots||{}).forEach(v => v && set.add(v.uid)));
+  return set.size;
+}
+
+/* ============================================================
+   4. 인증 UI
+   ============================================================ */
+let myProfile = null;
+const me = () => ({uid: auth.user.uid, name: myProfile?.name || "이름없음"});
+const isAdmin = () => !!auth.user && ADMIN_UIDS.includes(auth.user.uid);
+
+function renderAdminFab(){
+  $("#admin-fab").classList.toggle("hide", !isAdmin());
+}
+
+function renderAuth(u){
+  const slot = $("#auth-slot"); slot.innerHTML = "";
+  if (!u){
+    const b = el("button","btn login","구글로 시작하기");
+    b.onclick = () => auth.signIn();
+    slot.append(b);
+    return;
+  }
+  if (!myProfile){
+    const b = el("button","btn login","프로필 만들기");
+    b.onclick = () => profileModal({first:true});
+    slot.append(b);
+    return;
+  }
+  const b = el("button","profile-btn");
+  b.setAttribute("aria-label","회원 정보 보기");
+  const img = el("img","avatar");
+  img.src = myProfile.photo || blankAvatar(myProfile.name);
+  img.alt = "";
+  b.append(img, el("span","",myProfile.name));
+  b.onclick = () => profileModal();
+  slot.append(b);
+}
+
+function blankAvatar(name){
+  const ch = (name||"?").trim().charAt(0) || "?";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="#232945"/><text x="48" y="62" font-family="sans-serif" font-size="42" fill="#8B92AD" text-anchor="middle">${esc(ch)}</text></svg>`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+
+function requireLogin(){
+  if (!auth.user){ toast("먼저 로그인해 주세요"); auth.signIn(); return false; }
+  if (!myProfile){ toast("프로필을 먼저 만들어 주세요"); profileModal({first:true}); return false; }
+  return true;
+}
+
+/* 메인 배너: 가운데 기준 가로로 길게 잘라 1280px 폭 JPEG로 줄입니다. */
+function toBannerDataURL(file, w = 1280, h = 520){
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith("image/")) return reject(new Error("이미지 파일만 올릴 수 있습니다"));
+    if (file.size > 16 * 1024 * 1024) return reject(new Error("16MB 이하 이미지만 올릴 수 있습니다"));
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error("파일을 읽지 못했습니다"));
+    fr.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("이미지를 열지 못했습니다"));
+      img.onload = () => {
+        const srcR = img.width / img.height, dstR = w / h;
+        let sw = img.width, sh = img.height;
+        if (srcR > dstR) sw = img.height * dstR; else sh = img.width / dstR;
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        const g = c.getContext("2d");
+        g.imageSmoothingQuality = "high";
+        g.drawImage(img, (img.width-sw)/2, (img.height-sh)/2, sw, sh, 0, 0, w, h);
+        resolve(c.toDataURL("image/jpeg", 0.74));
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+/* 합주 대표 이미지: 가운데 기준 16:9로 잘라 640px 폭 JPEG로 줄입니다. */
+function toCoverDataURL(file, w = 640){
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith("image/")) return reject(new Error("이미지 파일만 올릴 수 있습니다"));
+    if (file.size > 12 * 1024 * 1024) return reject(new Error("12MB 이하 이미지만 올릴 수 있습니다"));
+    const h = Math.round(w * 9 / 16);
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error("파일을 읽지 못했습니다"));
+    fr.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("이미지를 열지 못했습니다"));
+      img.onload = () => {
+        const srcRatio = img.width / img.height, dstRatio = w / h;
+        let sw = img.width, sh = img.height;
+        if (srcRatio > dstRatio) sw = img.height * dstRatio; else sh = img.width / dstRatio;
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        const g = c.getContext("2d");
+        g.imageSmoothingQuality = "high";
+        g.drawImage(img, (img.width - sw)/2, (img.height - sh)/2, sw, sh, 0, 0, w, h);
+        resolve(c.toDataURL("image/jpeg", 0.78));
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+/* 업로드한 이미지를 가운데 기준 정사각형으로 잘라 320px JPEG로 줄입니다. */
+function toSquareDataURL(file, size = 320){
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith("image/")) return reject(new Error("이미지 파일만 올릴 수 있습니다"));
+    if (file.size > 8 * 1024 * 1024) return reject(new Error("8MB 이하 이미지만 올릴 수 있습니다"));
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error("파일을 읽지 못했습니다"));
+    fr.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("이미지를 열지 못했습니다"));
+      img.onload = () => {
+        const s = Math.min(img.width, img.height);
+        const c = document.createElement("canvas");
+        c.width = c.height = size;
+        const g = c.getContext("2d");
+        g.imageSmoothingQuality = "high";
+        g.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+        resolve(c.toDataURL("image/jpeg", 0.82));
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+/* ============================================================
+   6. 목록 화면
+   ============================================================ */
+let allEvents = [], region = "전체", selectedDate = null, showPast = false;
+let allSongs = [];
+/* 일정에 배정된 곡만 골라냅니다. eventId가 비어 있으면 곡 후보입니다. */
+const songsOf = eid => allSongs.filter(sg => sg.eventId === eid);
+const poolSongs = () => allSongs.filter(sg => !sg.eventId);
+const calRef = new Date(); calRef.setDate(1);
+const pad2 = n => String(n).padStart(2,"0");
+const iso = (y,m,d) => `${y}-${pad2(m+1)}-${pad2(d)}`;
+
+function canSeeInList(e){
+  if (e.visibility !== "private") return true;
+  if (!auth.user) return false;
+  if (e.hostUid === auth.user.uid) return true;
+  return songsOf(e.id).some(s =>
+    Object.values(s.slots||{}).some(v => v && v.uid === auth.user.uid));
+}
+
+function renderCalendar(){
+  const dow = $("#cal-dow");
+  if (!dow.childElementCount){
+    ["일","월","화","수","목","금","토"].forEach((d,i) => {
+      dow.append(el("div","cal-dow" + (i===0?" sun":i===6?" sat":""), d));
+    });
+  }
+  const y = calRef.getFullYear(), m = calRef.getMonth();
+  $("#cal-label").textContent = `${y}년 ${m+1}월`;
+
+  const counts = {};
+  allEvents.filter(canSeeInList).forEach(e => { counts[e.date] = (counts[e.date]||0) + 1; });
+
+  const first = new Date(y,m,1).getDay();
+  const days  = new Date(y,m+1,0).getDate();
+  const cells = Math.ceil((first + days) / 7) * 7;
+  const todayISO = iso(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+
+  const grid = $("#cal-grid"); grid.innerHTML = "";
+  let monthHits = 0;
+
+  for (let i = 0; i < cells; i++){
+    const dnum = i - first + 1;
+    const inMonth = dnum >= 1 && dnum <= days;
+    const key = inMonth ? iso(y,m,dnum) : null;
+    const n = inMonth ? (counts[key]||0) : 0;
+    if (n) monthHits += n;
+
+    const cell = el("div","cal-day" + (inMonth ? "" : " out")
+      + (key === todayISO ? " today" : "")
+      + (n ? " has" : "")
+      + (key && key === selectedDate ? " on" : ""));
+    cell.append(el("span","", inMonth ? String(dnum) : ""));
+    if (n) cell.append(el("span","cal-dot"));
+
+    if (n){
+      cell.setAttribute("role","button");
+      cell.tabIndex = 0;
+      cell.title = `${m+1}월 ${dnum}일 합주 ${n}건`;
+      const act = () => {
+        selectedDate = (selectedDate === key) ? null : key;
+        renderCalendar(); renderCards();
+        document.getElementById("list").scrollIntoView({behavior:"smooth", block:"start"});
+      };
+      cell.onclick = act;
+      cell.onkeydown = ev => { if (ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); act(); } };
+    }
+    grid.append(cell);
+  }
+  $("#cal-foot").textContent = monthHits ? `이번 달 합주 ${monthHits}건 · 날짜를 눌러 골라보세요` : "이번 달은 열린 합주가 없습니다";
+}
+
+function renderFilters(){
+  const box = $("#region-filters"); box.innerHTML = "";
+  REGIONS.forEach(r => {
+    const b = el("button","chip"+(r===region?" on":""),r);
+    b.onclick = () => { region = r; renderCards(); renderFilters(); };
+    box.append(b);
+  });
+  const past = el("button","chip past-chip"+(showPast?" on":""), showPast ? "예정 합주 보기" : "지난 합주 보기");
+  past.onclick = () => { showPast = !showPast; selectedDate = null; renderCards(); renderFilters(); renderCalendar(); };
+  box.append(past);
+}
+
+function renderCards(){
+  const box = $("#event-cards"); box.innerHTML = "";
+  const today = todayISO();
+  const isPast = e => eventDone(e) || e.date < today;
+  const list = allEvents
+    .filter(canSeeInList)
+    .filter(e => selectedDate ? e.date === selectedDate : (showPast ? isPast(e) : !isPast(e)))
+    .filter(e => region === "전체" || e.region === region);
+  if (showPast && !selectedDate) list.sort((a,b) => b.date.localeCompare(a.date));
+
+  $("#list-title").textContent = showPast ? "지난 합주" : "모집 중인 합주";
+  const note = $("#list-note"); note.innerHTML = "";
+  if (selectedDate){
+    note.append(document.createTextNode(`${fmtDate(selectedDate)} · ${list.length}건 `));
+    const b = el("button","chip","날짜 해제");
+    b.style.cssText = "font-size:11px;padding:2px 9px;margin-left:4px";
+    b.onclick = () => { selectedDate = null; renderCalendar(); renderCards(); };
+    note.append(b);
+  } else {
+    note.textContent = showPast
+      ? `${list.length}건 · 최근 순`
+      : `${list.length}건 · 마감 가까운 순`;
+  }
+
+  if (!list.length){
+    box.append(el("div","empty", selectedDate
+      ? "이 날짜에는 이 지역 합주가 없습니다."
+      : showPast
+        ? "지난 합주 기록이 아직 없습니다."
+        : "이 지역에 열린 합주가 아직 없습니다. 직접 열어보세요."));
+    return;
+  }
+  list.forEach(e => {
+    const songs = songsOf(e.id);
+    const done = songs.filter(isDone).length;
+    const people = playerCount(songs);
+    const a = el("a","card"); a.href = "#/e/"+e.id;
+    a.innerHTML = `
+      ${e.cover ? `<div class="card-cover"><img src="${e.cover}" alt=""></div>` : ""}
+      ${eventDone(e) ? `<div class="card-done mono">합주 완료</div>` : ""}
+      <div class="when">${esc(fmtDate(e.date))}${eventTime(e) ? " " + esc(eventTime(e)) : ""} · ${esc(e.region||"미정")}</div>
+      <h3>${esc(e.title)}</h3>
+      <div class="where">${esc([e.studio, e.room].filter(Boolean).join(" ") || "합주실 미정")}${e.genre ? " · " + esc(e.genre) : ""}</div>
+      <div class="meter">${Array.from({length:8},(_,i)=>`<b class="${i < Math.round(8*(done/Math.max(songs.length,1)))?"on":""}"></b>`).join("")}</div>
+      <div class="stats">
+        <span>성립 <u>${done}</u>곡</span>
+        <span>후보 <u>${songs.length}</u>곡</span>
+        <span>참가 <u>${people}</u>명</span>
+      </div>`;
+    box.append(a);
+  });
+}
+
+store.watchEvents(list => {
+  allEvents = list;
+  renderCards(); renderCalendar();
+});
+
+store.watchSongs(list => {
+  allSongs = list;
+  renderCards();
+  if (curEvent){ curSongs = songsOf(curEvent.id); renderMatrix(); }
+  if (location.hash === "#/songs") renderPool();
+  if (location.hash === "#/memories") renderMemories();
+});
+
+/* ============================================================
+   7. 상세 화면 + 파트 매트릭스
+   ============================================================ */
+let unsubEvent = null, unsubSongs = null, curEvent = null, curSongs = [], prevDone = new Set();
+
+function openEvent(id){
+  closeEvent();
+  showView("event");
+  prevDone = new Set();
+  // 곡은 전역 구독에서 들어오므로 여기서는 이 일정 몫만 추려 씁니다.
+  curEvent = allEvents.find(e => e.id === id) || null;
+  curSongs = songsOf(id);
+  if (curEvent) renderEventHead(curEvent);
+  renderMatrix();
+  unsubEvent = store.watchEvent(id, ev => {
+    if (!ev){ location.hash = "#/"; return; }
+    curEvent = ev;
+    renderEventHead(ev);
+    curSongs = songsOf(ev.id);
+    renderMatrix();
+  });
+}
+function closeEvent(){
+  manageMode = false;
+  unsubEvent?.(); unsubEvent = unsubSongs = null; curEvent = null; curSongs = [];
+
+}
+
+function eventTime(e){
+  if (e.timeStart && e.timeEnd) return `${e.timeStart}–${e.timeEnd}`;
+  if (e.timeStart) return `${e.timeStart} 시작`;
+  return e.time || "";
+}
+
+function renderEventHead(e){
+  const t = eventTime(e);
+  $("#ev-when").textContent = `${fmtDate(e.date)}${t ? " " + t : ""}${e.genre ? " · " + e.genre : ""}`;
+  $("#ev-title").textContent = e.title;
+
+  const place = [e.studio, e.room].filter(Boolean).join(" ") || "미정";
+  const rows = [
+    ["합주실", place],
+    ["지역", e.region || "미정"],
+    ["정원", (e.capacity || "제한 없음") + (e.capacity ? "명" : "")],
+    ["참가비", e.fee || "미정"],
+    ["주최", e.hostName || "—"]
+  ];
+  if (e.entryDeadline) rows.push(["곡 신청 마감", fmtDate(e.entryDeadline)]);
+  if (e.maxSongsPerUser) rows.push(["1인당", e.maxSongsPerUser + "곡까지"]);
+  if (e.afterparty && e.afterparty !== "미정") rows.push(["뒤풀이", e.afterparty]);
+  if (e.visibility === "private") rows.push(["공개", "비공개"]);
+
+  $("#ev-meta").innerHTML = rows.map(([k,v]) => `<span>${esc(k)} <u>${esc(v)}</u></span>`).join("");
+  if (auth.user && (e.hostUid === auth.user.uid || isAdmin())){
+    const b = el("button","btn sm","합주 편집");
+    b.onclick = () => eventModal(curEvent);
+    $("#ev-meta").append(b);
+
+    const done = eventDone(e);
+    const c = el("button","btn sm" + (done ? "" : " primary"), done ? "완료 해제" : "합주 완료로 표시");
+    c.onclick = () => completeEvent(e, !done);
+    $("#ev-meta").append(c);
+  }
+
+  $("#ev-title").classList.toggle("is-done", eventDone(e));
+  const done = $("#ev-done");
+  done.classList.toggle("hide", !eventDone(e));
+  if (eventDone(e)){
+    const played = songsOf(e.id).length;
+    done.textContent = `합주 완료 · ${played}곡을 연주했습니다`
+      + (autoDone(e) ? " · 날짜가 지나 자동으로 완료됐습니다"
+         : e.completedAt ? ` · ${new Date(e.completedAt).toLocaleDateString("ko-KR")} 기록` : "");
+  }
+  const cv = $("#ev-cover");
+  cv.innerHTML = "";
+  if (e.cover){
+    const i = document.createElement("img"); i.src = e.cover; i.alt = "";
+    cv.append(i); cv.classList.remove("hide");
+  } else cv.classList.add("hide");
+  $("#ev-desc").textContent = e.description || "";
+  const tg = $("#ev-tags"); tg.innerHTML = "";
+  (e.tags || []).forEach(t => tg.append(el("span","tagp-mini","#" + t)));
+  document.title = e.title + " — 합주각";
+}
+
+function songTools(song){
+  const tools = el("div","song-tools");
+  if (song.youtube && /^https?:\/\//i.test(song.youtube)){
+    const a = document.createElement("a");
+    a.className = "song-yt"; a.href = song.youtube;
+    a.target = "_blank"; a.rel = "noopener noreferrer";
+    a.title = "유튜브에서 원곡 열기";
+    a.append(el("i","","▶"), document.createTextNode("YouTube"));
+    tools.append(a);
+  }
+  if (isDone(song)){
+    const locked = !!song.eventId && !canMoveSong(song);
+    const mv = el("button","song-edit move-btn" + (locked ? " move-locked" : ""),
+      song.eventId ? "일정 바꾸기" : "일정으로 보내기");
+    mv.title = locked
+      ? "합주가 끝난 일정의 곡은 주최자와 관리자만 옮길 수 있습니다"
+      : "성립한 곡을 합주 일정에 배정합니다";
+    mv.onclick = () => moveModal(song);
+    tools.append(mv);
+  }
+
+  const log = el("button","song-edit","로그");
+  log.title = "이 곡의 변경 기록 보기";
+  log.onclick = () => logModal(song);
+  tools.append(log);
+
+  if (canEditSong(song)){
+    const edit = el("button","song-edit","편집");
+    edit.title = "곡 정보와 필요 파트 편집";
+    edit.onclick = () => songModal(song);
+    tools.append(edit);
+  }
+  return tools;
+}
+
+function songSlots(song, mini){
+  const slots = el("div","slots" + (mini ? " mini" : ""));
+  const req = song.requiredParts || [];
+  PARTS.forEach(p => {
+    const used = req.includes(p);
+    const taken = song.slots?.[p];
+    const mine = taken && auth.user && taken.uid === auth.user.uid;
+    const held = (used && !taken && auth.user) ? heldInstrument(song.slots, p, auth.user.uid) : null;
+
+    const yieldable = taken && taken.open;
+    const cls = !used ? "na" : mine ? "taken mine" : taken ? "taken" : held ? "locked" : "open";
+    const d = el("div","slot " + cls + (yieldable ? " yield" : ""));
+    d.append(el("b","",p));
+    const who = el("span","", !used ? "" : taken ? taken.name : held ? "잠김" : "입장");
+    if (yieldable) who.append(el("em","yield-mark","⇄"));
+    d.append(who);
+
+    if (used){
+      const managing = manageMode && canManageSlots();
+      if (managing) d.classList.add("managing");
+      d.setAttribute("role","button");
+      d.tabIndex = 0;
+      d.title = managing
+        ? `${p} 자리에 사람을 넣거나 빼기`
+        : mine ? `내 자리 · ${taken.open ? "양도 가능" : "양도 불가"} · 눌러서 바꾸기`
+        : taken ? (taken.open
+            ? `${taken.name} 님이 양도 가능으로 잡아둔 자리입니다. 눌러서 넘겨받기`
+            : `${taken.name} 님이 맡았습니다`)
+        : held ? `${held}을 맡고 있어 다른 악기는 들어갈 수 없습니다` : `${p} 자리에 들어가기`;
+      const act = ev => {
+          if (managing){ slotAdminModal(song, p); return; }
+        if (held){ toast(`${held}을 먼저 취소해야 옮길 수 있습니다`); return; }
+        claimSlot(song, p, taken, mine);
+      };
+      d.onclick = act;
+      d.onkeydown = ev => { if (ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); act(ev); } };
+    } else {
+      d.title = "이 곡에서는 모집하지 않는 파트입니다";
+    }
+    slots.append(d);
+  });
+  return slots;
+}
+
+function songBadge(song, done){
+  if (song.eventId && eventDone(allEvents.find(e => e.id === song.eventId)))
+    return el("span","badge played","합주 완료");
+  if (isUnset(song)) return el("span","badge","편성 미정");
+  const req = song.requiredParts || [];
+  const left = req.filter(p => !song.slots?.[p]).length;
+  return el("span","badge" + (done ? " on" : left <= 1 ? " near" : ""),
+    done ? "성립" : `나머지 ${left}명`);
+}
+
+function songCard(song, done){
+  const card = el("article","song" + (done ? " done" : "")
+    + (compactView ? " compact" : "")
+    + (done && prevDone.size && !prevDone.has(song.id) ? " justdone" : ""));
+
+  const id = el("div","song-id");
+  id.append(el("div","song-t",song.title));
+  id.append(el("div","song-a", song.artist || (compactView ? "" : "아티스트 미기재")));
+  if (song.proposerName) id.append(el("div","song-by", `${song.proposerName} 올림`));
+  if (song.description) id.title = song.description;
+
+  if (compactView){
+    const line = el("div","song-line");
+    line.append(el("span","led"));
+    line.append(id);
+
+    if (isUnset(song)){
+      const empty = el("div","line-unset");
+      empty.append(el("span","","편성이 정해지지 않았습니다"));
+      const b = el("button","btn sm primary","편성 채우기");
+      b.onclick = () => partsModal(song);
+      empty.append(b);
+      line.append(empty);
+    } else {
+      line.append(songSlots(song, true));
+    }
+
+    const right = el("div","line-right");
+    right.append(songBadge(song, done));
+    const tools = songTools(song);
+    if (tools.childElementCount) right.append(tools);
+    line.append(right);
+    card.append(line);
+    return card;
+  }
+
+  const top = el("div","song-top");
+  top.append(el("span","led"));
+  top.append(id);
+  const tools = songTools(song);
+  tools.prepend(songBadge(song, done));
+  top.append(tools);
+  card.append(top);
+
+  if (song.description) card.append(el("p","song-desc",song.description));
+
+  if (isUnset(song)){
+    const panel = el("div","song-unset");
+    panel.append(el("p","","이 곡은 아직 편성이 정해지지 않았습니다. 어떤 파트가 필요한지 아시면 채워주세요."));
+    const b = el("button","btn sm primary","편성 채우기");
+    b.onclick = () => partsModal(song);
+    panel.append(b);
+    card.append(panel);
+  } else {
+    card.append(songSlots(song));
+  }
+  return card;
+}
+
+/* ── 곡 후보 화면 ─────────────────────────────────
+   일정에 배정되지 않은 곡들이 모이는 공용 공간입니다. */
+let poolCompact = true;
+
+function renderPool(){
+  const box = $("#pool-songs");
+  const prevCompact = compactView;
+  compactView = poolCompact;
+  const prevEvent = curEvent;
+  curEvent = null;            // 곡 후보에는 마감이나 주최자 개념이 없습니다
+  box.innerHTML = "";
+
+  const songs = poolSongs();
+  $("#btn-pool-view").textContent = poolCompact ? "카드로 보기" : "한 줄로 보기";
+  const pm = $("#btn-pool-manage");
+  pm.classList.toggle("hide", !isAdmin());
+  pm.classList.toggle("primary", manageMode);
+  pm.textContent = manageMode ? "자리 관리 끄기" : "자리 관리";
+
+  if (!songs.length){
+    box.append(el("div","empty","아직 올라온 곡이 없습니다. 하고 싶은 곡을 올려보세요."));
+    $("#pool-note").textContent = "";
+    $("#pool-tally").textContent = "";
+    compactView = prevCompact; curEvent = prevEvent;
+    return;
+  }
+
+  const unset = songs.filter(isUnset);
+  const done  = songs.filter(isDone);
+  const open  = songs.filter(sg => !isUnset(sg) && !isDone(sg)).sort((a,b) => {
+    const left = sg => (sg.requiredParts||[]).filter(p => !sg.slots?.[p]).length;
+    return left(a) - left(b);
+  });
+
+  const group = (label, list, cls) => {
+    if (!list.length) return;
+    const head = el("div","group-head " + cls);
+    head.append(el("h3","",label));
+    head.append(el("span","group-n mono",`${list.length}곡`));
+    box.append(head);
+    list.forEach(sg => box.append(songCard(sg, cls === "is-done")));
+  };
+
+  group("성립 — 일정으로 보낼 수 있습니다", done, "is-done");
+  group("곡 후보", open, "is-open");
+  group("편성 미정", unset, "is-unset");
+
+  $("#pool-note").textContent = (manageMode && isAdmin())
+    ? "자리 관리 중입니다. 아무 칸이나 눌러 다른 사람을 넣거나 빼거나 바꿀 수 있습니다."
+    : "하고 싶은 곡을 올리고 파트를 잡는 공간입니다. 자리가 다 차면 일정으로 보낼 수 있습니다.";
+  $("#pool-tally").textContent = `성립 ${done.length} / 전체 ${songs.length}곡`;
+
+  compactView = prevCompact;
+  curEvent = prevEvent;
+}
+
+/* 일정을 옮길 수 있는지 판단합니다.
+   보통은 로그인한 사람 누구나 가능하지만, 이미 합주를 마친 일정에 속한 곡은
+   그 일정의 주최자와 관리자만 건드릴 수 있습니다. */
+function movableInto(e){
+  if (!e || !eventDone(e)) return true;
+  return !!auth.user && (e.hostUid === auth.user.uid || isAdmin());
+}
+function canMoveSong(song){
+  if (!auth.user) return false;
+  const cur = song.eventId ? allEvents.find(e => e.id === song.eventId) : null;
+  return movableInto(cur);
+}
+
+/* 성립한 곡을 특정 일정으로 보냅니다. 완료된 합주만 권한이 필요합니다. */
+function moveModal(song){
+  if (!requireLogin()) return;
+  if (!canMoveSong(song)){
+    toast("합주가 끝난 일정의 곡은 주최자와 관리자만 옮길 수 있습니다");
+    return;
+  }
+  const today = todayISO();
+  const list = allEvents
+    .filter(e => e.date >= today || eventDone(e) || e.id === song.eventId)
+    .sort((a,b) => a.date.localeCompare(b.date));
+  const cur = song.eventId ? allEvents.find(e => e.id === song.eventId) : null;
+
+  modal(`
+    <h3>일정으로 보내기</h3>
+    <p class="hint">${esc(song.title)}${cur ? ` — 지금은 «${esc(cur.title)}»에 들어 있습니다.` : ""}
+      ${eventDone(cur) ? "합주가 끝난 일정이라 주최자와 관리자만 옮길 수 있습니다." : ""}</p>
+    ${list.length
+      ? `<div class="field"><label>보낼 일정</label><div class="move-list" id="mv-list"></div></div>`
+      : `<div class="empty">예정된 합주 일정이 없습니다. 먼저 합주를 열어주세요.</div>`}
+    <div class="err" id="mv-err"></div>
+    <div class="modal-actions">
+      ${cur ? `<button class="btn ghost" id="mv-out" style="margin-right:auto;color:var(--coral)">일정에서 빼기</button>` : ""}
+      <button class="btn ghost" id="mv-cancel">닫기</button>
+    </div>`, root => {
+    root.querySelector("#mv-cancel").onclick = closeModal;
+    const err = root.querySelector("#mv-err");
+
+    const apply = async (eventId, label) => {
+      try {
+        await store.updateSong(song.id, {eventId});
+        logIt(song.id, eventId ? "moved_in" : "moved_out", {songTitle: song.title, detail: label});
+        closeModal();
+        toast(eventId ? `«${label}»(으)로 보냈습니다` : "곡 후보로 되돌렸습니다");
+      } catch(e){ console.error(e); err.textContent = errText(e); }
+    };
+
+    const box = root.querySelector("#mv-list");
+    list.forEach(e => {
+      const locked = !movableInto(e);
+      const b = el("button","move-item");
+      b.type = "button";
+      b.disabled = e.id === song.eventId || locked;
+      b.append(el("b","",e.title));
+      b.append(el("span","",`${fmtDate(e.date)} · ${e.region||"지역 미정"} · ${[e.studio,e.room].filter(Boolean).join(" ")||"합주실 미정"}`));
+      if (e.id === song.eventId) b.append(el("span","move-now","현재 일정"));
+      else if (eventDone(e)) b.append(el("span","move-now", locked ? "합주 완료 · 주최자만" : "합주 완료"));
+      if (!b.disabled) b.onclick = () => apply(e.id, e.title);
+      box?.append(b);
+    });
+
+    root.querySelector("#mv-out")?.addEventListener("click", () => apply("", cur?.title || ""));
+  });
+}
+
+/* ── 추억 저장소 ─────────────────────────────────
+   합주 완료로 표시된 일정을 최근 순으로 모아 보여줍니다. */
+function renderMemories(){
+  const list = allEvents.filter(eventDone).filter(canSeeInList)
+    .sort((a,b) => b.date.localeCompare(a.date) || (b.completedAt || 0) - (a.completedAt || 0));
+
+  const stats = $("#mem-stats");
+  const box = $("#mem-list");
+  stats.innerHTML = ""; box.innerHTML = "";
+
+  if (!list.length){
+    box.append(el("div","empty","아직 마친 합주가 없습니다. 합주를 끝내고 일정에서 '합주 완료로 표시'를 누르면 여기에 쌓입니다."));
+    return;
+  }
+
+  const allPlayed = list.flatMap(e => songsOf(e.id));
+  const people = new Set();
+  allPlayed.forEach(sg => Object.values(sg.slots||{}).forEach(v => v && people.add(v.uid)));
+  [["합주", list.length + "회"], ["연주한 곡", allPlayed.length + "곡"], ["함께한 사람", people.size + "명"]]
+    .forEach(([k,v]) => {
+      const c = el("div","mem-stat");
+      c.append(el("b","",v));
+      c.append(el("span","",k));
+      stats.append(c);
+    });
+
+  list.forEach(e => {
+    const songs = songsOf(e.id);
+    const card = el("article","mem-card");
+
+    const cover = el("div","mem-cover");
+    if (e.cover){
+      const img = document.createElement("img");
+      img.src = e.cover; img.alt = ""; img.loading = "lazy";
+      cover.append(img);
+    } else {
+      cover.classList.add("no-photo");
+      cover.append(el("span","", (e.genre || "합주")));
+    }
+    const dateTag = el("div","mem-date");
+    const d = new Date(e.date + "T00:00:00");
+    dateTag.append(el("b","", isNaN(d) ? e.date : `${d.getMonth()+1}월 ${d.getDate()}일`));
+    dateTag.append(el("span","", isNaN(d) ? "" : `${d.getFullYear()} · ${DAYS[d.getDay()]}요일`));
+    cover.append(dateTag);
+    card.append(cover);
+
+    const body = el("div","mem-body");
+    const head = el("a","mem-head");
+    head.href = "#/e/" + e.id;
+    head.append(el("h2","",e.title));
+    head.append(el("div","mem-meta",
+      [[e.studio, e.room].filter(Boolean).join(" "), e.region, e.hostName ? `주최 ${e.hostName}` : ""]
+        .filter(Boolean).join(" · ")));
+    body.append(head);
+
+    if (songs.length){
+      const setlist = el("div","mem-setlist");
+      songs.forEach((sg, i) => {
+        const row = el("div","mem-song");
+        row.append(el("span","mem-no mono", String(i+1).padStart(2,"0")));
+        const t = el("div","mem-song-t");
+        t.append(el("b","",sg.title));
+        if (sg.artist) t.append(el("span","",sg.artist));
+        row.append(t);
+        const who = (sg.requiredParts||[])
+          .map(p => sg.slots?.[p]?.name).filter(Boolean);
+        row.append(el("div","mem-who", who.join(" · ")));
+        setlist.append(row);
+      });
+      body.append(setlist);
+    } else {
+      body.append(el("div","mem-empty","기록된 곡이 없습니다."));
+    }
+
+    const roster = new Set();
+    songs.forEach(sg => Object.values(sg.slots||{}).forEach(v => v && roster.add(v.name)));
+    if (roster.size){
+      const foot = el("div","mem-foot");
+      foot.append(el("span","mem-foot-l","함께한 사람"));
+      const tags = el("div","mem-people");
+      [...roster].forEach(n => tags.append(el("span","tagp-mini",n)));
+      foot.append(tags);
+      body.append(foot);
+    }
+
+    card.append(body);
+    box.append(card);
+  });
+}
+
+function renderMatrix(){
+  if (!curEvent) return;
+  const box = $("#songs");
+  box.innerHTML = "";
+
+  if (!curSongs.length){
+    const empty = el("div","empty");
+    empty.append(document.createTextNode("이 일정에 배정된 곡이 없습니다. "));
+    const a2 = document.createElement("a");
+    a2.href = "#/songs"; a2.textContent = "곡 후보에서 성립한 곡을 보내주세요.";
+    a2.style.color = "var(--amber)";
+    empty.append(a2);
+    box.append(empty);
+    $("#matrix-tally").textContent = "";
+    $("#roster").innerHTML = ""; $("#roster-n").textContent = "";
+    return;
+  }
+
+  const unset = curSongs.filter(isUnset);
+  $("#btn-view").textContent = compactView ? "카드로 보기" : "한 줄로 보기";
+  const mb = $("#btn-manage");
+  mb.classList.toggle("hide", !canManageSlots());
+  mb.classList.toggle("primary", manageMode);
+  mb.textContent = manageMode ? "자리 관리 끄기" : "자리 관리";
+  const note = $("#songs-note");
+  note.classList.toggle("note-closed", entryClosed());
+  note.textContent =
+      (manageMode && canManageSlots())
+        ? "자리 관리 중입니다. 아무 칸이나 눌러 다른 사람을 넣거나 뺄 수 있습니다."
+    : eventDone(curEvent)
+        ? "합주가 끝난 일정입니다. 아래 곡들이 이날 연주한 기록으로 남아 있습니다."
+    : entryClosed()
+        ? `${fmtDate(curEvent.entryDeadline)}에 곡 신청이 마감됐습니다. 세트리스트가 확정된 상태입니다.`
+        + ((isAdmin() || isEventHost()) ? " 주최자와 관리자는 계속 손볼 수 있습니다." : "")
+    : "곡 후보에서 성립한 곡을 이 일정으로 보내면 여기에 나타납니다. 파트는 여기서도 바꿀 수 있습니다.";
+
+  const done = curSongs.filter(isDone);
+  // 모집 중인 곡은 자리가 적게 남은 순으로 — 곧 성립될 곡이 위로 옵니다.
+  const open = curSongs.filter(s => !isUnset(s) && !isDone(s)).sort((a,b) => {
+    const left = s => (s.requiredParts||[]).filter(p => !s.slots?.[p]).length;
+    return left(a) - left(b);
+  });
+
+  const group = (label, list, cls) => {
+    if (!list.length) return;
+    const head = el("div","group-head " + cls);
+    head.append(el("h3","",label));
+    head.append(el("span","group-n mono",`${list.length}곡`));
+    box.append(head);
+    list.forEach(song => box.append(songCard(song, cls === "is-done")));
+  };
+
+  group(eventDone(curEvent) ? "연주한 곡" : "세트리스트", done, "is-done");
+  group("자리 빈 곡", open, "is-open");
+  group("편성 미정", unset, "is-unset");
+
+  prevDone = new Set(done.map(s => s.id));
+  $("#matrix-tally").textContent = `성립 ${done.length} / 후보 ${curSongs.length}곡`;
+  renderRoster();
+}
+
+/* 입장할 때 양도 여부를 고릅니다. 양도 가능으로 들어가면
+   나중에 온 사람이 그 자리를 넘겨받을 수 있습니다. */
+/* 변경 로그 — 실패해도 본 동작을 막지 않도록 조용히 삼킵니다. */
+function logIt(songId, type, extra){
+  if (!songId || !auth.user) return;
+  store.addLog(songId, {
+    type,
+    actorUid: auth.user.uid,
+    actorName: myProfile?.name || "이름없음",
+    ...extra
+  }).catch(() => {});
+}
+
+const LOG_TEXT = {
+  song_add:     e => `${e.actorName} 님이 «${e.songTitle}» 곡을 올렸습니다`,
+  song_edit:    e => `${e.actorName} 님이 «${e.songTitle}» 곡 정보를 고쳤습니다`,
+  song_delete:  e => `${e.actorName} 님이 «${e.songTitle}» 곡을 삭제했습니다`,
+  parts_fill:   e => `${e.actorName} 님이 «${e.songTitle}» 편성을 ${e.detail}(으)로 정했습니다`,
+  enter:        e => `${e.actorName} 님이 «${e.songTitle}» ${e.part}에 들어왔습니다${e.detail === "open" ? " (양도 가능)" : ""}`,
+  leave:        e => `${e.actorName} 님이 «${e.songTitle}» ${e.part} 자리를 비웠습니다`,
+  takeover:     e => `${e.actorName} 님이 «${e.songTitle}» ${e.part} 자리를 ${e.targetName} 님에게서 넘겨받았습니다`,
+  yield_on:     e => `${e.actorName} 님이 «${e.songTitle}» ${e.part}를 양도 가능으로 바꿨습니다`,
+  yield_off:    e => `${e.actorName} 님이 «${e.songTitle}» ${e.part}를 양도 불가로 바꿨습니다`,
+  moved_in:     e => `${e.actorName} 님이 이 곡을 «${e.detail}» 일정으로 보냈습니다`,
+  moved_out:    e => `${e.actorName} 님이 이 곡을 곡 후보로 되돌렸습니다`,
+  admin_assign: e => `${e.actorName} 님이 «${e.songTitle}» ${e.part}에 ${e.targetName} 님을 넣었습니다`,
+  admin_clear:  e => `${e.actorName} 님이 «${e.songTitle}» ${e.part} 자리를 비웠습니다`,
+};
+
+function whenText(ts){
+  const diff = Date.now() - ts;
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "방금";
+  if (min < 60) return `${min}분 전`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}시간 전`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day}일 전`;
+  return new Date(ts).toLocaleDateString("ko-KR");
+}
+
+function logModal(song){
+  modal(`
+    <div class="admin-wide">
+      <h3>변경 로그</h3>
+      <p class="hint">${esc(song.title)} — 이 곡에 생긴 변화를 최근 순으로 보여줍니다.</p>
+      <div class="admin-count mono" id="lg-count">불러오는 중</div>
+      <div class="log-list" id="lg-list"></div>
+      <div class="err" id="lg-err"></div>
+      <div class="modal-actions"><button class="btn ghost" id="lg-close">닫기</button></div>
+    </div>`, async root => {
+    root.querySelector("#lg-close").onclick = closeModal;
+    let rows = [];
+    try {
+      const all = await store.listLogs(song.id);
+      // 예전 기록에는 곡 식별자가 없을 수 있어 제목으로도 맞춰봅니다.
+      rows = all.filter(r => r.songId ? r.songId === song.id : r.songTitle === song.title);
+    }
+    catch(e){
+      root.querySelector("#lg-count").textContent = "";
+      root.querySelector("#lg-err").textContent = "로그를 불러오지 못했습니다. 보안 규칙에 logs 항목이 있는지 확인해 주세요.";
+      return;
+    }
+    root.querySelector("#lg-count").textContent = rows.length ? `${rows.length}건` : "";
+    const box = root.querySelector("#lg-list");
+    box.innerHTML = "";
+    if (!rows.length){
+      box.append(el("div","empty","이 곡에는 아직 기록이 없습니다. 이 기능을 넣기 전에 생긴 변화는 남아 있지 않습니다."));
+      return;
+    }
+    rows.forEach(r => {
+      const line = el("div","log-row");
+      line.append(el("span","log-dot log-" + (r.type||"").split("_")[0]));
+      const body = el("div","log-body");
+      const fn = LOG_TEXT[r.type];
+      body.append(el("div","log-text", fn ? fn(r) : `${r.actorName || "누군가"} 님이 무언가 바꿨습니다`));
+      body.append(el("div","log-when mono", whenText(r.ts)));
+      line.append(body);
+      box.append(line);
+    });
+  });
+}
+
+function enterModal(song, part, taken){
+  const takeover = !!taken;
+  modal(`
+    <h3>${esc(part)} 자리에 들어가기</h3>
+    <p class="hint">${esc(song.title)}${takeover
+      ? ` — ${esc(taken.name)} 님이 양도 가능으로 잡아둔 자리입니다. 넘겨받으면 그분은 자리에서 빠집니다.`
+      : ""}</p>
+    <div class="enter-pick">
+      <button class="enter-opt" id="en-open" type="button">
+        <b>양도 가능</b>
+        <span>다른 사람이 원하면 이 자리를 넘겨줍니다. 더 잘 맞는 사람이 오면 양보할 생각일 때 고르세요.</span>
+      </button>
+      <button class="enter-opt" id="en-lock" type="button">
+        <b>양도 불가</b>
+        <span>이 자리를 확정합니다. 내가 직접 취소하기 전까지 아무도 가져갈 수 없습니다.</span>
+      </button>
+    </div>
+    <div class="err" id="en-err"></div>
+    <div class="modal-actions"><button class="btn ghost" id="en-cancel">취소</button></div>`, root => {
+    root.querySelector("#en-cancel").onclick = closeModal;
+    const go = async open => {
+      try {
+        await store.enterSlot(song.id, part, me(), open);
+        logIt(song.id, takeover ? "takeover" : "enter", { songTitle: song.title, part,
+          targetName: takeover ? taken.name : "",
+          detail: open ? "open" : "lock"
+        });
+        closeModal();
+        toast(`${part}에 들어갔습니다${open ? " · 양도 가능" : ""}`);
+      } catch(e){ console.error(e); root.querySelector("#en-err").textContent = errText(e); }
+    };
+    root.querySelector("#en-open").onclick = () => go(true);
+    root.querySelector("#en-lock").onclick = () => go(false);
+  });
+}
+
+/* 내 자리를 누르면 양도 상태를 바꾸거나 비웁니다. */
+function mySlotModal(song, part){
+  const cur = song.slots?.[part];
+  if (!cur) return;
+  if (closedForMe()){
+    toast(closedMsg("자리를 바꿀 수 없습니다")); return;
+  }
+  if (!passDeadline("자리 변경을")) return;
+  modal(`
+    <h3>내 ${esc(part)} 자리</h3>
+    <p class="hint">${esc(song.title)} — 지금은 <b>${cur.open ? "양도 가능" : "양도 불가"}</b> 상태입니다.</p>
+    <div class="enter-pick">
+      <button class="enter-opt" id="my-toggle" type="button">
+        <b>${cur.open ? "양도 불가로 바꾸기" : "양도 가능으로 바꾸기"}</b>
+        <span>${cur.open
+          ? "이 자리를 확정합니다. 다른 사람이 가져갈 수 없게 됩니다."
+          : "다른 사람이 원하면 넘겨줄 수 있게 열어둡니다."}</span>
+      </button>
+    </div>
+    <div class="err" id="my-err"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="my-leave" style="margin-right:auto;color:var(--coral)">자리 비우기</button>
+      <button class="btn ghost" id="my-cancel">닫기</button>
+    </div>`, root => {
+    const err = root.querySelector("#my-err");
+    root.querySelector("#my-cancel").onclick = closeModal;
+    root.querySelector("#my-toggle").onclick = async () => {
+      try {
+        await store.enterSlot(song.id, part, me(), !cur.open);
+        logIt(song.id, cur.open ? "yield_off" : "yield_on", {songTitle: song.title, part});
+        closeModal();
+        toast(cur.open ? "양도 불가로 바꿨습니다" : "양도 가능으로 바꿨습니다");
+      } catch(e){ console.error(e); err.textContent = errText(e); }
+    };
+    root.querySelector("#my-leave").onclick = async () => {
+      try {
+        await store.leaveSlot(song.id, part, auth.user.uid);
+        logIt(song.id, "leave", {songTitle: song.title, part});
+        closeModal();
+        toast(`${part} 자리를 비웠습니다`);
+      } catch(e){ console.error(e); err.textContent = errText(e); }
+    };
+  });
+}
+
+/* 합주가 끝났다고 표시된 일정입니다. 곡은 여기 속한 채로 기록으로 남습니다. */
+/* 합주 완료 판정
+   - 주최자·관리자가 완료로 표시했으면 완료 (completed: true)
+   - 완료를 해제했으면 날짜와 상관없이 진행 중 (completed: false)
+   - 아무도 건드리지 않았으면 합주 날짜가 지나는 순간 자동으로 완료 */
+const eventDone = e => {
+  if (!e) return false;
+  if (e.completed === true) return true;
+  if (e.completed === false) return false;
+  return !!e.date && e.date < todayISO();
+};
+const autoDone = e => !!e && e.completed === undefined && eventDone(e);
+
+/* 곡 신청 마감 판정. 주최자와 관리자는 마감 뒤에도 손볼 수 있습니다. */
+function entryClosed(){
+  if (eventDone(curEvent)) return true;        // 끝난 합주는 잠깁니다
+  if (!curEvent?.entryDeadline) return false;
+  return todayISO() > curEvent.entryDeadline;
+}
+const closedForMe = () => entryClosed() && !(isAdmin() || isEventHost());
+/* 잠긴 이유를 사람이 읽을 수 있게 */
+function closedMsg(what){
+  if (eventDone(curEvent)) return `합주가 끝난 일정이라 ${what}`;
+  return `${fmtDate(curEvent?.entryDeadline)}에 마감돼 ${what}`;
+}
+
+/* 마감 뒤 주최자·관리자가 손대려 할 때는 조용히 통과시키지 않고
+   권한으로 넘어간다는 사실을 확인받습니다. */
+function passDeadline(what){
+  if (!entryClosed()) return true;
+  if (closedForMe()) return false;
+  const why = eventDone(curEvent)
+    ? "이미 합주 완료로 표시된 일정입니다."
+    : `${fmtDate(curEvent.entryDeadline)}에 곡 신청이 마감된 합주입니다.`;
+  return confirm(`${why}\n\n주최자·관리자 권한으로 ${what} 진행할까요?`);
+}
+
+async function claimSlot(song, part, taken, mine){
+  if (!requireLogin()) return;
+  if (mine){ mySlotModal(song, part); return; }
+  if (taken && !taken.open){ toast(`${taken.name} 님이 이미 맡았습니다`); return; }
+
+  {
+    if (closedForMe()){
+      toast(closedMsg("자리를 바꿀 수 없습니다")); return;
+    }
+    if (!passDeadline("자리 배정을")) return;
+    // 1인당 곡수 제한은 일정 안에서만 적용됩니다. 곡 후보에는 일정이 없습니다.
+    const limit = curEvent?.maxSongsPerUser || 0;
+    if (limit){
+      const inThis = Object.values(song.slots||{}).some(v => v && v.uid === auth.user.uid);
+      const mySongs = curSongs.filter(x =>
+        Object.values(x.slots||{}).some(v => v && v.uid === auth.user.uid)).length;
+      if (!inThis && mySongs >= limit){
+        toast(`이 합주는 1인당 ${limit}곡까지입니다`); return;
+      }
+    }
+  }
+  enterModal(song, part, taken);
+}
+
+function renderRoster(){
+  const map = new Map();
+  curSongs.forEach(s => Object.entries(s.slots||{}).forEach(([p,v]) => {
+    if (!v) return;
+    const cur = map.get(v.uid) || {name:v.name, parts:new Set(), n:0};
+    cur.parts.add(p); cur.n++; map.set(v.uid, cur);
+  }));
+  const box = $("#roster"); box.innerHTML = "";
+  $("#roster-n").textContent = map.size ? `${map.size}명` : "";
+  if (!map.size){ box.append(el("div","empty","아직 아무도 자리를 잡지 않았습니다.")); return; }
+  [...map.values()].sort((a,b)=>b.n-a.n).forEach(p => {
+    const t = el("div","tagp",p.name);
+    t.append(el("b","",[...p.parts].join(" · ") + ` ${p.n}곡`));
+    box.append(t);
+  });
+}
+
+/* ============================================================
+   8. 모달 — 합주 열기 / 곡 올리기
+   ============================================================ */
+function modal(html, onMount, locked){
+  const root = $("#modal-root");
+  root.innerHTML = `<div class="modal-bg"><div class="modal">${html}</div></div>`;
+  if (!locked){
+    const bg = root.querySelector(".modal-bg");
+    bg.onclick = e => { if (e.target === bg) closeModal(); };
+    document.addEventListener("keydown", escClose);
+  }
+  onMount?.(root);
+  root.querySelector("input,select,textarea")?.focus();
+}
+function closeModal(){ $("#modal-root").innerHTML = ""; document.removeEventListener("keydown", escClose); }
+function escClose(e){ if (e.key === "Escape") closeModal(); }
+
+function profileModal({first = false} = {}){
+  if (!auth.user) return;
+  const p = myProfile || {};
+  let photo = p.photo || "";
+  const parts = new Set(p.parts || (p.part ? [p.part] : []));
+
+  modal(`
+    <h3>${first ? "프로필 만들기" : "회원 정보"}</h3>
+    <p class="hint">${first
+      ? "합주에 참가하려면 먼저 프로필이 필요합니다. 나중에 언제든 고칠 수 있습니다."
+      : "고친 내용은 저장하는 즉시 반영됩니다."}</p>
+
+    <div class="ava-row">
+      <img id="p-preview" class="ava-big" alt="프로필 이미지 미리보기">
+      <div>
+        <label class="btn sm" for="p-file" style="display:inline-block">이미지 올리기</label>
+        <input id="p-file" type="file" accept="image/*" style="display:none">
+        <button class="btn sm ghost" id="p-clear" type="button">지우기</button>
+        <p class="ava-note">정사각형으로 잘라서 저장합니다. 8MB 이하.</p>
+      </div>
+    </div>
+
+    <div class="field"><label>닉네임 <b class="req">필수</b></label>
+      <input id="p-name" maxlength="20" placeholder="합주에서 불릴 이름" value="${esc(p.name || "")}"></div>
+
+    <div class="field"><label>메일 주소 <b class="req">필수</b></label>
+      <input id="p-email" type="email" maxlength="80" placeholder="name@example.com" value="${esc(p.email || auth.user.email || "")}">
+      <p class="ava-note">주최자 연락용입니다. 다른 참가자에게는 보이지 않습니다.</p></div>
+
+    <div class="field"><label>연주 파트 <b class="req">필수</b></label>
+      <div class="partpick" id="p-parts"></div>
+      <p class="ava-note">할 수 있는 파트를 모두 골라주세요. 여러 개 선택할 수 있습니다.</p></div>
+
+    <div class="field"><label>활동 지역 <b class="req">필수</b></label>
+      <select id="p-region">
+        <option value="">선택하세요</option>
+        ${AREAS.map(a => `<option${p.region === a ? " selected" : ""}>${a}</option>`).join("")}
+      </select></div>
+
+    <div class="field"><label>자기소개</label>
+      <textarea id="p-bio" maxlength="1000" placeholder="연주 경력, 좋아하는 밴드, 합주 가능한 요일 등">${esc(p.bio || "")}</textarea></div>
+
+    <div class="err" id="p-err"></div>
+    ${first ? "" : `<p class="ava-note mono" style="font-size:11px">내 UID · ${esc(auth.user.uid)}</p>`}
+    <div class="modal-actions">
+      ${first
+        ? `<button class="btn ghost" id="p-out">취소</button>`
+        : `<button class="btn ghost" id="p-out">로그아웃</button><button class="btn ghost" id="p-cancel">닫기</button>`}
+      <button class="btn primary" id="p-save">${first ? "가입 마치기" : "저장하기"}</button>
+    </div>`, root => {
+
+    const prev = root.querySelector("#p-preview");
+    const err  = root.querySelector("#p-err");
+    const paint = () => { prev.src = photo || blankAvatar(root.querySelector("#p-name").value); };
+    paint();
+
+    root.querySelector("#p-name").oninput = () => { if (!photo) paint(); };
+
+    root.querySelector("#p-file").onchange = async e => {
+      const f = e.target.files?.[0]; if (!f) return;
+      err.textContent = "";
+      try { photo = await toSquareDataURL(f); paint(); }
+      catch(ex){ err.textContent = ex.message; }
+      e.target.value = "";
+    };
+    root.querySelector("#p-clear").onclick = () => { photo = ""; paint(); };
+
+    const pbox = root.querySelector("#p-parts");
+    MY_PARTS.forEach(x => {
+      const b = el("button","" + (parts.has(x) ? "on" : ""), x);
+      b.type = "button";
+      b.onclick = () => {
+        parts.has(x) ? parts.delete(x) : parts.add(x);
+        b.classList.toggle("on");
+      };
+      pbox.append(b);
+    });
+
+    root.querySelector("#p-out").onclick = () => { closeModal(); auth.signOut(); };
+    root.querySelector("#p-cancel")?.addEventListener("click", closeModal);
+
+    root.querySelector("#p-save").onclick = async () => {
+      const name   = root.querySelector("#p-name").value.trim();
+      const email  = root.querySelector("#p-email").value.trim();
+      const region = root.querySelector("#p-region").value;
+      const bio    = root.querySelector("#p-bio").value.trim();
+
+      if (name.length < 2)  return err.textContent = "닉네임을 두 글자 이상 적어주세요.";
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err.textContent = "메일 주소 형식을 확인해 주세요.";
+      if (!parts.size) return err.textContent = "연주 파트를 하나 이상 골라주세요.";
+      if (!region) return err.textContent = "활동 지역을 골라주세요.";
+
+      err.textContent = "";
+      root.querySelector("#p-save").textContent = "저장 중";
+      try {
+        const data = {name, email, parts: MY_PARTS.filter(x => parts.has(x)), region, bio, photo};
+        if (first) data.joinedAt = Date.now();
+        await store.saveProfile(auth.user.uid, data);
+        myProfile = data;
+        closeModal(); renderAuth(auth.user);
+        if (curEvent) renderMatrix();
+        toast(first ? "가입이 끝났습니다" : "회원 정보를 저장했습니다");
+      } catch(ex){
+        root.querySelector("#p-save").textContent = first ? "가입 마치기" : "저장하기";
+        err.textContent = "저장하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+      }
+    };
+  }, first);
+}
+
+/* ============================================================
+   8-1. 관리자
+   ============================================================ */
+let adminUsers = [], adminTab = "dash", adminQ = "";
+
+async function openAdmin(){
+  if (!isAdmin()){ location.hash = "#/"; toast("관리자만 볼 수 있습니다"); return; }
+  showView("admin");
+  document.title = "관리자 — 합주각";
+  window.scrollTo(0,0);
+  renderAdmin();
+  try { adminUsers = await store.listUsers(); }
+  catch(e){ adminUsers = null; }
+  renderAdmin();
+}
+
+function adminStats(){
+  const today = todayISO();
+  let songs = 0, done = 0, unset = 0, claims = 0;
+  const people = new Set();
+  allEvents.forEach(e => songsOf(e.id).forEach(sg => {
+    songs++;
+    if (isUnset(sg)) unset++; else if (isDone(sg)) done++;
+    Object.values(sg.slots||{}).forEach(v => { if (v){ claims++; people.add(v.uid); } });
+  }));
+  return {
+    users: adminUsers ? adminUsers.length : "—",
+    events: allEvents.length,
+    upcoming: allEvents.filter(e => e.date >= today).length,
+    hidden: allEvents.filter(e => e.visibility === "private").length,
+    songs, done, unset, claims, active: people.size
+  };
+}
+
+function dist(list, key){
+  const m = new Map();
+  list.forEach(u => {
+    const vals = key === "parts" ? (u.parts || (u.part ? [u.part] : [])) : [u[key]];
+    vals.filter(Boolean).forEach(v => m.set(v, (m.get(v)||0) + 1));
+  });
+  return [...m.entries()].sort((a,b) => b[1] - a[1]);
+}
+
+function renderAdmin(){
+  const box = $("#admin-body");
+  box.innerHTML = "";
+
+  const tabs = el("div","admin-tabs");
+  [["dash","대시보드"],["users","회원"],["events","합주"],["site","사이트"],["tools","도구"]].forEach(([k,label]) => {
+    const b = el("button","chip" + (adminTab === k ? " on" : ""), label);
+    b.onclick = () => { adminTab = k; adminQ = ""; renderAdmin(); };
+    tabs.append(b);
+  });
+  box.append(tabs);
+
+  if (adminUsers === null){
+    box.append(el("div","empty","회원 목록을 불러오지 못했습니다. 보안 규칙의 admins 목록에 UID가 들어 있는지 확인해 주세요."));
+    return;
+  }
+  if (adminTab === "dash")   return adminDash(box);
+  if (adminTab === "users")  return adminUsersTab(box);
+  if (adminTab === "events") return adminEventsTab(box);
+  if (adminTab === "site")   return adminSiteTab(box);
+  adminToolsTab(box);
+}
+
+function adminDash(box){
+  const st = adminStats();
+  const grid = el("div","stat-grid");
+  [
+    ["가입 회원", st.users], ["활동 중", st.active + "명"],
+    ["전체 합주", st.events], ["예정 합주", st.upcoming],
+    ["비공개 합주", st.hidden], ["등록 곡", st.songs],
+    ["성립 곡", st.done], ["편성 미정", st.unset],
+    ["잡힌 자리", st.claims]
+  ].forEach(([k,v]) => {
+    const c = el("div","stat");
+    c.append(el("b","",String(v)));
+    c.append(el("span","",k));
+    grid.append(c);
+  });
+  box.append(grid);
+
+  const bars = (title, rows, total) => {
+    if (!rows.length) return;
+    box.append(el("div","form-sec",title));
+    const wrap = el("div","bars");
+    rows.forEach(([label,n]) => {
+      const r = el("div","bar-row");
+      r.append(el("span","bar-l",label));
+      const track = el("div","bar-t");
+      const fill = el("i");
+      fill.style.width = Math.max(3, Math.round(n/total*100)) + "%";
+      track.append(fill);
+      r.append(track);
+      r.append(el("span","bar-n mono",String(n)));
+      wrap.append(r);
+    });
+    box.append(wrap);
+  };
+  const total = Math.max(1, adminUsers.length);
+  bars("파트 분포", dist(adminUsers,"parts"), total);
+  bars("지역 분포", dist(adminUsers,"region"), total);
+}
+
+function adminUsersTab(box){
+  const search = el("div","field");
+  const inp = document.createElement("input");
+  inp.placeholder = "닉네임, 메일, 파트, 지역으로 찾기";
+  inp.value = adminQ;
+  inp.oninput = () => { adminQ = inp.value; paint(); };
+  search.append(inp);
+  box.append(search);
+
+  const count = el("div","admin-count mono");
+  const list = el("div","admin-list");
+  box.append(count, list);
+
+  const paint = () => {
+    const q = adminQ.trim().toLowerCase();
+    const rows = adminUsers
+      .filter(u => !q || [u.name,u.email,u.region,u.bio,(u.parts||[]).join(" "),u.part]
+        .some(v => (v||"").toLowerCase().includes(q)))
+      .sort((a,b) => (b.joinedAt||0) - (a.joinedAt||0));
+    count.textContent = q ? `${rows.length}명 / 전체 ${adminUsers.length}명` : `전체 ${adminUsers.length}명`;
+    list.innerHTML = "";
+    if (!rows.length){ list.append(el("div","empty","찾는 회원이 없습니다.")); return; }
+    rows.forEach(u => list.append(adminUserRow(u)));
+  };
+  paint();
+}
+
+function adminUserRow(u){
+  const row = el("div","admin-row");
+  const img = el("img","avatar"); img.src = u.photo || blankAvatar(u.name); img.alt = "";
+  row.append(img);
+
+  const info = el("div","admin-info");
+  const head = el("div","admin-name");
+  head.append(el("b","",u.name || "이름없음"));
+  if (ADMIN_UIDS.includes(u.uid)) head.append(el("span","tagp-mini admin-badge","관리자"));
+  (u.parts || (u.part ? [u.part] : [])).forEach(x => head.append(el("span","tagp-mini",x)));
+  if (u.region) head.append(el("span","tagp-mini",u.region));
+  info.append(head);
+  info.append(el("div","admin-sub",u.email || "메일 없음"));
+  if (u.bio) info.append(el("div","admin-bio",u.bio));
+  const joined = u.joinedAt ? new Date(u.joinedAt).toLocaleDateString("ko-KR") + " 가입" : "가입일 기록 없음";
+  const edited = u.updatedAt ? " · " + new Date(u.updatedAt).toLocaleDateString("ko-KR") + " 수정" : "";
+  info.append(el("div","admin-sub mono", joined + edited));
+  row.append(info);
+
+  const acts = el("div","admin-acts");
+  const ed = el("button","btn sm","편집");
+  ed.onclick = () => adminEditUser(u);
+  acts.append(ed);
+  if (!ADMIN_UIDS.includes(u.uid)){
+    const rm = el("button","btn sm ghost","삭제");
+    rm.style.color = "var(--coral)";
+    rm.onclick = async () => {
+      if (!confirm(`${u.name} 님의 프로필을 삭제할까요?\n\n로그인 계정 자체는 남아 있어서, 다시 접속하면 프로필을 새로 만들게 됩니다. 이미 잡아둔 파트 자리는 그대로 남습니다.`)) return;
+      try { await store.deleteProfile(u.uid); adminUsers = adminUsers.filter(x => x.uid !== u.uid); renderAdmin(); toast("프로필을 삭제했습니다"); }
+      catch(e){ toast("삭제하지 못했습니다"); }
+    };
+    acts.append(rm);
+  }
+  row.append(acts);
+  return row;
+}
+
+function adminEditUser(u){
+  const parts = new Set(u.parts || (u.part ? [u.part] : []));
+  let photo = u.photo || "";
+  modal(`
+    <h3>회원 정보 편집</h3>
+    <p class="hint">관리자 권한으로 다른 회원의 정보를 고칩니다. 본인에게 알림이 가지 않으니, 고친 내용은 따로 알려주세요.</p>
+    <div class="ava-row">
+      <img id="au-prev" class="ava-big" alt="">
+      <div>
+        <button class="btn sm ghost" id="au-clear" type="button">사진 지우기</button>
+        <p class="ava-note">부적절한 사진만 내릴 수 있습니다. 새 사진은 본인만 올릴 수 있습니다.</p>
+      </div>
+    </div>
+    <div class="field"><label>닉네임</label><input id="au-name" maxlength="20" value="${esc(u.name || "")}"></div>
+    <div class="field"><label>메일 주소</label><input id="au-email" maxlength="80" value="${esc(u.email || "")}"></div>
+    <div class="field"><label>연주 파트</label><div class="partpick" id="au-parts"></div></div>
+    <div class="field"><label>활동 지역</label><select id="au-region">
+      <option value="">선택 안 함</option>
+      ${AREAS.map(a => `<option${u.region === a ? " selected" : ""}>${a}</option>`).join("")}
+    </select></div>
+    <div class="field"><label>자기소개</label><textarea id="au-bio" maxlength="1000">${esc(u.bio || "")}</textarea></div>
+    <p class="ava-note mono" style="font-size:11px">UID · ${esc(u.uid)}</p>
+    <div class="err" id="au-err"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="au-cancel">취소</button>
+      <button class="btn primary" id="au-save">저장하기</button>
+    </div>`, root => {
+    const prev = root.querySelector("#au-prev");
+    const paint = () => { prev.src = photo || blankAvatar(root.querySelector("#au-name").value); };
+    paint();
+    root.querySelector("#au-name").oninput = () => { if (!photo) paint(); };
+    root.querySelector("#au-clear").onclick = () => { photo = ""; paint(); };
+
+    const pbox = root.querySelector("#au-parts");
+    MY_PARTS.forEach(x => {
+      const b = el("button","" + (parts.has(x) ? "on" : ""), x); b.type = "button";
+      b.onclick = () => { parts.has(x) ? parts.delete(x) : parts.add(x); b.classList.toggle("on"); };
+      pbox.append(b);
+    });
+
+    root.querySelector("#au-cancel").onclick = closeModal;
+    root.querySelector("#au-save").onclick = async () => {
+      const err = root.querySelector("#au-err");
+      const name = root.querySelector("#au-name").value.trim();
+      if (name.length < 2) return err.textContent = "닉네임을 두 글자 이상 적어주세요.";
+      const patch = {
+        name,
+        email: root.querySelector("#au-email").value.trim(),
+        parts: MY_PARTS.filter(x => parts.has(x)),
+        region: root.querySelector("#au-region").value,
+        bio: root.querySelector("#au-bio").value.trim(),
+        photo
+      };
+      try {
+        await store.saveProfile(u.uid, patch);
+        Object.assign(u, patch);
+        if (auth.user && u.uid === auth.user.uid){ myProfile = {...myProfile, ...patch}; renderAuth(auth.user); }
+        closeModal(); renderAdmin(); toast("회원 정보를 저장했습니다");
+      } catch(e){ err.textContent = "저장하지 못했습니다. 보안 규칙을 확인해 주세요."; }
+    };
+  });
+}
+
+function adminEventsTab(box){
+  const search = el("div","field");
+  const inp = document.createElement("input");
+  inp.placeholder = "합주 이름, 지역, 합주실, 주최자로 찾기";
+  inp.value = adminQ;
+  inp.oninput = () => { adminQ = inp.value; paint(); };
+  search.append(inp);
+  box.append(search);
+
+  const count = el("div","admin-count mono");
+  const list = el("div","admin-list");
+  box.append(count, list);
+
+  const paint = () => {
+    const q = adminQ.trim().toLowerCase();
+    const rows = allEvents
+      .filter(e => !q || [e.title,e.region,e.studio,e.hostName,e.genre]
+        .some(v => (v||"").toLowerCase().includes(q)))
+      .slice().sort((a,b) => b.date.localeCompare(a.date));
+    count.textContent = `전체 ${allEvents.length}건`;
+    list.innerHTML = "";
+    if (!rows.length){ list.append(el("div","empty","찾는 합주가 없습니다.")); return; }
+
+    const today = todayISO();
+    rows.forEach(e => {
+      const songs = songsOf(e.id);
+      const row = el("div","admin-row");
+      const info = el("div","admin-info");
+      const head = el("div","admin-name");
+      head.append(el("b","",e.title));
+      if (e.visibility === "private") head.append(el("span","tagp-mini","비공개"));
+      if (e.date < today) head.append(el("span","tagp-mini","지난 합주"));
+      if (e.genre) head.append(el("span","tagp-mini",e.genre));
+      info.append(head);
+      info.append(el("div","admin-sub",
+        `${fmtDate(e.date)} · ${e.region||"지역 미정"} · ${[e.studio,e.room].filter(Boolean).join(" ")||"합주실 미정"} · 주최 ${e.hostName||"—"}`));
+      info.append(el("div","admin-sub mono",
+        `곡 ${songs.length} · 성립 ${songs.filter(isDone).length} · 편성 미정 ${songs.filter(isUnset).length} · 참가 ${playerCount(songs)}명`));
+      row.append(info);
+
+      const acts = el("div","admin-acts");
+      const go = document.createElement("a");
+      go.className = "btn sm"; go.href = "#/e/" + e.id; go.textContent = "열기";
+      acts.append(go);
+      const rm = el("button","btn sm ghost","삭제");
+      rm.style.color = "var(--coral)";
+      rm.onclick = async () => {
+        if (!confirm(`"${e.title}" 합주를 삭제할까요?\n\n곡 ${songs.length}개와 잡혀 있는 자리가 모두 사라지며, 되돌릴 수 없습니다.`)) return;
+        try {
+          for (const sg of songs) await store.updateSong(sg.id, {eventId:""});
+          await store.deleteEvent(e.id);
+          toast("합주를 삭제했습니다"); renderAdmin();
+        } catch(err){ toast("삭제하지 못했습니다"); }
+      };
+      acts.append(rm);
+      row.append(acts);
+      list.append(row);
+    });
+  };
+  paint();
+}
+
+function download(name, text, type){
+  const url = URL.createObjectURL(new Blob(["\ufeff" + text], {type}));
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+const csvCell = v => `"${String(v ?? "").replace(/"/g,'""')}"`;
+
+function adminSiteTab(box){
+  box.append(el("div","form-sec","곡 데이터 진단"));
+  const diag = el("div","tool");
+  diag.style.cssText = "align-items:stretch;gap:8px";
+  diag.append(el("b","","지금 곡이 어디에 있는지"));
+  const d1 = el("div","admin-sub mono");
+  const d2 = el("div","admin-sub mono");
+  const d3 = el("div","admin-sub mono");
+  diag.append(d1, d2, d3);
+
+  const paintDiag = async () => {
+    d1.textContent = `공용 곡 전체 ${allSongs.length}개 · 곡 후보 ${poolSongs().length}개 · 일정 배정 ${allSongs.filter(x=>x.eventId).length}개`;
+    const perEvent = allEvents
+      .map(e => `${e.title} ${songsOf(e.id).length}곡`)
+      .join(" / ") || "일정 없음";
+    d2.textContent = "일정별: " + perEvent;
+    try {
+      let n = 0;
+      for (const e of allEvents) n += (await store.listLegacySongs(e.id)).length;
+      d3.textContent = `예전 위치(일정 하위)에 남은 곡 ${n}개`;
+    } catch(ex){ d3.textContent = "예전 위치를 읽지 못했습니다 — 보안 규칙 확인 필요"; }
+  };
+  paintDiag();
+  const refresh = el("button","btn sm","다시 확인");
+  refresh.onclick = paintDiag;
+  diag.append(refresh);
+
+  const wrapD = el("div","tool-grid");
+  wrapD.style.gridTemplateColumns = "1fr";
+  wrapD.append(diag);
+  box.append(wrapD);
+
+  box.append(el("div","form-sec","일정 배정 풀기"));
+  const rel = el("div","tool");
+  rel.style.cssText = "align-items:stretch;gap:10px";
+  rel.append(el("b","","일정에 붙은 곡을 곡 후보로 되돌리기"));
+  rel.append(el("p","","일정에 배정된 곡을 모두 공용 곡 후보로 되돌립니다. 곡 정보와 잡혀 있는 자리는 그대로 남고, 어느 일정에 속하는지만 지워집니다. 되돌린 뒤 성립한 곡을 골라 다시 일정으로 보내면 됩니다."));
+
+  const pick = document.createElement("select");
+  pick.className = "";
+  pick.style.cssText = "width:100%;background:var(--ink);border:1px solid var(--line);color:var(--paper);border-radius:8px;padding:10px 12px";
+  const fill = () => {
+    pick.innerHTML = "";
+    const all = document.createElement("option");
+    all.value = ""; all.textContent = `전체 일정 (${allSongs.filter(x=>x.eventId).length}곡)`;
+    pick.append(all);
+    allEvents.forEach(e => {
+      const n = songsOf(e.id).length;
+      if (!n) return;
+      const o = document.createElement("option");
+      o.value = e.id; o.textContent = `${e.title} (${n}곡)`;
+      pick.append(o);
+    });
+  };
+  fill();
+  rel.append(pick);
+
+  const relOut = el("div","admin-sub");
+  const relGo = el("button","btn sm","곡 후보로 되돌리기");
+  relGo.onclick = async () => {
+    const target = pick.value;
+    const list = target ? songsOf(target) : allSongs.filter(x => x.eventId);
+    if (!list.length){ relOut.textContent = "되돌릴 곡이 없습니다."; return; }
+    if (!confirm(`${list.length}곡을 곡 후보로 되돌립니다.\n\n자리와 곡 정보는 그대로 남고 일정 배정만 풀립니다. 진행할까요?`)) return;
+    relGo.disabled = true; relGo.textContent = "되돌리는 중";
+    let done = 0;
+    try {
+      for (const sg of list){ await store.updateSong(sg.id, {eventId:""}); done++; }
+      relOut.textContent = `${done}곡을 곡 후보로 되돌렸습니다.`;
+      toast(`${done}곡을 되돌렸습니다`);
+      fill(); paintDiag();
+    } catch(ex){ relOut.textContent = `${done}곡까지 처리하다 멈췄습니다. 보안 규칙을 확인해 주세요.`; }
+    relGo.disabled = false; relGo.textContent = "곡 후보로 되돌리기";
+  };
+  rel.append(relGo, relOut);
+
+  const wrapR = el("div","tool-grid");
+  wrapR.style.gridTemplateColumns = "1fr";
+  wrapR.append(rel);
+  box.append(wrapR);
+
+  box.append(el("div","form-sec","예전 곡 옮기기"));
+  const mig = el("div","tool");
+  mig.style.cssText = "align-items:stretch;gap:10px";
+  mig.append(el("b","","일정 안에 남은 곡을 곡 후보로"));
+  mig.append(el("p","","구조를 바꾸기 전에는 곡이 일정 하위에 저장됐습니다. 그 곡들을 공용 곡 후보로 옮기면서, 원래 속해 있던 일정에 배정된 상태를 유지합니다. 여러 번 눌러도 중복되지 않습니다."));
+  const found = el("div","admin-sub mono","예전 곡 확인 중");
+  mig.append(found);
+  (async () => {
+    let n = 0;
+    try { for (const e of allEvents) n += (await store.listLegacySongs(e.id)).length; }
+    catch(ex){ found.textContent = "예전 곡을 읽지 못했습니다. 보안 규칙을 확인해 주세요."; return; }
+    found.textContent = n ? `옮길 곡 ${n}개를 찾았습니다` : "옮길 곡이 없습니다";
+  })();
+  const out = el("div","admin-sub");
+  const go = el("button","btn sm","옮기기 실행");
+  go.onclick = async () => {
+    go.disabled = true; go.textContent = "옮기는 중";
+    let moved = 0, skipped = 0;
+    try {
+      for (const e of allEvents){
+        const legacy = await store.listLegacySongs(e.id);
+        for (const sg of legacy){
+          const dup = allSongs.some(x => x.title === sg.title && x.eventId === e.id);
+          if (dup){ skipped++; continue; }
+          const {id, ...rest} = sg;
+          await store.addSong({...rest, eventId: e.id});
+          await store.deleteLegacySong(e.id, id);
+          moved++;
+        }
+      }
+      out.textContent = `옮긴 곡 ${moved}개${skipped ? `, 이미 있어서 건너뛴 곡 ${skipped}개` : ""}`;
+      toast(moved ? `${moved}곡을 옮겼습니다` : "옮길 곡이 없습니다");
+    } catch(ex){ out.textContent = "옮기는 중 문제가 생겼습니다. 보안 규칙을 확인해 주세요."; }
+    go.disabled = false; go.textContent = "옮기기 실행";
+  };
+  mig.append(go, out);
+  const wrapM = el("div","tool-grid");
+  wrapM.style.gridTemplateColumns = "1fr";
+  wrapM.append(mig);
+  box.append(wrapM);
+
+  box.append(el("div","form-sec","메인 배너 배경"));
+
+  const card = el("div","tool");
+  card.style.cssText = "align-items:stretch;gap:14px";
+  card.append(el("p","","메인 화면 배너 뒤에 깔리는 사진입니다. 가로로 길게 잘라 저장하고, 글자가 읽히도록 어두운 막을 한 겹 덮습니다. 합주하는 장면처럼 가로로 넓은 사진이 잘 어울립니다."));
+
+  const prev = el("div","banner-prev");
+  const paint = () => {
+    prev.innerHTML = "";
+    if (siteSettings.heroImage){
+      const i = document.createElement("img"); i.src = siteSettings.heroImage; i.alt = "";
+      prev.append(i);
+    } else prev.textContent = "사진 없음 · 지금은 조명 도형만 보입니다";
+  };
+  paint();
+  card.append(prev);
+
+  const err = el("div","err");
+  const row = el("div","");
+  row.style.cssText = "display:flex;gap:8px;flex-wrap:wrap";
+
+  const lab = document.createElement("label");
+  lab.className = "btn sm"; lab.textContent = "사진 올리기"; lab.htmlFor = "site-hero-file";
+  lab.style.display = "inline-block";
+  const file = document.createElement("input");
+  file.type = "file"; file.accept = "image/*"; file.id = "site-hero-file"; file.style.display = "none";
+  file.onchange = async e => {
+    const f = e.target.files?.[0]; if (!f) return;
+    err.textContent = "";
+    lab.textContent = "올리는 중";
+    try {
+      const data = await toBannerDataURL(f);
+      await store.saveSettings({heroImage: data});
+      siteSettings.heroImage = data;
+      paint(); toast("배너 사진을 바꿨습니다");
+    } catch(ex){ err.textContent = ex.message || "저장하지 못했습니다."; }
+    lab.textContent = "사진 올리기";
+    e.target.value = "";
+  };
+
+  const rm = el("button","btn sm ghost","사진 내리기");
+  rm.onclick = async () => {
+    if (!siteSettings.heroImage) return;
+    try {
+      await store.saveSettings({heroImage: ""});
+      siteSettings.heroImage = ""; paint(); toast("배너 사진을 내렸습니다");
+    } catch(e){ err.textContent = "저장하지 못했습니다."; }
+  };
+
+  row.append(lab, file, rm);
+  card.append(row, err);
+
+  const wrap = el("div","tool-grid");
+  wrap.style.gridTemplateColumns = "1fr";
+  wrap.append(card);
+  box.append(wrap);
+}
+
+function adminToolsTab(box){
+  box.append(el("div","form-sec","내려받기"));
+  const wrap = el("div","tool-grid");
+
+  const tool = (title, desc, label, fn) => {
+    const c = el("div","tool");
+    c.append(el("b","",title));
+    c.append(el("p","",desc));
+    const b = el("button","btn sm",label);
+    b.onclick = fn;
+    c.append(b);
+    wrap.append(c);
+  };
+
+  tool("회원 명단 (CSV)", "닉네임, 메일, 파트, 지역, 가입일을 엑셀에서 열 수 있는 형식으로 내려받습니다.", "CSV 받기", () => {
+    const head = ["닉네임","메일","파트","지역","자기소개","가입일","UID"];
+    const rows = adminUsers.map(u => [
+      u.name, u.email, (u.parts || (u.part ? [u.part] : [])).join(" / "), u.region, u.bio,
+      u.joinedAt ? new Date(u.joinedAt).toLocaleDateString("ko-KR") : "", u.uid
+    ]);
+    download("합주각_회원명단.csv", [head, ...rows].map(r => r.map(csvCell).join(",")).join("\n"), "text/csv;charset=utf-8");
+  });
+
+  tool("합주 목록 (CSV)", "합주별 날짜, 장소, 곡 수, 성립 수, 참가 인원을 정리해 내려받습니다.", "CSV 받기", () => {
+    const head = ["합주","날짜","시간","지역","합주실","주최","장르","공개","곡수","성립","편성미정","참가자수"];
+    const rows = allEvents.map(e => {
+      const sg = songsOf(e.id);
+      return [e.title, e.date, eventTime(e), e.region, [e.studio,e.room].filter(Boolean).join(" "),
+        e.hostName, e.genre, e.visibility === "private" ? "비공개" : "공개",
+        sg.length, sg.filter(isDone).length, sg.filter(isUnset).length, playerCount(sg)];
+    });
+    download("합주각_합주목록.csv", [head, ...rows].map(r => r.map(csvCell).join(",")).join("\n"), "text/csv;charset=utf-8");
+  });
+
+  tool("세트리스트 (CSV)", "모든 합주의 곡과 파트별 담당자를 한 장으로 뽑습니다. 당일 인쇄용으로 쓸 수 있습니다.", "CSV 받기", () => {
+    const head = ["합주","날짜","곡","아티스트","상태", ...PARTS];
+    const rows = [];
+    allEvents.forEach(e => songsOf(e.id).forEach(sg => {
+      rows.push([e.title, e.date, sg.title, sg.artist,
+        isUnset(sg) ? "편성 미정" : isDone(sg) ? "성립" : "모집 중",
+        ...PARTS.map(p => (sg.requiredParts||[]).includes(p) ? (sg.slots?.[p]?.name || "") : "-")]);
+    }));
+    download("합주각_세트리스트.csv", [head, ...rows].map(r => r.map(csvCell).join(",")).join("\n"), "text/csv;charset=utf-8");
+  });
+
+  tool("전체 백업 (JSON)", "회원, 합주, 곡 데이터를 통째로 저장합니다. 사고가 났을 때 되돌릴 근거가 됩니다.", "JSON 받기", () => {
+    const data = {
+      내려받은시각: new Date().toISOString(),
+      회원: adminUsers,
+      합주: allEvents.map(e => ({...e, 곡: songsOf(e.id)}))
+    };
+    download("합주각_백업_" + todayISO() + ".json",
+      JSON.stringify(data, null, 2), "application/json");
+  });
+
+  box.append(wrap);
+
+  box.append(el("div","form-sec","정리"));
+  const clean = el("div","tool-grid");
+  const today = todayISO();
+  const stale = allEvents.filter(e => e.date < today);
+  const emptySongs = [];
+  allEvents.forEach(e => songsOf(e.id).forEach(sg => {
+    if (isUnset(sg)) emptySongs.push([e, sg]);
+  }));
+
+  const c1 = el("div","tool");
+  c1.append(el("b","","지난 합주"));
+  c1.append(el("p","",`날짜가 지난 합주가 ${stale.length}건 있습니다. 목록에는 안 보이지만 데이터는 남아 있습니다.`));
+  const b1 = el("button","btn sm","합주 탭에서 보기");
+  b1.onclick = () => { adminTab = "events"; adminQ = ""; renderAdmin(); };
+  c1.append(b1);
+  clean.append(c1);
+
+  const c2 = el("div","tool");
+  c2.append(el("b","","편성 미정 곡"));
+  c2.append(el("p","",`아직 파트가 정해지지 않은 곡이 ${emptySongs.length}개 있습니다. 오래 방치되면 아무도 참가할 수 없습니다.`));
+  if (emptySongs.length){
+    const b2 = document.createElement("a");
+    b2.className = "btn sm"; b2.href = "#/e/" + emptySongs[0][0].id;
+    b2.textContent = "첫 곡이 있는 합주 열기";
+    c2.append(b2);
+  }
+  clean.append(c2);
+  box.append(clean);
+}
+
+async function completeEvent(e, on){
+  if (!auth.user) return;
+  const songs = songsOf(e.id);
+  if (on){
+    const short = songs.filter(sg => !isDone(sg)).length;
+    const msg = `«${e.title}» 합주를 완료로 표시합니다.\n\n` +
+      `이 일정의 ${songs.length}곡이 합주 완료로 기록되고, 자리와 곡 정보가 잠깁니다.` +
+      (short ? `\n\n아직 자리가 다 안 찬 곡이 ${short}개 있습니다. 그대로 기록할까요?` : "");
+    if (!confirm(msg)) return;
+  } else {
+    const past = e.date && e.date < todayISO();
+    if (!confirm("완료 표시를 해제하고 다시 편집할 수 있게 되돌릴까요?" +
+      (past ? "\n\n날짜가 이미 지난 합주라, 해제하면 다시 완료로 표시하기 전까지 진행 중으로 남습니다." : ""))) return;
+  }
+  try {
+    await store.updateEvent(e.id, on ? {completed:true, completedAt: Date.now()} : {completed:false});
+    toast(on ? "합주 완료로 기록했습니다" : "완료 표시를 해제했습니다");
+  } catch(err){
+    console.error("합주 완료 저장 실패:", err);
+    toast(errText(err));
+  }
+}
+
+function eventModal(ev){
+  if (!requireLogin()) return;
+  const editing = !!ev;
+  if (editing && ev.hostUid !== auth.user.uid){ toast("주최자만 편집할 수 있습니다"); return; }
+  const fallback = localISO(new Date(Date.now()+7*864e5));
+  let cover = ev?.cover || "";
+  const defaults = new Set(ev?.defaultParts || ["Vocal","Guitar1","Guitar2","Bass","Drum","Key1"]);
+
+  modal(`
+    <div class="form-wide">
+      <h3>${editing ? "합주 편집" : "합주 열기"}</h3>
+      <p class="hint">${editing
+        ? "고친 내용은 저장하는 즉시 참가자 화면에 반영됩니다."
+        : "합주 이름과 날짜만 채워도 열 수 있습니다. 나머지는 나중에 편집으로 채우면 됩니다."}</p>
+
+      <div class="form-sec">기본 정보</div>
+      <div class="field"><label>합주 이름 <b class="req">필수</b></label>
+        <input id="f-title" placeholder="예: 3번째 수원 J-POP 합주" maxlength="60" value="${esc(ev?.title || "")}"></div>
+      <div class="field"><label>장르</label>
+        <select id="f-genre">${GENRES.map(g => `<option${ev?.genre === g ? " selected" : ""}>${g}</option>`).join("")}</select></div>
+      <div class="field"><label>소개</label>
+        <textarea id="f-desc" placeholder="어떤 합주인지, 어떤 분들이 오면 좋을지 적어주세요">${esc(ev?.description || "")}</textarea></div>
+
+      <div class="form-sec">일정과 장소</div>
+      <div class="row3">
+        <div class="field"><label>합주일 <b class="req">필수</b></label>
+          <input id="f-date" type="date" value="${esc(ev?.date || fallback)}"></div>
+        <div class="field"><label>시작</label><input id="f-start" type="time" value="${esc(ev?.timeStart || "")}"></div>
+        <div class="field"><label>종료</label><input id="f-end" type="time" value="${esc(ev?.timeEnd || "")}"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>지역</label><select id="f-region">
+          ${AREAS.map(r => `<option${ev?.region === r ? " selected" : ""}>${r}</option>`).join("")}
+        </select></div>
+        <div class="field"><label>합주실</label>
+          <input id="f-studio" placeholder="예: 사운드바이크 홍대점" value="${esc(ev?.studio || "")}"></div>
+      </div>
+      <div class="field"><label>방 이름</label>
+        <input id="f-room" placeholder="예: 3번 스튜디오" maxlength="40" value="${esc(ev?.room || "")}"></div>
+
+      <div class="form-sec">참가 조건</div>
+      <div class="row2">
+        <div class="field"><label>정원</label>
+          <input id="f-cap" type="number" min="2" max="200" value="${esc(ev?.capacity || 30)}"></div>
+        <div class="field"><label>참가비</label>
+          <input id="f-fee" placeholder="예: 15,000원 (대관비 N빵)" maxlength="40" value="${esc(ev?.fee || "")}"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>곡 신청 마감</label>
+          <input id="f-deadline" type="date" value="${esc(ev?.entryDeadline || "")}">
+          <p class="ava-note">비워두면 합주 당일까지 신청할 수 있습니다.</p></div>
+        <div class="field"><label>1인당 최대 곡수</label>
+          <select id="f-maxsongs">
+            <option value="0"${!ev?.maxSongsPerUser ? " selected" : ""}>제한 없음</option>
+            ${[2,3,4,5,6,8,10].map(n => `<option value="${n}"${ev?.maxSongsPerUser === n ? " selected" : ""}>${n}곡까지</option>`).join("")}
+          </select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>뒤풀이</label><select id="f-after">
+          ${["미정","있음","없음"].map(x => `<option${ev?.afterparty === x ? " selected" : ""}>${x}</option>`).join("")}
+        </select></div>
+        <div class="field"><label>공개 범위</label><select id="f-vis">
+          <option value="public"${ev?.visibility !== "private" ? " selected" : ""}>공개 — 목록에 표시</option>
+          <option value="private"${ev?.visibility === "private" ? " selected" : ""}>비공개 — 링크로만 참가</option>
+        </select></div>
+      </div>
+
+      <div class="form-sec">모집 파트 기본값</div>
+      <div class="field">
+        <div class="partpick" id="f-parts"></div>
+        <p class="ava-note">곡을 새로 올릴 때 여기서 켜둔 파트가 미리 선택됩니다. 곡마다 따로 바꿀 수 있습니다.</p>
+      </div>
+
+      <div class="form-sec">대표 이미지와 태그</div>
+      <div class="field">
+        <div class="cover-pick">
+          <div class="cover-prev" id="f-prev"></div>
+          <div>
+            <label class="btn sm" for="f-file" style="display:inline-block">이미지 올리기</label>
+            <input id="f-file" type="file" accept="image/*" style="display:none">
+            <button class="btn sm ghost" id="f-clear" type="button">지우기</button>
+            <p class="ava-note">가로 16:9로 잘라서 저장합니다.</p>
+          </div>
+        </div>
+      </div>
+      <div class="field"><label>태그</label>
+        <input id="f-tags" placeholder="쉼표로 구분 · 예: 즈토마요, 초보환영, 합주경험무관" maxlength="80"
+               value="${esc((ev?.tags || []).join(", "))}"></div>
+
+      <div class="err" id="f-err"></div>
+      <div class="modal-actions">
+        <button class="btn ghost" id="f-cancel">취소</button>
+        <button class="btn primary" id="f-save">${editing ? "저장하기" : "합주 열기"}</button>
+      </div>
+    </div>`, root => {
+
+    root.querySelector("#f-cancel").onclick = closeModal;
+
+    const pbox = root.querySelector("#f-parts");
+    PARTS.forEach(x => {
+      const b = el("button","" + (defaults.has(x) ? "on" : ""), x);
+      b.type = "button";
+      b.onclick = () => { defaults.has(x) ? defaults.delete(x) : defaults.add(x); b.classList.toggle("on"); };
+      pbox.append(b);
+    });
+
+    const prev = root.querySelector("#f-prev");
+    const paintCover = () => {
+      prev.innerHTML = "";
+      if (cover){ const i = document.createElement("img"); i.src = cover; i.alt = ""; prev.append(i); }
+      else prev.textContent = "이미지 없음";
+    };
+    paintCover();
+    root.querySelector("#f-file").onchange = async e => {
+      const f = e.target.files?.[0]; if (!f) return;
+      const err = root.querySelector("#f-err"); err.textContent = "";
+      try { cover = await toCoverDataURL(f); paintCover(); }
+      catch(ex){ err.textContent = ex.message; }
+      e.target.value = "";
+    };
+    root.querySelector("#f-clear").onclick = () => { cover = ""; paintCover(); };
+
+    root.querySelector("#f-save").onclick = async () => {
+      const err = root.querySelector("#f-err");
+      const q = id => root.querySelector(id).value.trim();
+      const title = q("#f-title"), date = root.querySelector("#f-date").value;
+      const start = root.querySelector("#f-start").value, end = root.querySelector("#f-end").value;
+      const deadline = root.querySelector("#f-deadline").value;
+
+      if (!title || !date) return err.textContent = "합주 이름과 날짜를 채워주세요.";
+      if (start && end && end <= start) return err.textContent = "종료 시간이 시작 시간보다 빠릅니다.";
+      if (deadline && deadline > date) return err.textContent = "곡 신청 마감은 합주일보다 늦을 수 없습니다.";
+      if (!defaults.size) return err.textContent = "모집 파트를 하나 이상 켜주세요.";
+
+      const base = {
+        title, date,
+        timeStart: start, timeEnd: end,
+        genre: root.querySelector("#f-genre").value,
+        region: root.querySelector("#f-region").value,
+        studio: q("#f-studio"), room: q("#f-room"),
+        capacity: Number(root.querySelector("#f-cap").value) || null,
+        fee: q("#f-fee"),
+        entryDeadline: deadline,
+        maxSongsPerUser: Number(root.querySelector("#f-maxsongs").value) || 0,
+        afterparty: root.querySelector("#f-after").value,
+        visibility: root.querySelector("#f-vis").value,
+        defaultParts: PARTS.filter(x => defaults.has(x)),
+        description: q("#f-desc"),
+        tags: q("#f-tags").split(",").map(t => t.trim()).filter(Boolean).slice(0,8),
+        cover
+      };
+      err.textContent = "";
+      try {
+        if (editing){
+          await store.updateEvent(ev.id, base);
+          closeModal(); toast("합주 정보를 저장했습니다");
+        } else {
+          const id = await store.createEvent({...base, hostUid: auth.user.uid, hostName: me().name});
+          closeModal(); toast("합주를 열었습니다"); location.hash = "#/e/"+id;
+        }
+      } catch(e){ console.error(e); err.textContent = errText(e); }
+    };
+  });
+}
+
+function partsModal(song){
+  if (!requireLogin()) return;
+  if (closedForMe()){
+    toast(closedMsg("곡을 바꿀 수 없습니다"));
+    return;
+  }
+  if (!passDeadline("편성 지정을")) return;
+  const picked = new Set();
+  modal(`
+    <h3>편성 정하기</h3>
+    <p class="hint">${esc(song.title)} — 이 곡에 필요한 파트를 켜주세요. 아는 만큼만 채워도 됩니다.</p>
+    <div class="field"><div class="partpick" id="u-parts"></div></div>
+    <div class="err" id="u-err"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="u-cancel">취소</button>
+      <button class="btn primary" id="u-save">저장하기</button>
+    </div>`, root => {
+    const box = root.querySelector("#u-parts");
+    PARTS.forEach(x => {
+      const b = el("button","",x); b.type = "button";
+      b.onclick = () => { picked.has(x) ? picked.delete(x) : picked.add(x); b.classList.toggle("on"); };
+      box.append(b);
+    });
+    root.querySelector("#u-cancel").onclick = closeModal;
+    root.querySelector("#u-save").onclick = async () => {
+      const err = root.querySelector("#u-err");
+      if (!picked.size) return err.textContent = "파트를 하나 이상 켜주세요.";
+      try {
+        const chosen = PARTS.filter(x => picked.has(x));
+        await store.updateSong(song.id, {requiredParts: chosen});
+        logIt(song.id, "parts_fill", {songTitle: song.title, detail: chosen.join(" · ")});
+        closeModal(); toast("편성을 채웠습니다");
+      } catch(e){ console.error(e); err.textContent = errText(e); }
+    };
+  });
+}
+
+let manageMode = false;
+let compactView = true;
+/* 남의 자리를 빼거나 옮기거나 넣는 자리 관리는 관리자만 합니다. */
+const canManageSlots = () => !!auth.user && isAdmin();
+/* 지금 보고 있는 일정의 주최자인지 (마감 뒤에도 자기 일정은 손볼 수 있게) */
+const isEventHost = () => !!auth.user && !!curEvent && curEvent.hostUid === auth.user.uid;
+
+/* 이 합주에 이미 참여 중인 사람들을 모읍니다. 주최자는 회원 전체 목록을
+   볼 권한이 없으므로, 참가자 명단과 직접 입력으로 자리를 채웁니다. */
+function eventPeople(){
+  const m = new Map();
+  (curEvent ? curSongs : allSongs).forEach(sg => Object.values(sg.slots||{}).forEach(v => {
+    if (v && !m.has(v.uid)) m.set(v.uid, {uid:v.uid, name:v.name});
+  }));
+  return [...m.values()].sort((a,b) => a.name.localeCompare(b.name,"ko"));
+}
+
+function slotAdminModal(song, part){
+  const cur = song.slots?.[part] || null;
+  const people = eventPeople().filter(p => !cur || p.uid !== cur.uid);
+
+  modal(`
+    <h3>${esc(part)} 자리 관리</h3>
+    <p class="hint">${esc(song.title)}${cur ? ` — 지금은 ${esc(cur.name)} 님이 맡고 있습니다.` : " — 지금은 비어 있습니다."}</p>
+    ${people.length ? `<div class="field"><label>${curEvent ? "이 합주 참가자" : "곡 후보 참가자"}</label><div class="partpick" id="sa-people"></div></div>` : ""}
+    ${isAdmin() ? `<div class="field"><label>가입 회원 전체</label><div class="partpick" id="sa-members"><span class="ava-note">불러오는 중</span></div></div>` : ""}
+    <div class="field"><label>직접 넣기</label>
+      <input id="sa-name" maxlength="20" placeholder="이름을 적어 바로 넣기">
+      <p class="ava-note">가입하지 않은 사람도 자리에 넣을 수 있습니다. 본인이 직접 취소할 수는 없고, 주최자만 뺄 수 있습니다.</p></div>
+    <div class="err" id="sa-err"></div>
+    <div class="modal-actions">
+      ${cur ? `<button class="btn ghost" id="sa-clear" style="margin-right:auto;color:var(--coral)">자리 비우기</button>` : ""}
+      <button class="btn ghost" id="sa-cancel">닫기</button>
+      <button class="btn primary" id="sa-save">넣기</button>
+    </div>`, root => {
+
+    let picked = null;
+    const nameInput = root.querySelector("#sa-name");
+    const err = root.querySelector("#sa-err");
+
+    if (isAdmin()){
+      const mbox = root.querySelector("#sa-members");
+      store.listUsers().then(users => {
+        const known = new Set(people.map(p => p.uid));
+        const rest = users.filter(u => u.uid !== cur?.uid && !known.has(u.uid))
+          .sort((a,b) => (a.name||"").localeCompare(b.name||"","ko"));
+        if (!rest.length){ mbox.closest(".field").remove(); return; }
+        mbox.innerHTML = "";
+        rest.forEach(u => {
+          const b = el("button","",u.name || "이름없음"); b.type = "button";
+          b.onclick = () => {
+            picked = (picked && picked.uid === u.uid) ? null : {uid:u.uid, name:u.name};
+            root.querySelectorAll("#sa-people button, #sa-members button").forEach(n =>
+              n.classList.toggle("on", !!picked && n === b));
+            if (picked) nameInput.value = "";
+          };
+          mbox.append(b);
+        });
+      }).catch(() => mbox.closest(".field")?.remove());
+    }
+
+    root.querySelectorAll("#sa-people")?.forEach(() => {});
+    const pbox = root.querySelector("#sa-people");
+    if (pbox){
+      people.forEach(pr => {
+        const b = el("button","",pr.name); b.type = "button";
+        b.onclick = () => {
+          picked = (picked && picked.uid === pr.uid) ? null : pr;
+          root.querySelectorAll("#sa-people button, #sa-members button").forEach(n =>
+            n.classList.toggle("on", !!picked && n === b));
+          if (picked) nameInput.value = "";
+        };
+        pbox.append(b);
+      });
+    }
+    nameInput.oninput = () => {
+      if (nameInput.value.trim()){
+        picked = null;
+        pbox?.querySelectorAll("button").forEach(n => n.classList.remove("on"));
+      }
+    };
+
+    const apply = async person => {
+      try {
+        await store.setSlot(song.id, part, person);
+        logIt(song.id, person ? "admin_assign" : "admin_clear",
+          {songTitle: song.title, part, targetName: person ? person.name : (cur?.name || "")});
+        closeModal();
+        toast(person ? `${person.name} 님을 ${part}에 넣었습니다` : `${part} 자리를 비웠습니다`);
+      } catch(e){ console.error(e); err.textContent = errText(e); }
+    };
+
+    root.querySelector("#sa-cancel").onclick = closeModal;
+    root.querySelector("#sa-clear")?.addEventListener("click", () => apply(null));
+    root.querySelector("#sa-save").onclick = () => {
+      const typed = nameInput.value.trim();
+      if (!picked && !typed) return err.textContent = "참가자를 고르거나 이름을 적어주세요.";
+      const person = picked || {uid: "guest:" + Date.now().toString(36), name: typed};
+      const held = heldInstrument(song.slots, part, person.uid);
+      if (held && !confirm(`${person.name} 님은 이 곡에서 이미 ${held}을 맡고 있습니다.\n한 곡에 악기 두 개를 맡기게 되는데, 그대로 넣을까요?`)) return;
+      apply(person);
+    };
+  });
+}
+
+/* 곡이 배정된 일정의 주최자인지 */
+function hostOfSong(song){
+  if (!auth.user || !song.eventId) return false;
+  const ev = allEvents.find(e => e.id === song.eventId);
+  return !!ev && ev.hostUid === auth.user.uid;
+}
+
+/* 곡 편집 권한
+   - 관리자: 모든 곡
+   - 곡을 올린 본인: 자기 곡
+   - 일정 주최자: 자기 일정에 들어온 곡 (곡 정보만, 삭제는 불가) */
+function canEditSong(song){
+  if (!auth.user) return false;
+  return isAdmin() || song.proposerUid === auth.user.uid || hostOfSong(song);
+}
+function canDeleteSong(song){
+  if (!auth.user) return false;
+  return isAdmin() || song.proposerUid === auth.user.uid;
+}
+
+function songModal(song){
+  if (!requireLogin()) return;
+  const editing = !!song;
+  if (editing && !canEditSong(song)){ toast("곡을 올린 본인, 그 일정의 주최자, 관리자만 편집할 수 있습니다"); return; }
+  if (closedForMe()){
+    toast(closedMsg("곡을 바꿀 수 없습니다"));
+    return;
+  }
+  if (!passDeadline(editing ? "곡 편집을" : "곡 추가를")) return;
+
+  let picked = new Set(editing ? (song.requiredParts||[])
+    : (curEvent?.defaultParts || ["Vocal","Guitar1","Bass","Drum"]));
+
+  modal(`
+    <h3>${editing ? "곡 편집" : "곡 올리기"}</h3>
+    <p class="hint">이 곡에 필요한 파트만 켜두세요. 꺼둔 파트는 모집하지 않습니다. 올린 뒤에도 편집으로 언제든 고칠 수 있습니다.</p>
+    <div class="field"><label>곡 제목</label>
+      <input id="s-title" placeholder="예: 秒針を噛む" maxlength="80" value="${esc(song?.title || "")}"></div>
+    <div class="field"><label>아티스트</label>
+      <input id="s-artist" placeholder="예: ずっと真夜中でいいのに。" maxlength="80" value="${esc(song?.artist || "")}"></div>
+    <div class="field"><label>유튜브 링크</label>
+      <input id="s-yt" placeholder="https://youtu.be/..." maxlength="200" value="${esc(song?.youtube || "")}">
+      <p class="ava-note">참가자가 원곡을 바로 듣고 파트를 정할 수 있습니다. 비워둬도 됩니다.</p></div>
+    <div class="field"><label>설명</label>
+      <textarea id="s-desc" maxlength="500" placeholder="키 조정, 원곡 대비 편곡, 난이도, 참고 영상 등">${esc(song?.description || "")}</textarea></div>
+    <div class="field"><label>필요한 파트</label>
+      <div class="partpick" id="s-parts"></div>
+      <label class="unset-toggle"><input type="checkbox" id="s-unset"${editing && !(song.requiredParts||[]).length ? " checked" : ""}>
+        <span>편성을 잘 모르겠어요 — 나중에 채우기</span></label>
+      <p class="ava-note">모르면 체크하고 넘어가세요. 곡은 그대로 올라가고, 편성을 아는 분이 대신 채워줍니다.${editing ? " 파트를 끄면 그 자리에 들어와 있던 사람도 함께 빠집니다." : ""}</p></div>
+    <div class="err" id="s-err"></div>
+    <div class="modal-actions">
+      ${editing && canDeleteSong(song) ? '<button class="btn ghost" id="s-del" style="margin-right:auto;color:var(--coral)">삭제</button>' : ''}
+      <button class="btn ghost" id="s-cancel">취소</button>
+      <button class="btn primary" id="s-save">${editing ? "저장하기" : "올리기"}</button>
+    </div>`, root => {
+
+    const box = root.querySelector("#s-parts");
+    PARTS.forEach(p => {
+      const b = el("button","" + (picked.has(p)?"on":""),p);
+      b.type = "button";
+      b.onclick = () => { picked.has(p) ? picked.delete(p) : picked.add(p); b.classList.toggle("on"); };
+      box.append(b);
+    });
+
+    const unsetBox = root.querySelector("#s-unset");
+    const syncUnset = () => {
+      box.classList.toggle("dimmed", unsetBox.checked);
+      box.querySelectorAll("button").forEach(b => b.disabled = unsetBox.checked);
+    };
+    unsetBox.onchange = syncUnset;
+    syncUnset();
+
+    root.querySelector("#s-cancel").onclick = closeModal;
+
+    root.querySelector("#s-del")?.addEventListener("click", async () => {
+      if (!confirm(`"${song.title}" 곡을 삭제할까요? 이 곡에 잡힌 자리도 함께 사라집니다.`)) return;
+      try {
+        await store.deleteSong(song.id);
+        logIt(song.id, "song_delete", {songTitle: song.title});
+        closeModal(); toast("곡을 삭제했습니다");
+      }
+      catch(e){ root.querySelector("#s-err").textContent = "삭제하지 못했습니다."; }
+    });
+
+    root.querySelector("#s-save").onclick = async () => {
+      const err = root.querySelector("#s-err");
+      const title = root.querySelector("#s-title").value.trim();
+      const yt = root.querySelector("#s-yt").value.trim();
+      if (!title) return err.textContent = "곡 제목을 적어주세요.";
+      const unset = root.querySelector("#s-unset").checked;
+      if (!unset && !picked.size)
+        return err.textContent = "파트를 하나 이상 켜거나, 아래 '편성을 잘 모르겠어요'를 눌러주세요.";
+      if (yt && !/^https?:\/\/(www\.|m\.|music\.)?(youtube\.com|youtu\.be)\//i.test(yt))
+        return err.textContent = "유튜브 주소를 확인해 주세요. 비워두셔도 됩니다.";
+
+      const requiredParts = unset ? [] : PARTS.filter(p => picked.has(p));
+      const base = {
+        title,
+        artist: root.querySelector("#s-artist").value.trim(),
+        description: root.querySelector("#s-desc").value.trim(),
+        youtube: yt, requiredParts
+      };
+      err.textContent = "";
+      try {
+        if (editing){
+          // 더 이상 모집하지 않는 파트에 남아 있던 사람은 함께 비웁니다.
+          const slots = {...(song.slots||{})};
+          Object.keys(slots).forEach(k => { if (!requiredParts.includes(k)) delete slots[k]; });
+          await store.updateSong(song.id, {...base, slots});
+          logIt(song.id, "song_edit", {songTitle: title});
+          toast("곡을 저장했습니다");
+        } else {
+          const newId = await store.addSong({...base, slots:{}, proposerUid: auth.user.uid, proposerName: me().name});
+          logIt(newId, "song_add", {songTitle: title});
+          toast("곡을 올렸습니다");
+        }
+        closeModal();
+      } catch(e){ console.error(e); err.textContent = errText(e); }
+    };
+  });
+}
+
+/* ============================================================
+   9-1. 사용법
+   ============================================================ */
+const GUIDES = {
+  host: {
+    title: "합주를 여는 분께",
+    lead: "날짜와 장소를 잡고, 곡 후보에서 성립한 곡을 모아 그날의 세트리스트를 만듭니다.",
+    steps: [
+      ["구글로 로그인하고 프로필 만들기",
+       "오른쪽 위 '구글로 시작하기'를 누르면 계정 선택 창이 뜹니다. 처음이라면 프로필 창이 이어서 열립니다. 닉네임과 연주 파트, 활동 지역을 채우면 준비 끝입니다. 파트는 여러 개 골라도 됩니다."],
+      ["합주 일정 열기",
+       "'합주 열기'로 날짜와 장소를 잡습니다. 합주 이름과 날짜만 채워도 열 수 있고, 합주실이나 참가비처럼 아직 안 정해진 건 나중에 '합주 편집'으로 채우면 됩니다. 곡 신청 마감일을 걸어두면 그 날짜 이후로 자리 변경이 막혀서 세트리스트가 굳습니다."],
+      ["곡은 일정이 아니라 곡 후보에 쌓입니다",
+       "예전과 달리 곡은 일정 안에서 만들지 않습니다. 모두가 '곡 후보'라는 공용 공간에 하고 싶은 곡을 올리고 파트를 잡습니다. 주최자도 여기서 곡을 올리면 됩니다. 필요한 파트가 다 차면 그 곡은 '성립'으로 올라갑니다."],
+      ["성립한 곡을 내 일정으로 보내기",
+       "곡 후보에서 성립한 곡에는 '일정으로 보내기' 버튼이 붙습니다. 누르면 예정된 합주 목록이 뜨고, 고른 일정으로 곡이 옮겨갑니다. 이건 로그인한 사람이면 누구나 할 수 있어서, 참가자들이 알아서 채워 넣기도 합니다."],
+      ["내 일정에 들어온 곡 다듬기",
+       "내 일정으로 들어온 곡은 누가 올렸든 '편집'으로 제목, 설명, 필요한 파트를 고칠 수 있습니다. 키 조정이나 편곡 메모를 남겨두기 좋습니다. 다만 다른 사람의 자리를 빼거나 옮기는 '자리 관리'는 관리자만 할 수 있으니, 펑크가 나면 관리자에게 요청하세요."],
+      ["합주가 끝나면 완료로 표시",
+       "일정 화면 위쪽 '합주 완료로 표시'를 누르면 그날 친 곡들이 기록으로 굳고 편집이 잠깁니다. 이 기록은 '추억 저장소'에 사진과 세트리스트로 남습니다. 합주 사진을 대표 이미지로 올려두면 앨범처럼 보입니다."]
+    ]
+  },
+  join: {
+    title: "합주에 참가하는 분께",
+    lead: "곡 후보에서 치고 싶은 곡의 빈 자리를 누르기만 하면 됩니다.",
+    steps: [
+      ["구글로 로그인하고 프로필 만들기",
+       "오른쪽 위 '구글로 시작하기'를 누르세요. 프로필에서 연주 파트는 여러 개 고를 수 있습니다. 기타도 치고 베이스도 친다면 둘 다 켜두세요."],
+      ["곡 후보 둘러보기",
+       "첫 화면의 청록색 '곡 후보 보기' 버튼으로 들어갑니다. 여기가 모든 곡이 모이는 곳입니다. 성립된 곡이 위에, 아직 자리가 남은 곡이 가운데, 편성이 정해지지 않은 곡이 아래에 놓입니다. 모집 중인 곡은 자리가 적게 남은 순서라, 한 명만 더 오면 되는 곡이 맨 위에 보입니다."],
+      ["빈 자리 눌러서 들어가기",
+       "'입장'이라고 쓰인 점선 칸이 비어 있는 자리입니다. 누르면 양도 여부를 고르는 창이 뜹니다. '양도 가능'으로 들어가면 나중에 더 잘 맞는 사람이 왔을 때 넘겨줄 수 있고, '양도 불가'는 내가 취소하기 전까지 아무도 못 가져갑니다. 빗금 친 칸은 그 곡에서 쓰지 않는 파트입니다."],
+      ["규칙은 두 가지뿐입니다",
+       "한 곡에서 악기는 하나만 맡습니다. 다만 보컬은 악기와 겹쳐도 되고, 건반은 두 대까지 맡을 수 있습니다. 기타 치면서 노래하는 건 당연히 됩니다. 마음이 바뀌면 내 자리를 다시 눌러 취소하거나 양도 여부를 바꾸세요."],
+      ["하고 싶은 곡이 없으면 직접 올리기",
+       "'곡 올리기'로 누구나 곡을 추가할 수 있습니다. 어떤 파트가 필요한지 모르겠으면 '편성을 잘 모르겠어요'에 체크하고 넘기세요. 곡은 그대로 올라가고, 편성을 아는 사람이 대신 채워줍니다. 유튜브 링크를 넣으면 다른 사람들이 원곡을 듣고 판단할 수 있습니다."],
+      ["성립하면 일정으로 보내기",
+       "필요한 파트가 다 차면 곡에 '일정으로 보내기' 버튼이 생깁니다. 예정된 합주 중에 고르면 그날 세트리스트에 들어갑니다. 주최자만 할 수 있는 게 아니라 누구나 가능합니다."],
+      ["합주 당일, 그리고 그 뒤",
+       "일정 화면에서 그날 칠 곡과 내 파트를 확인하세요. 곡 설명에 키 조정이나 편곡 정보가 적혀 있을 수 있습니다. 합주가 끝나고 주최자가 완료 처리하면, '추억 저장소'에 그날의 세트리스트와 함께 친 사람들이 기록으로 남습니다."]
+    ]
+  }
+};
+
+function showGuideMenu(){
+  const box = $("#guide-body");
+  box.innerHTML = `
+    <h1 class="guide-h1">합주각 사용법</h1>
+    <p class="guide-lead">곡은 일정이 아니라 공용 '곡 후보'에 쌓입니다. 자리가 다 차면 합주 일정으로 보냅니다.</p>
+    <div class="flow">
+      <span class="flow-step">곡 후보에 곡 올리기</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step">파트 자리 채우기</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step is-done">성립</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step">합주 일정으로 보내기</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step is-played">합주 완료 · 추억 저장소</span>
+    </div>
+    <div class="guide-pick">
+      <a class="guide-card" href="#/guide/host">
+        <span class="guide-ico">▶</span>
+        <b>합주 여는 사람</b>
+        <span>곡을 정하고 사람을 모읍니다</span>
+      </a>
+      <a class="guide-card" href="#/guide/join">
+        <span class="guide-ico">▶</span>
+        <b>합주 참가하는 사람</b>
+        <span>치고 싶은 곡의 자리를 잡습니다</span>
+      </a>
+    </div>`;
+  document.title = "사용법 — 합주각";
+}
+
+function showGuide(kind){
+  const g = GUIDES[kind];
+  if (!g){ location.hash = "#/guide"; return; }
+  const box = $("#guide-body");
+  box.innerHTML = "";
+
+  const nav = el("div","guide-nav");
+  const other = kind === "host" ? "join" : "host";
+  const a1 = document.createElement("a"); a1.href = "#/guide"; a1.className = "chip"; a1.textContent = "사용법 처음으로";
+  const a2 = document.createElement("a"); a2.href = "#/guide/" + other; a2.className = "chip"; a2.textContent = GUIDES[other].title;
+  nav.append(a1, a2);
+  box.append(nav);
+
+  box.append(el("h1","guide-h1",g.title));
+  box.append(el("p","guide-lead",g.lead));
+
+  const steps = el("div","guide-steps");
+  g.steps.forEach(([t, body], i) => {
+    const st = el("div","guide-step");
+    const head = el("div","guide-step-head");
+    head.append(el("span","guide-num", "STEP " + (i+1)));
+    head.append(el("h2","",t));
+    st.append(head);
+    st.append(el("p","",body));
+    steps.append(st);
+    if (i < g.steps.length - 1) steps.append(el("div","guide-arrow","▼"));
+  });
+  box.append(steps);
+
+  const end = el("div","guide-end");
+  const go = document.createElement("a");
+  go.className = kind === "host" ? "btn primary big" : "btn cyan big";
+  go.href = kind === "host" ? "#/" : "#/songs";
+  go.textContent = kind === "host" ? "합주 열러 가기" : "곡 후보 보러 가기";
+  end.append(go);
+  box.append(end);
+
+  document.title = g.title + " — 합주각";
+  window.scrollTo(0,0);
+}
+
+/* ============================================================
+   9. 라우팅 · 초기화
+   ============================================================ */
+function showView(v){
+  ["list","event","guide","admin","pool","memories"].forEach(n =>
+    $("#view-" + n).classList.toggle("hide", v !== n));
+}
+
+function route(){
+  const h = location.hash;
+  const m = h.match(/^#\/e\/(.+)$/);
+  if (m){ openEvent(m[1]); return; }
+
+  if (curEvent) closeEvent();
+
+  if (h === "#/memories"){ showView("memories"); renderMemories(); window.scrollTo(0,0); return; }
+  if (h === "#/songs"){ manageMode = false; showView("pool"); renderPool(); window.scrollTo(0,0); return; }
+  if (h === "#/admin"){ openAdmin(); return; }
+  if (h === "#/guide"){ showView("guide"); showGuideMenu(); window.scrollTo(0,0); return; }
+  if (h === "#/guide/host" || h === "#/guide/join"){
+    showView("guide"); showGuide(h.split("/").pop()); return;
+  }
+
+  showView("list");
+  document.title = "합주각 — 곡별로 파트 모아서 합주하기";
+  if (h === "" || h === "#/") window.scrollTo(0,0);
+}
+window.addEventListener("hashchange", route);
+$("#btn-new-hero").onclick = () => eventModal();
+$("#btn-pool-add").onclick = () => songModal();
+$("#btn-pool-view").onclick = () => { poolCompact = !poolCompact; renderPool(); };
+$("#btn-pool-manage").onclick = () => {
+  manageMode = !manageMode;
+  renderPool();
+  toast(manageMode ? "자리 관리를 켰습니다" : "자리 관리를 껐습니다");
+};
+$("#btn-view").onclick = () => {
+  compactView = !compactView;
+  renderMatrix();
+};
+$("#btn-manage").onclick = () => {
+  manageMode = !manageMode;
+  renderMatrix();
+  toast(manageMode ? "자리 관리를 켰습니다" : "자리 관리를 껐습니다");
+};
+$("#admin-fab").onclick = () => { location.hash = "#/admin"; };
+
+let siteSettings = {};
+store.watchSettings(cfg => {
+  siteSettings = cfg || {};
+  const bg = $("#hero-bg");
+  if (siteSettings.heroImage){
+    bg.style.backgroundImage = `url("${siteSettings.heroImage}")`;
+    bg.classList.add("on");
+  } else {
+    bg.style.backgroundImage = "";
+    bg.classList.remove("on");
+  }
+});
+auth.onChange(async u => {
+  if (!u){ myProfile = null; renderAuth(null); renderAdminFab(); if (curEvent) renderMatrix(); return; }
+  try { myProfile = await store.getProfile(u.uid); } catch(e){ myProfile = null; }
+  renderAuth(u);
+  renderAdminFab();
+  if (curEvent){ renderEventHead(curEvent); renderMatrix(); }
+  if (!myProfile) profileModal({first:true});
+});
+$("#build-tag").textContent = BUILD;
+renderFilters(); renderCalendar(); route();
+$("#cal-prev").onclick = () => { calRef.setMonth(calRef.getMonth()-1); renderCalendar(); };
+$("#cal-next").onclick = () => { calRef.setMonth(calRef.getMonth()+1); renderCalendar(); };
+
+</script>
+</body>
+</html>

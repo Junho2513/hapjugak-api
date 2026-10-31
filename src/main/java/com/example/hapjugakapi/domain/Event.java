@@ -95,6 +95,12 @@ public class Event {
         this.completedAt = LocalDateTime.now();
     }
 
+    /** 완료 표시를 해제하고 다시 편집할 수 있게 되돌린다. */
+    public void reopen() {
+        this.completed = false;
+        this.completedAt = null;
+    }
+
     public boolean isDeadlinePassed() {
         return deadline != null && LocalDate.now().isAfter(deadline);
     }
