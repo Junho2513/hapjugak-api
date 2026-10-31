@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @Entity
@@ -53,6 +54,21 @@ public class Song {
         slots.add(new Slot(this, part));
     }
 
+    /**
+     * 편성(파트 구성)을 주어진 목록에 맞춘다.
+     * 이미 사람이 들어온 자리는 목록에서 빠져도 지우지 않는다.
+     * 편성을 고쳤다는 이유로 참여자를 말없이 쫓아내면 안 되기 때문이다.
+     */
+    public void syncParts(Collection<Part> parts) {
+        if (parts == null) return;
+        List<Part> wanted = new ArrayList<>(parts);
+        slots.removeIf(slot -> !slot.isTaken() && !wanted.contains(slot.getPart()));
+        for (Part part : wanted) {
+            boolean exists = slots.stream().anyMatch(slot -> slot.getPart() == part);
+            if (!exists) addSlot(part);
+        }
+    }
+
     public void assignTo(Event event) {
         this.event = event;
     }
@@ -71,6 +87,10 @@ public class Song {
 
     public boolean isComplete() {
         return !slots.isEmpty() && getFilledCount() == slots.size();
+    }
+
+    public boolean isProposedBy(Member member) {
+        return proposer.getId().equals(member.getId());
     }
 
     /** Firestore 이관 전용. */
@@ -112,5 +132,21 @@ public class Song {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public void setArtist(String artist) {
+        this.artist = artist;
+    }
+
+    public void setYoutubeUrl(String youtubeUrl) {
+        this.youtubeUrl = youtubeUrl;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }

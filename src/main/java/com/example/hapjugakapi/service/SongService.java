@@ -3,6 +3,7 @@ package com.example.hapjugakapi.service;
 import com.example.hapjugakapi.domain.Event;
 import com.example.hapjugakapi.domain.Member;
 import com.example.hapjugakapi.domain.Part;
+import com.example.hapjugakapi.domain.Role;
 import com.example.hapjugakapi.domain.Slot;
 import com.example.hapjugakapi.domain.Song;
 import com.example.hapjugakapi.dto.SongRequest;
@@ -46,10 +47,26 @@ public class SongService {
                 request.description(),
                 proposer
         );
-        for (Part part : request.parts()) {
-            song.addSlot(part);
+        if (request.parts() != null) {
+            for (Part part : request.parts()) {
+                song.addSlot(part);
+            }
         }
         return SongResponse.from(songRepository.save(song));
+    }
+
+    @Transactional
+    public SongResponse update(Long songId, SongRequest request, Long memberId) {
+        Song song = getSong(songId);
+        checkOpen(song);
+        checkProposerOrAdmin(song, memberId);
+
+        if (request.title() != null) song.setTitle(request.title());
+        if (request.artist() != null) song.setArtist(request.artist());
+        if (request.youtubeUrl() != null) song.setYoutubeUrl(request.youtubeUrl());
+        if (request.description() != null) song.setDescription(request.description());
+        song.syncParts(request.parts());
+        return SongResponse.from(song);
     }
 
     public List<SongResponse> findCandidates() {
@@ -60,6 +77,12 @@ public class SongService {
 
     public List<SongResponse> findByEvent(Long eventId) {
         return songRepository.findByEventId(eventId).stream()
+                .map(SongResponse::from)
+                .toList();
+    }
+
+    public List<SongResponse> findAll() {
+        return songRepository.findAll().stream()
                 .map(SongResponse::from)
                 .toList();
     }
@@ -102,12 +125,52 @@ public class SongService {
     }
 
     @Transactional
-    public SongResponse claimSlot(Long songId, Long slotId, Long memberId) {
+    public SongResponse claimSlot(Long songId, Long slotId, Long memberId, boolean openToHandover) {
         Song song = getSong(songId);
         checkOpen(song);
 
         Slot slot = findSlot(song, slotId);
-        slot.claimBy(getMember(memberId));
+        slot.claimBy(getMember(memberId), openToHandover);
+        return SongResponse.from(song);
+    }
+
+    /** 양도 가능으로 표시된 자리를 넘겨받는다. */
+    @Transactional
+    public SongResponse takeOverSlot(Long songId, Long slotId, Long memberId) {
+        Song song = getSong(songId);
+        checkOpen(song);
+
+        Slot slot = findSlot(song, slotId);
+        if (slot.isTaken() && slot.getMember().getId().equals(memberId)) {
+            throw new ConflictException("이미 본인이 잡은 자리입니다.");
+        }
+        slot.takeOverBy(getMember(memberId));
+        return SongResponse.from(song);
+    }
+
+    /** 본인 자리의 양도 가능 표시를 켜고 끈다. */
+    @Transactional
+    public SongResponse setHandover(Long songId, Long slotId, Long memberId, boolean open) {
+        Song song = getSong(songId);
+        checkOpen(song);
+
+        Slot slot = findSlot(song, slotId);
+        if (!slot.isTaken() || !slot.getMember().getId().equals(memberId)) {
+            throw new ForbiddenException("본인이 잡은 자리만 바꿀 수 있습니다.");
+        }
+        slot.setOpenToHandover(open);
+        return SongResponse.from(song);
+    }
+
+    /** 관리자 또는 주최자가 자리를 지정하거나 비운다. */
+    @Transactional
+    public SongResponse assignSlot(Long songId, Long slotId,
+                                   Long targetMemberId, boolean openToHandover, Long actorId) {
+        Song song = getSong(songId);
+        checkManager(song, actorId);
+
+        Slot slot = findSlot(song, slotId);
+        slot.assignTo(targetMemberId == null ? null : getMember(targetMemberId), openToHandover);
         return SongResponse.from(song);
     }
 
@@ -130,9 +193,7 @@ public class SongService {
     @Transactional
     public void delete(Long songId, Long memberId) {
         Song song = getSong(songId);
-        if (!song.getProposer().getId().equals(memberId)) {
-            throw new ForbiddenException("곡을 올린 사람만 삭제할 수 있습니다.");
-        }
+        checkProposerOrAdmin(song, memberId);
         songRepository.delete(song);
     }
 
@@ -147,6 +208,23 @@ public class SongService {
         if (event.isDeadlinePassed()) {
             throw new ConflictException("마감된 일정입니다.");
         }
+    }
+
+    private void checkProposerOrAdmin(Song song, Long memberId) {
+        Member member = getMember(memberId);
+        if (member.getRole() == Role.ADMIN) return;
+        if (!song.isProposedBy(member)) {
+            throw new ForbiddenException("곡을 올린 사람만 바꿀 수 있습니다.");
+        }
+    }
+
+    /** 관리자이거나, 그 곡이 속한 합주의 주최자여야 한다. */
+    private void checkManager(Song song, Long memberId) {
+        Member member = getMember(memberId);
+        if (member.getRole() == Role.ADMIN) return;
+        Event event = song.getEvent();
+        if (event != null && event.isHostedBy(member)) return;
+        throw new ForbiddenException("관리자 또는 주최자만 자리를 지정할 수 있습니다.");
     }
 
     private Slot findSlot(Song song, Long slotId) {

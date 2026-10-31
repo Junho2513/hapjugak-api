@@ -8,7 +8,8 @@ public record SlotResponse(
         Part part,
         Long memberId,
         String memberNickname,
-        boolean taken
+        boolean taken,
+        boolean openToHandover
 ) {
     public static SlotResponse from(Slot slot) {
         return new SlotResponse(
@@ -16,7 +17,8 @@ public record SlotResponse(
                 slot.getPart(),
                 slot.isTaken() ? slot.getMember().getId() : null,
                 slot.isTaken() ? slot.getMember().getNickname() : null,
-                slot.isTaken()
+                slot.isTaken(),
+                slot.isOpenToHandover()
         );
     }
 }

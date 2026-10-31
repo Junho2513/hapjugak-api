@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -110,6 +111,12 @@ public class Event {
 
     public void addDefaultPart(Part part) {
         this.defaultParts.add(part);
+    }
+
+    /** 기본 파트 구성을 통째로 교체한다. */
+    public void replaceDefaultParts(Collection<Part> parts) {
+        this.defaultParts.clear();
+        if (parts != null) this.defaultParts.addAll(parts);
     }
 
     /** Firestore 이관 전용. */

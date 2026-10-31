@@ -43,4 +43,10 @@ public class MemberController {
                                    @RequestBody MemberRequest request) {
         return memberService.update(memberId, request);
     }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id,
+                       @AuthenticationPrincipal Long memberId) {
+        memberService.delete(id, memberId);
+    }
 }

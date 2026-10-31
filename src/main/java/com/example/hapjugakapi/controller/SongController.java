@@ -1,6 +1,7 @@
 package com.example.hapjugakapi.controller;
 
 import com.example.hapjugakapi.domain.Part;
+import com.example.hapjugakapi.dto.SlotRequest;
 import com.example.hapjugakapi.dto.SongRequest;
 import com.example.hapjugakapi.dto.SongResponse;
 import com.example.hapjugakapi.dto.SongSearchCondition;
@@ -44,13 +45,20 @@ public class SongController {
     }
 
     @GetMapping
-    public List<SongResponse> findByEvent(@RequestParam Long eventId) {
-        return songService.findByEvent(eventId);
+    public List<SongResponse> find(@RequestParam(required = false) Long eventId) {
+        return eventId == null ? songService.findAll() : songService.findByEvent(eventId);
     }
 
     @GetMapping("/{id}")
     public SongResponse findById(@PathVariable Long id) {
         return songService.findById(id);
+    }
+
+    @PatchMapping("/{songId}")
+    public SongResponse update(@PathVariable Long songId,
+                               @RequestBody SongRequest request,
+                               @AuthenticationPrincipal Long memberId) {
+        return songService.update(songId, request, memberId);
     }
 
     @PatchMapping("/{songId}/event/{eventId}")
@@ -66,8 +74,10 @@ public class SongController {
     @PostMapping("/{songId}/slots/{slotId}/claim")
     public SongResponse claimSlot(@PathVariable Long songId,
                                   @PathVariable Long slotId,
+                                  @RequestBody(required = false) SlotRequest request,
                                   @AuthenticationPrincipal Long memberId) {
-        return songService.claimSlot(songId, slotId, memberId);
+        boolean open = request != null && request.open();
+        return songService.claimSlot(songId, slotId, memberId, open);
     }
 
     @DeleteMapping("/{songId}/slots/{slotId}/claim")
@@ -75,6 +85,29 @@ public class SongController {
                                     @PathVariable Long slotId,
                                     @AuthenticationPrincipal Long memberId) {
         return songService.releaseSlot(songId, slotId, memberId);
+    }
+
+    @PostMapping("/{songId}/slots/{slotId}/takeover")
+    public SongResponse takeOverSlot(@PathVariable Long songId,
+                                     @PathVariable Long slotId,
+                                     @AuthenticationPrincipal Long memberId) {
+        return songService.takeOverSlot(songId, slotId, memberId);
+    }
+
+    @PatchMapping("/{songId}/slots/{slotId}/handover")
+    public SongResponse setHandover(@PathVariable Long songId,
+                                    @PathVariable Long slotId,
+                                    @RequestBody SlotRequest request,
+                                    @AuthenticationPrincipal Long memberId) {
+        return songService.setHandover(songId, slotId, memberId, request.open());
+    }
+
+    @PutMapping("/{songId}/slots/{slotId}")
+    public SongResponse assignSlot(@PathVariable Long songId,
+                                   @PathVariable Long slotId,
+                                   @RequestBody SlotRequest request,
+                                   @AuthenticationPrincipal Long memberId) {
+        return songService.assignSlot(songId, slotId, request.memberId(), request.open(), memberId);
     }
 
     @DeleteMapping("/{songId}")

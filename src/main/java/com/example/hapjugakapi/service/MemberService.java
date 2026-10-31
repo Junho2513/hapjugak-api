@@ -1,9 +1,12 @@
 package com.example.hapjugakapi.service;
 
+import com.example.hapjugakapi.domain.Instrument;
 import com.example.hapjugakapi.domain.Member;
+import com.example.hapjugakapi.domain.Role;
 import com.example.hapjugakapi.dto.MemberRequest;
 import com.example.hapjugakapi.dto.MemberResponse;
 import com.example.hapjugakapi.exception.ConflictException;
+import com.example.hapjugakapi.exception.ForbiddenException;
 import com.example.hapjugakapi.exception.NotFoundException;
 import com.example.hapjugakapi.repository.MemberRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,6 +39,7 @@ public class MemberService {
                 request.area(),
                 request.bio()
         );
+        applyProfile(member, request);
         return MemberResponse.from(memberRepository.save(member));
     }
 
@@ -52,10 +56,34 @@ public class MemberService {
     @Transactional
     public MemberResponse update(Long id, MemberRequest request) {
         Member member = getMember(id);
-        member.setNickname(request.nickname());
-        member.setArea(request.area());
-        member.setBio(request.bio());
+        if (request.nickname() != null) member.setNickname(request.nickname());
+        if (request.area() != null) member.setArea(request.area());
+        if (request.bio() != null) member.setBio(request.bio());
+        applyProfile(member, request);
         return MemberResponse.from(member);
+    }
+
+    /** 관리자만 회원을 삭제할 수 있다. */
+    @Transactional
+    public void delete(Long targetId, Long actorId) {
+        Member actor = getMember(actorId);
+        if (actor.getRole() != Role.ADMIN) {
+            throw new ForbiddenException("관리자만 회원을 삭제할 수 있습니다.");
+        }
+        if (targetId.equals(actorId)) {
+            throw new ConflictException("자기 자신은 삭제할 수 없습니다.");
+        }
+        memberRepository.delete(getMember(targetId));
+    }
+
+    private void applyProfile(Member member, MemberRequest request) {
+        if (request.photoImage() != null) member.setPhotoImage(request.photoImage());
+        if (request.instruments() != null) {
+            member.getInstruments().clear();
+            for (Instrument instrument : request.instruments()) {
+                member.addInstrument(instrument);
+            }
+        }
     }
 
     private Member getMember(Long id) {

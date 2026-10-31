@@ -102,7 +102,7 @@ class SongServiceTest {
         SongResponse song = 곡만들기();
         Long slotId = song.slots().get(0).id();
 
-        songService.claimSlot(song.id(), slotId, 기타리스트.getId());
+        songService.claimSlot(song.id(), slotId, 기타리스트.getId(), false);
 
         assertThrows(
                 ForbiddenException.class,
@@ -115,8 +115,9 @@ class SongServiceTest {
     void 곡_성립() {
         SongResponse song = 곡만들기();
 
-        songService.claimSlot(song.id(), song.slots().get(0).id(), 기타리스트.getId());
-        SongResponse 완성 = songService.claimSlot(song.id(), song.slots().get(1).id(), 드러머.getId());
+        songService.claimSlot(song.id(), song.slots().get(0).id(), 기타리스트.getId(), false);
+        SongResponse 완성 = songService.claimSlot(
+                song.id(), song.slots().get(1).id(), 드러머.getId(), false);
 
         assertTrue(완성.complete());
         assertEquals(2, 완성.filledCount());
@@ -126,7 +127,7 @@ class SongServiceTest {
     @DisplayName("검색 — 비어 있는 파트로 거를 수 있다")
     void 파트_검색() {
         SongResponse song = 곡만들기();
-        songService.claimSlot(song.id(), song.slots().get(0).id(), 기타리스트.getId());
+        songService.claimSlot(song.id(), song.slots().get(0).id(), 기타리스트.getId(), false);
 
         List<SongResponse> 드럼_빈곡 = songService.search(
                 new SongSearchCondition(null, Part.DRUM, null, null));
@@ -135,5 +136,49 @@ class SongServiceTest {
 
         assertEquals(1, 드럼_빈곡.size());
         assertEquals(0, 보컬_빈곡.size());
+    }
+
+    @Test
+    @DisplayName("양도 가능으로 잡은 자리는 다른 사람이 넘겨받을 수 있다")
+    void 자리_양도() {
+        SongResponse song = 곡만들기();
+        Long slotId = song.slots().get(0).id();
+
+        songService.claimSlot(song.id(), slotId, 기타리스트.getId(), true);
+        SongResponse 넘겨받음 = songService.takeOverSlot(song.id(), slotId, 드러머.getId());
+
+        assertEquals("드러머", 넘겨받음.slots().get(0).memberNickname());
+        assertFalse(넘겨받음.slots().get(0).openToHandover());
+    }
+
+    @Test
+    @DisplayName("양도 표시가 없는 자리는 넘겨받을 수 없다")
+    void 양도_아닌_자리_뺏기_실패() {
+        SongResponse song = 곡만들기();
+        Long slotId = song.slots().get(0).id();
+
+        songService.claimSlot(song.id(), slotId, 기타리스트.getId(), false);
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> songService.takeOverSlot(song.id(), slotId, 드러머.getId())
+        );
+    }
+
+    @Test
+    @DisplayName("편성을 바꿔도 이미 사람이 들어온 자리는 남는다")
+    void 편성_변경시_참여자_보존() {
+        SongResponse song = 곡만들기();
+        Long 보컬자리 = song.slots().get(0).id();
+        songService.claimSlot(song.id(), 보컬자리, 드러머.getId(), false);
+
+        SongResponse 바뀜 = songService.update(
+                song.id(),
+                new SongRequest(null, null, null, null, List.of(Part.BASS)),
+                기타리스트.getId()
+        );
+
+        assertEquals(2, 바뀜.totalCount());
+        assertEquals(1, 바뀜.filledCount());
     }
 }

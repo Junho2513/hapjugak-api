@@ -2,6 +2,7 @@ package com.example.hapjugakapi.dto;
 
 import com.example.hapjugakapi.domain.Song;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public record SongResponse(
@@ -17,6 +18,7 @@ public record SongResponse(
         boolean complete,
         long filledCount,
         int totalCount,
+        LocalDateTime createdAt,
         List<SlotResponse> slots
 ) {
     public static SongResponse from(Song song) {
@@ -33,6 +35,7 @@ public record SongResponse(
                 song.isComplete(),
                 song.getFilledCount(),
                 song.getSlots().size(),
+                song.getCreatedAt(),
                 song.getSlots().stream().map(SlotResponse::from).toList()
         );
     }

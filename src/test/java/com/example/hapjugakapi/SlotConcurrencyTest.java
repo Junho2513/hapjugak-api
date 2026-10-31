@@ -71,7 +71,7 @@ class SlotConcurrencyTest {
             executor.submit(() -> {
                 try {
                     readyToStart.await();
-                    songService.claimSlot(songId, slotId, memberId);
+                    songService.claimSlot(songId, slotId, memberId, false);
                     successCount.incrementAndGet();
                 } catch (Exception e) {
                     failCount.incrementAndGet();

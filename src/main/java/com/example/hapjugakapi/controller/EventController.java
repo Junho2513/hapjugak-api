@@ -3,8 +3,8 @@ package com.example.hapjugakapi.controller;
 import com.example.hapjugakapi.dto.EventRequest;
 import com.example.hapjugakapi.dto.EventResponse;
 import com.example.hapjugakapi.service.EventService;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -39,13 +39,22 @@ public class EventController {
         return eventService.findById(id);
     }
 
+    @PatchMapping("/{id}")
+    public EventResponse update(@PathVariable Long id,
+                                @RequestBody EventRequest request,
+                                @AuthenticationPrincipal Long memberId) {
+        return eventService.update(id, request, memberId);
+    }
+
     @PatchMapping("/{id}/complete")
-    public EventResponse complete(@PathVariable Long id) {
-        return eventService.complete(id);
+    public EventResponse complete(@PathVariable Long id,
+                                  @AuthenticationPrincipal Long memberId) {
+        return eventService.complete(id, memberId);
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
-        eventService.delete(id);
+    public void delete(@PathVariable Long id,
+                       @AuthenticationPrincipal Long memberId) {
+        eventService.delete(id, memberId);
     }
 }
