@@ -983,7 +983,6 @@ function markAdmin(uid, isAdminRole){
 /* 개발: 스프링이 이 페이지를 직접 띄우므로 같은 출처입니다.
    배포: Nginx가 /api 로 들어온 요청만 백엔드로 넘깁니다. */
 const API_BASE = "/api";
-const POLL_MS = 5000;              /* 실시간 갱신. 13-F에서 SSE로 바꿉니다 */
 const TOKEN_KEY = "hapjugak.token";
 
 let store, auth = { user:null, onChange:()=>{}, signIn:()=>{}, signOut:()=>{} };
@@ -1173,7 +1172,7 @@ function toApiEvent(d){
 }
 
 /* ---------- 캐시와 구독 ----------
-   파이어스토어의 onSnapshot 자리를 지금은 짧은 주기 조회가 대신합니다.
+   파이어스토어의 onSnapshot 자리는 아래 SSE 연결이 대신합니다.
    첫 콜백은 queueMicrotask로 미룹니다. 구독을 거는 쪽이 아직
    초기화되지 않은 변수를 쓸 수 있어, 동기로 부르면 그 자리에서 터집니다. */
 const subs = { events:new Set(), songs:new Set(), settings:new Set(), one:new Map() };
@@ -1215,18 +1214,35 @@ async function refreshSettings(){
 }
 async function refreshAll(){ await Promise.all([refreshEvents(), refreshSongs()]); }
 
-function startPolling(){
-  if (pollTimer) return;
-  pollTimer = setInterval(() => {
-    if (document.hidden) return;   /* 안 보고 있는 탭은 긁지 않습니다 */
-    refreshAll();
-  }, POLL_MS);
+/* ---------- 실시간 갱신 (SSE) ----------
+   서버는 "바뀌었다"는 신호만 보냅니다. 무엇이 어떻게 바뀌었는지는
+   보내지 않고, 받은 쪽이 다시 조회해서 알아냅니다.
+   신호에 내용을 실으면 순서가 뒤바뀌었을 때 화면이 서버와 어긋납니다. */
+let stream = null;
+let refreshTimer = null;
+
+/* 한 동작이 요청 여러 개를 만들 때가 있어, 신호가 몰리면 한 번만 조회합니다. */
+function scheduleRefresh(){
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(() => { if (!document.hidden) refreshAll(); }, 200);
 }
-function stopPollingIfIdle(){
-  if (pollTimer && !subs.events.size && !subs.songs.size && !subs.one.size){
-    clearInterval(pollTimer);
-    pollTimer = null;
-  }
+
+function startStream(){
+  if (stream) return;
+
+  stream = new EventSource(API_BASE + "/stream");
+  stream.addEventListener("changed", scheduleRefresh);
+  /* 연결이 끊기면 EventSource가 스스로 다시 붙습니다. */
+
+  /* 신호를 놓친 채 조용히 끊겨 있는 경우를 대비한 안전망. */
+  pollTimer = setInterval(() => {
+    if (!document.hidden) refreshAll();
+  }, 60000);
+
+  /* 다른 탭을 보다 돌아오면 그동안의 변화를 한 번 받아옵니다. */
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) scheduleRefresh();
+  });
 }
 
 /* 서버는 자리를 번호(slotId)로 다루고, 화면은 파트 이름으로 다룹니다. */
@@ -1284,8 +1300,8 @@ store = {
     subs.events.add(cb);
     queueMicrotask(() => cb(cacheEvents.map(e => ({...e}))));
     refreshEvents();
-    startPolling();
-    return () => { subs.events.delete(cb); stopPollingIfIdle(); };
+    startStream();
+    return () => subs.events.delete(cb);
   },
   watchEvent(id, cb){
     const key = String(id);
@@ -1294,11 +1310,10 @@ store = {
     const found = cacheEvents.find(e => e.id === key) || null;
     queueMicrotask(() => cb(found ? {...found} : null));
     refreshEvents();
-    startPolling();
+    startStream();
     return () => {
       const set = subs.one.get(key);
       if (set){ set.delete(cb); if (!set.size) subs.one.delete(key); }
-      stopPollingIfIdle();
     };
   },
   async createEvent(data){
@@ -1320,8 +1335,8 @@ store = {
     subs.songs.add(cb);
     queueMicrotask(() => cb(cacheSongs.map(s => ({...s}))));
     refreshSongs();
-    startPolling();
-    return () => { subs.songs.delete(cb); stopPollingIfIdle(); };
+    startStream();
+    return () => subs.songs.delete(cb);
   },
   async addSong(song){
     const created = await call("POST", "/songs", {
