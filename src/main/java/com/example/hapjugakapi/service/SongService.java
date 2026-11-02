@@ -69,24 +69,17 @@ public class SongService {
         return SongResponse.from(song);
     }
 
-    public List<SongResponse> findCandidates() {
-        return songRepository.findByEventIsNull().stream()
-                .map(SongResponse::from)
-                .toList();
-    }
-
-    public List<SongResponse> findByEvent(Long eventId) {
-        return songRepository.findByEventId(eventId).stream()
-                .map(SongResponse::from)
-                .toList();
-    }
-
-    public List<SongResponse> findAll() {
-        return songRepository.findAll().stream()
-                .map(SongResponse::from)
-                .toList();
-    }
-
+    /**
+     * 곡 목록 조회의 유일한 입구.
+     *
+     * 예전에는 findAll / findCandidates / findByEvent / search 네 개가 따로 있었다.
+     * 그런데 뒤 세 개는 search 의 조건 하나씩을 고정한 것에 지나지 않았고,
+     * 무엇보다 fetchJoin 이 들어 있는 건 search 뿐이었다.
+     * 화면이 부르던 findAll 은 연관 엔티티를 지연 로딩하느라
+     * 곡 80건에 쿼리 100개를 쓰고 있었다.
+     *
+     * 조건이 전부 null 이면 전체 조회가 되므로 search 하나로 충분하다.
+     */
     public List<SongResponse> search(SongSearchCondition condition) {
         return songRepository.search(condition).stream()
                 .map(SongResponse::from)

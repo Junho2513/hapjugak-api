@@ -40,7 +40,7 @@ class SongApiTest {
     @Test
     @DisplayName("조회는 토큰 없이도 된다")
     void 비인증_조회_허용() throws Exception {
-        mockMvc.perform(get("/songs/candidates"))
+        mockMvc.perform(get("/songs").param("candidateOnly", "true"))
                 .andExpect(status().isOk());
     }
 

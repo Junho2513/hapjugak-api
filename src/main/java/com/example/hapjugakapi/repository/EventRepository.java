@@ -10,4 +10,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     List<Event> findAllByOrderByDateDesc();
 
     List<Event> findByCompletedTrueOrderByDateDesc();
+
+    List<Event> findByCompletedFalseOrderByDateDesc();
 }

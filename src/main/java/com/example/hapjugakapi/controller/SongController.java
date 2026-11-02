@@ -6,9 +6,13 @@ import com.example.hapjugakapi.dto.SongRequest;
 import com.example.hapjugakapi.dto.SongResponse;
 import com.example.hapjugakapi.dto.SongSearchCondition;
 import com.example.hapjugakapi.service.SongService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -22,18 +26,28 @@ public class SongController {
     }
 
     @PostMapping
-    public SongResponse create(@RequestBody SongRequest request,
-                               @AuthenticationPrincipal Long memberId) {
-        return songService.create(request, memberId);
+    public ResponseEntity<SongResponse> create(@RequestBody SongRequest request,
+                                               @AuthenticationPrincipal Long memberId) {
+        SongResponse created = songService.create(request, memberId);
+        return ResponseEntity.created(locationOf(created.id())).body(created);
     }
 
-    @GetMapping("/candidates")
-    public List<SongResponse> findCandidates() {
-        return songService.findCandidates();
-    }
-
-    @GetMapping("/search")
-    public List<SongResponse> search(
+    /**
+     * 곡 목록. 네 가지 조건으로 거를 수 있고, 조건이 없으면 전체를 돌려준다.
+     *
+     *   GET /songs                        전체
+     *   GET /songs?candidateOnly=true     아직 일정에 안 들어간 곡
+     *   GET /songs?eventId=3              특정 일정의 곡
+     *   GET /songs?keyword=&openPart=     검색
+     *
+     * 전에는 /songs, /songs/candidates, /songs/search 세 개로 나뉘어 있었다.
+     * 셋 다 "곡 목록"이라는 같은 자원을 돌려주면서 거르는 방법만 달랐으므로,
+     * 경로를 나눌 이유가 없었다. 컬렉션을 거르는 일은 질의 문자열의 몫이다.
+     *
+     * 합치면서 전체 조회도 fetchJoin 이 들어 있는 경로를 타게 됐다.
+     */
+    @GetMapping
+    public List<SongResponse> find(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Part openPart,
             @RequestParam(required = false) Boolean candidateOnly,
@@ -42,11 +56,6 @@ public class SongController {
         return songService.search(
                 new SongSearchCondition(keyword, openPart, candidateOnly, eventId)
         );
-    }
-
-    @GetMapping
-    public List<SongResponse> find(@RequestParam(required = false) Long eventId) {
-        return eventId == null ? songService.findAll() : songService.findByEvent(eventId);
     }
 
     @GetMapping("/{id}")
@@ -70,6 +79,18 @@ public class SongController {
     public SongResponse unassign(@PathVariable Long songId) {
         return songService.unassign(songId);
     }
+
+    // ───────────────────────────────────────────────────────────────
+    // 자리(slot) 관련 엔드포인트
+    //
+    // 아래 네 개는 새 자원을 만들지 않는다. 이미 존재하는 자리의 주인이 바뀔 뿐이다.
+    // 그래서 201 이 아니라 200 이고, 바뀐 곡 전체를 돌려준다.
+    // 자리 하나만 바뀌어도 "몇 자리가 찼는지", "성립됐는지"가 함께 달라지므로
+    // 클라이언트가 곡 전체를 다시 그릴 수 있어야 한다.
+    //
+    // 해제(releaseSlot)도 DELETE 지만 204 가 아니다.
+    // 204 는 "돌려줄 내용이 없다"는 뜻인데, 여기서는 바뀐 곡을 돌려주기 때문이다.
+    // ───────────────────────────────────────────────────────────────
 
     @PostMapping("/{songId}/slots/{slotId}/claim")
     public SongResponse claimSlot(@PathVariable Long songId,
@@ -111,8 +132,16 @@ public class SongController {
     }
 
     @DeleteMapping("/{songId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long songId,
                        @AuthenticationPrincipal Long memberId) {
         songService.delete(songId, memberId);
+    }
+
+    private static URI locationOf(Long id) {
+        return ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(id)
+                .toUri();
     }
 }

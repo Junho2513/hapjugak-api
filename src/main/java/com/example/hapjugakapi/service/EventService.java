@@ -96,16 +96,24 @@ public class EventService {
         storageService.deleteByUrl(current);     // 교체되었으니 옛 파일은 지운다
     }
 
-    public List<EventResponse> findAll() {
-        return eventRepository.findAllByOrderByDateDesc().stream()
-                .map(EventResponse::from)
-                .toList();
-    }
-
-    public List<EventResponse> findCompleted() {
-        return eventRepository.findByCompletedTrueOrderByDateDesc().stream()
-                .map(EventResponse::from)
-                .toList();
+    /**
+     * 일정 목록.
+     *
+     * completed 가 null 이면 전체, true 면 마감된 것, false 면 진행 중인 것.
+     * 전에는 마감된 목록이 /events/completed 라는 별도 주소였는데,
+     * 그것은 "events 중 id 가 completed 인 것"으로도 읽히는 주소였다.
+     * 컬렉션을 거르는 일은 경로가 아니라 질의 문자열로 표현하는 게 맞다.
+     */
+    public List<EventResponse> find(Boolean completed) {
+        List<Event> events;
+        if (completed == null) {
+            events = eventRepository.findAllByOrderByDateDesc();
+        } else if (completed) {
+            events = eventRepository.findByCompletedTrueOrderByDateDesc();
+        } else {
+            events = eventRepository.findByCompletedFalseOrderByDateDesc();
+        }
+        return events.stream().map(EventResponse::from).toList();
     }
 
     public EventResponse findById(Long id) {
