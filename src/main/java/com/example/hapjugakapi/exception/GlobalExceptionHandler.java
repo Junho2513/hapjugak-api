@@ -9,9 +9,13 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -58,6 +62,27 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleBadRequest(IllegalArgumentException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ErrorResponse.of(400, e.getMessage()));
+    }
+
+    /**
+     * @Valid 검증 실패.
+     *
+     * 어떤 항목이 왜 틀렸는지를 그대로 돌려준다.
+     * "입력값이 올바르지 않습니다" 한 줄만 주면 사용자는 어디를 고쳐야 할지 모른다.
+     * 제약마다 적어둔 한국어 메시지가 여기로 모인다.
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .map(org.springframework.validation.FieldError::getDefaultMessage)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.joining(" "));
+        if (message.isBlank()) {
+            message = "입력값이 올바르지 않습니다.";
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of(400, message));
     }
 
     /**

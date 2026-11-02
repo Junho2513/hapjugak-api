@@ -2,10 +2,14 @@ package com.example.hapjugakapi.controller;
 
 import com.example.hapjugakapi.dto.MemberRequest;
 import com.example.hapjugakapi.dto.MemberResponse;
+import com.example.hapjugakapi.dto.OnCreate;
 import com.example.hapjugakapi.service.MemberService;
+import jakarta.validation.Valid;
+import jakarta.validation.groups.Default;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -30,7 +34,8 @@ public class MemberController {
      * 무엇이 새로 생겼는지는 본문을 열어봐야 알 수 있다.
      */
     @PostMapping
-    public ResponseEntity<MemberResponse> create(@RequestBody MemberRequest request) {
+    public ResponseEntity<MemberResponse> create(
+            @Validated({Default.class, OnCreate.class}) @RequestBody MemberRequest request) {
         MemberResponse created = memberService.create(request);
         return ResponseEntity.created(locationOf(created.id())).body(created);
     }
@@ -52,7 +57,7 @@ public class MemberController {
 
     @PutMapping("/me")
     public MemberResponse updateMe(@AuthenticationPrincipal Long memberId,
-                                   @RequestBody MemberRequest request) {
+                                   @Valid @RequestBody MemberRequest request) {
         return memberService.update(memberId, request);
     }
 

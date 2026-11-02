@@ -4,6 +4,7 @@ import com.example.hapjugakapi.dto.GoogleLoginRequest;
 import com.example.hapjugakapi.dto.LoginRequest;
 import com.example.hapjugakapi.dto.TokenResponse;
 import com.example.hapjugakapi.service.AuthService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,12 +21,12 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public TokenResponse login(@RequestBody LoginRequest request) {
+    public TokenResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
     }
 
     @PostMapping("/google")
-    public TokenResponse googleLogin(@RequestBody GoogleLoginRequest request) {
+    public TokenResponse googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
         return authService.googleLogin(request);
     }
 }

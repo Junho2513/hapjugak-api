@@ -3,6 +3,7 @@ package com.example.hapjugakapi.controller;
 import com.example.hapjugakapi.dto.PresignRequest;
 import com.example.hapjugakapi.dto.PresignResponse;
 import com.example.hapjugakapi.service.StorageService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,7 +21,7 @@ public class UploadController {
 
     /** 로그인한 사용자만 서명을 받을 수 있다 (SecurityConfig의 anyRequest().authenticated()). */
     @PostMapping("/presign")
-    public PresignResponse presign(@RequestBody PresignRequest request) {
+    public PresignResponse presign(@Valid @RequestBody PresignRequest request) {
         return storageService.presign(request);
     }
 }

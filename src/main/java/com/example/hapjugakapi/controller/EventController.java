@@ -2,10 +2,14 @@ package com.example.hapjugakapi.controller;
 
 import com.example.hapjugakapi.dto.EventRequest;
 import com.example.hapjugakapi.dto.EventResponse;
+import com.example.hapjugakapi.dto.OnCreate;
 import com.example.hapjugakapi.service.EventService;
+import jakarta.validation.Valid;
+import jakarta.validation.groups.Default;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -23,8 +27,9 @@ public class EventController {
     }
 
     @PostMapping
-    public ResponseEntity<EventResponse> create(@RequestBody EventRequest request,
-                                                @AuthenticationPrincipal Long memberId) {
+    public ResponseEntity<EventResponse> create(
+            @Validated({Default.class, OnCreate.class}) @RequestBody EventRequest request,
+            @AuthenticationPrincipal Long memberId) {
         EventResponse created = eventService.create(request, memberId);
         return ResponseEntity.created(locationOf(created.id())).body(created);
     }
@@ -46,7 +51,7 @@ public class EventController {
 
     @PatchMapping("/{id}")
     public EventResponse update(@PathVariable Long id,
-                                @RequestBody EventRequest request,
+                                @Valid @RequestBody EventRequest request,
                                 @AuthenticationPrincipal Long memberId) {
         return eventService.update(id, request, memberId);
     }

@@ -3,6 +3,7 @@ package com.example.hapjugakapi.controller;
 import com.example.hapjugakapi.dto.ActivityLogRequest;
 import com.example.hapjugakapi.dto.ActivityLogResponse;
 import com.example.hapjugakapi.service.ActivityLogService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -34,7 +35,7 @@ public class ActivityLogController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ActivityLogResponse create(@PathVariable Long songId,
-                                      @RequestBody ActivityLogRequest request,
+                                      @Valid @RequestBody ActivityLogRequest request,
                                       @AuthenticationPrincipal Long memberId) {
         return activityLogService.create(songId, request, memberId);
     }

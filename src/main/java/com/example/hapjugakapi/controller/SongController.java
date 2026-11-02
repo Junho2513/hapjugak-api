@@ -4,11 +4,15 @@ import com.example.hapjugakapi.domain.Part;
 import com.example.hapjugakapi.dto.SlotRequest;
 import com.example.hapjugakapi.dto.SongRequest;
 import com.example.hapjugakapi.dto.SongResponse;
+import com.example.hapjugakapi.dto.OnCreate;
 import com.example.hapjugakapi.dto.SongSearchCondition;
+import jakarta.validation.Valid;
+import jakarta.validation.groups.Default;
 import com.example.hapjugakapi.service.SongService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -26,8 +30,9 @@ public class SongController {
     }
 
     @PostMapping
-    public ResponseEntity<SongResponse> create(@RequestBody SongRequest request,
-                                               @AuthenticationPrincipal Long memberId) {
+    public ResponseEntity<SongResponse> create(
+            @Validated({Default.class, OnCreate.class}) @RequestBody SongRequest request,
+            @AuthenticationPrincipal Long memberId) {
         SongResponse created = songService.create(request, memberId);
         return ResponseEntity.created(locationOf(created.id())).body(created);
     }
@@ -65,7 +70,7 @@ public class SongController {
 
     @PatchMapping("/{songId}")
     public SongResponse update(@PathVariable Long songId,
-                               @RequestBody SongRequest request,
+                               @Valid @RequestBody SongRequest request,
                                @AuthenticationPrincipal Long memberId) {
         return songService.update(songId, request, memberId);
     }
@@ -118,7 +123,7 @@ public class SongController {
     @PatchMapping("/{songId}/slots/{slotId}/handover")
     public SongResponse setHandover(@PathVariable Long songId,
                                     @PathVariable Long slotId,
-                                    @RequestBody SlotRequest request,
+                                    @Valid @RequestBody SlotRequest request,
                                     @AuthenticationPrincipal Long memberId) {
         return songService.setHandover(songId, slotId, memberId, request.open());
     }
@@ -126,7 +131,7 @@ public class SongController {
     @PutMapping("/{songId}/slots/{slotId}")
     public SongResponse assignSlot(@PathVariable Long songId,
                                    @PathVariable Long slotId,
-                                   @RequestBody SlotRequest request,
+                                   @Valid @RequestBody SlotRequest request,
                                    @AuthenticationPrincipal Long memberId) {
         return songService.assignSlot(songId, slotId, request.memberId(), request.open(), memberId);
     }
