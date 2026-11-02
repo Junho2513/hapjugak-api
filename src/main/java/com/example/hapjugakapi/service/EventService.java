@@ -2,6 +2,7 @@ package com.example.hapjugakapi.service;
 
 import com.example.hapjugakapi.domain.Event;
 import com.example.hapjugakapi.domain.Member;
+import com.example.hapjugakapi.domain.Song;
 import com.example.hapjugakapi.domain.Role;
 import com.example.hapjugakapi.domain.UploadKind;
 import com.example.hapjugakapi.dto.EventRequest;
@@ -10,6 +11,7 @@ import com.example.hapjugakapi.exception.ForbiddenException;
 import com.example.hapjugakapi.exception.NotFoundException;
 import com.example.hapjugakapi.repository.EventRepository;
 import com.example.hapjugakapi.repository.MemberRepository;
+import com.example.hapjugakapi.repository.SongRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,13 +23,16 @@ public class EventService {
 
     private final EventRepository eventRepository;
     private final MemberRepository memberRepository;
+    private final SongRepository songRepository;
     private final StorageService storageService;
 
     public EventService(EventRepository eventRepository,
                         MemberRepository memberRepository,
+                        SongRepository songRepository,
                         StorageService storageService) {
         this.eventRepository = eventRepository;
         this.memberRepository = memberRepository;
+        this.songRepository = songRepository;
         this.storageService = storageService;
     }
 
@@ -132,8 +137,19 @@ public class EventService {
     public void delete(Long id, Long memberId) {
         Event event = getEvent(id);
         checkHostOrAdmin(event, memberId);
+
+        // 이 일정에 들어가 있던 곡들을 먼저 후보로 되돌린다.
+        //
+        // song.event_id 가 이 일정을 참조하므로 그냥 두면 DB 가 삭제를 거부한다.
+        // 곡까지 지우는 선택지도 있었지만, 곡 추천은 일정보다 오래 산다.
+        // 일정이 사라졌다고 "이 곡 하고 싶다"는 기록까지 없앨 이유가 없다.
+        songRepository.findByEventId(id).forEach(Song::unassign);
+
         String cover = event.getCoverUrl();
         eventRepository.delete(event);
+
+        // S3 삭제는 DB 가 커밋된 뒤에 해야 한다.
+        // 먼저 지우면 트랜잭션이 되돌아갔을 때 커버만 사라진다.
         storageService.deleteByUrl(cover);
     }
 

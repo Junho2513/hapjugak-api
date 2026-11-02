@@ -1,14 +1,22 @@
 package com.example.hapjugakapi.exception;
 
 import com.example.hapjugakapi.dto.ErrorResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException e) {
@@ -50,5 +58,60 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleBadRequest(IllegalArgumentException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ErrorResponse.of(400, e.getMessage()));
+    }
+
+    /**
+     * 본문이 JSON 으로 읽히지 않는 경우.
+     * 잘못 만든 요청이므로 400 이지, 서버 잘못이 아니다.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleUnreadableBody(HttpMessageNotReadableException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of(400, "요청 형식이 올바르지 않습니다."));
+    }
+
+    /**
+     * DB 제약조건 위반. 대개는 "다른 데이터가 이걸 참조하고 있다"는 뜻이다.
+     *
+     * 이 자리가 비어 있어서, 곡을 지울 때 활동 로그가 걸려 있으면
+     * 원인을 알 수 없는 500 이 나갔다. 사용자는 "삭제하지 못했습니다"만 보고
+     * 왜인지 알 방법이 없었다.
+     *
+     * 상세 내용은 로그에만 남긴다. 외부에 테이블 이름이나 제약조건 이름을
+     * 그대로 흘리면 DB 구조를 알려주는 셈이 된다.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException e) {
+        log.warn("데이터 제약조건 위반", e);
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of(409, "다른 데이터가 이 항목을 참조하고 있어 처리할 수 없습니다."));
+    }
+
+    /**
+     * Spring 이 이미 상태코드를 정해둔 예외는 그 상태코드를 지킨다.
+     *
+     * 아래 Exception 핸들러만 있으면 없는 주소 요청(404)까지 500 으로 바뀐다.
+     * 더 구체적인 이 핸들러가 먼저 잡아서 그걸 막는다.
+     */
+    @ExceptionHandler(ErrorResponseException.class)
+    public ResponseEntity<ErrorResponse> handleSpringError(ErrorResponseException e) {
+        HttpStatusCode status = e.getStatusCode();
+        String detail = e.getBody().getDetail();
+        return ResponseEntity.status(status)
+                .body(ErrorResponse.of(status.value(),
+                        detail != null ? detail : "요청을 처리할 수 없습니다."));
+    }
+
+    /**
+     * 위 어느 것에도 걸리지 않은 예외.
+     *
+     * 스택트레이스는 서버 로그에만 남기고 응답에는 싣지 않는다.
+     * 예외 메시지에는 쿼리문이나 파일 경로가 섞여 나오는 일이 많다.
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleUnexpected(Exception e) {
+        log.error("처리하지 못한 예외", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ErrorResponse.of(500, "서버에서 문제가 생겼습니다. 잠시 후 다시 시도해주세요."));
     }
 }

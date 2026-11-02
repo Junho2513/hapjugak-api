@@ -12,6 +12,7 @@ import com.example.hapjugakapi.dto.SongSearchCondition;
 import com.example.hapjugakapi.exception.ConflictException;
 import com.example.hapjugakapi.exception.ForbiddenException;
 import com.example.hapjugakapi.exception.NotFoundException;
+import com.example.hapjugakapi.repository.ActivityLogRepository;
 import com.example.hapjugakapi.repository.EventRepository;
 import com.example.hapjugakapi.repository.MemberRepository;
 import com.example.hapjugakapi.repository.SongRepository;
@@ -27,13 +28,16 @@ public class SongService {
     private final SongRepository songRepository;
     private final MemberRepository memberRepository;
     private final EventRepository eventRepository;
+    private final ActivityLogRepository activityLogRepository;
 
     public SongService(SongRepository songRepository,
                        MemberRepository memberRepository,
-                       EventRepository eventRepository) {
+                       EventRepository eventRepository,
+                       ActivityLogRepository activityLogRepository) {
         this.songRepository = songRepository;
         this.memberRepository = memberRepository;
         this.eventRepository = eventRepository;
+        this.activityLogRepository = activityLogRepository;
     }
 
     @Transactional
@@ -187,6 +191,17 @@ public class SongService {
     public void delete(Long songId, Long memberId) {
         Song song = getSong(songId);
         checkProposerOrAdmin(song, memberId);
+
+        // 활동 로그를 먼저 지운다.
+        // activity_log.song_id 가 이 곡을 참조하고 있어서,
+        // 로그가 남은 채로 곡을 지우면 DB 가 거부한다.
+        //
+        // 로그를 남겨두는 선택지도 있었지만 로그는 곡별로만 조회한다.
+        // 곡이 사라지면 꺼내 볼 방법이 없으므로 같이 지우는 게 맞다.
+        activityLogRepository.deleteBySongId(songId);
+
+        // 자리(slot)는 Song 에 cascade = ALL, orphanRemoval = true 로 묶여 있어
+        // 따로 지우지 않아도 함께 사라진다.
         songRepository.delete(song);
     }
 
