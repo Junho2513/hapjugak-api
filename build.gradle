@@ -37,6 +37,8 @@ dependencies {
     // AWS SDK는 Spring Boot가 버전을 관리해주지 않아 BOM을 직접 가져옵니다.
     implementation platform('software.amazon.awssdk:bom:2.46.7')
     implementation 'software.amazon.awssdk:s3'
+    // 메일 발송. SMTP 대신 API를 쓰면 서버에 SMTP 비밀번호를 두지 않아도 됩니다.
+    implementation 'software.amazon.awssdk:sesv2'
 
     annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:7.4.0:jpa'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.7'
