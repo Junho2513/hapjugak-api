@@ -6,6 +6,9 @@ import com.example.hapjugakapi.dto.SongRequest;
 import com.example.hapjugakapi.dto.SongResponse;
 import com.example.hapjugakapi.dto.OnCreate;
 import com.example.hapjugakapi.dto.SongSearchCondition;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.groups.Default;
 import com.example.hapjugakapi.service.SongService;
@@ -19,6 +22,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 import java.util.List;
 
+@Tag(name = "곡과 자리", description = "곡을 올리고 · 일정에 넣고 · 파트 자리를 잡습니다")
 @RestController
 @RequestMapping("/songs")
 public class SongController {
@@ -29,6 +33,8 @@ public class SongController {
         this.songService = songService;
     }
 
+    @Operation(summary = "곡 올리기", description = "parts 에 적은 파트만큼 빈 자리가 함께 만들어집니다.")
+    @ApiResponse(responseCode = "201", description = "곡이 만들어졌습니다")
     @PostMapping
     public ResponseEntity<SongResponse> create(
             @Validated({Default.class, OnCreate.class}) @RequestBody SongRequest request,
@@ -51,6 +57,7 @@ public class SongController {
      *
      * 합치면서 전체 조회도 fetchJoin 이 들어 있는 경로를 타게 됐다.
      */
+    @Operation(summary = "곡 목록", description = "조건을 주지 않으면 전체를 돌려줍니다. candidateOnly=true 면 아직 일정에 안 들어간 곡만, keyword 는 제목과 아티스트를 함께 찾습니다.")
     @GetMapping
     public List<SongResponse> find(
             @RequestParam(required = false) String keyword,
@@ -63,11 +70,13 @@ public class SongController {
         );
     }
 
+    @Operation(summary = "곡 하나 조회")
     @GetMapping("/{id}")
     public SongResponse findById(@PathVariable Long id) {
         return songService.findById(id);
     }
 
+    @Operation(summary = "곡 수정", description = "추천한 사람과 관리자만 할 수 있습니다.")
     @PatchMapping("/{songId}")
     public SongResponse update(@PathVariable Long songId,
                                @Valid @RequestBody SongRequest request,
@@ -75,11 +84,13 @@ public class SongController {
         return songService.update(songId, request, memberId);
     }
 
+    @Operation(summary = "곡을 일정에 넣기")
     @PatchMapping("/{songId}/event/{eventId}")
     public SongResponse assignToEvent(@PathVariable Long songId, @PathVariable Long eventId) {
         return songService.assignToEvent(songId, eventId);
     }
 
+    @Operation(summary = "곡을 일정에서 빼기", description = "다시 후보곡이 됩니다.")
     @PatchMapping("/{songId}/event")
     public SongResponse unassign(@PathVariable Long songId) {
         return songService.unassign(songId);
@@ -97,6 +108,8 @@ public class SongController {
     // 204 는 "돌려줄 내용이 없다"는 뜻인데, 여기서는 바뀐 곡을 돌려주기 때문이다.
     // ───────────────────────────────────────────────────────────────
 
+    @Operation(summary = "자리 잡기", description = "이미 찬 자리면 409 입니다. 동시에 두 명이 눌러도 한 명만 성공합니다.")
+    @ApiResponse(responseCode = "409", description = "다른 사람이 먼저 잡았습니다")
     @PostMapping("/{songId}/slots/{slotId}/claim")
     public SongResponse claimSlot(@PathVariable Long songId,
                                   @PathVariable Long slotId,
@@ -106,6 +119,7 @@ public class SongController {
         return songService.claimSlot(songId, slotId, memberId, open);
     }
 
+    @Operation(summary = "자리 비우기", description = "DELETE 지만 204 가 아닙니다. 자리를 비우면 곡 전체 상태가 바뀌므로 바뀐 곡을 돌려줍니다.")
     @DeleteMapping("/{songId}/slots/{slotId}/claim")
     public SongResponse releaseSlot(@PathVariable Long songId,
                                     @PathVariable Long slotId,
@@ -113,6 +127,7 @@ public class SongController {
         return songService.releaseSlot(songId, slotId, memberId);
     }
 
+    @Operation(summary = "양도받기", description = "앞사람이 양도 표시를 해둔 자리만 가져올 수 있습니다.")
     @PostMapping("/{songId}/slots/{slotId}/takeover")
     public SongResponse takeOverSlot(@PathVariable Long songId,
                                      @PathVariable Long slotId,
@@ -120,6 +135,7 @@ public class SongController {
         return songService.takeOverSlot(songId, slotId, memberId);
     }
 
+    @Operation(summary = "양도 표시 켜고 끄기")
     @PatchMapping("/{songId}/slots/{slotId}/handover")
     public SongResponse setHandover(@PathVariable Long songId,
                                     @PathVariable Long slotId,
@@ -128,6 +144,7 @@ public class SongController {
         return songService.setHandover(songId, slotId, memberId, request.open());
     }
 
+    @Operation(summary = "자리에 사람 배치", description = "관리자용입니다. memberId 를 비우면 자리가 빕니다.")
     @PutMapping("/{songId}/slots/{slotId}")
     public SongResponse assignSlot(@PathVariable Long songId,
                                    @PathVariable Long slotId,
@@ -136,6 +153,8 @@ public class SongController {
         return songService.assignSlot(songId, slotId, request.memberId(), request.open(), memberId);
     }
 
+    @Operation(summary = "곡 삭제", description = "곡에 달린 활동 기록도 함께 지워집니다.")
+    @ApiResponse(responseCode = "204", description = "삭제되었습니다")
     @DeleteMapping("/{songId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long songId,
