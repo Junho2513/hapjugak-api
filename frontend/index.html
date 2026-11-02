@@ -2775,7 +2775,22 @@ function modal(html, onMount, locked){
   root.innerHTML = `<div class="modal-bg"><div class="modal">${html}</div></div>`;
   if (!locked){
     const bg = root.querySelector(".modal-bg");
-    bg.onclick = e => { if (e.target === bg) closeModal(); };
+
+    // 배경을 눌렀다 뗐을 때만 닫습니다.
+    //
+    // click 이벤트는 "누른 곳"과 "뗀 곳"의 공통 부모에서 일어납니다.
+    // 그래서 입력창 안에서 누른 채로 바깥까지 끌고 나가 떼면,
+    // 공통 부모가 배경이 되어 click 의 target 이 배경으로 잡힙니다.
+    // 글자를 드래그로 선택하려던 것뿐인데 창이 닫혀버리던 이유입니다.
+    //
+    // 누른 지점이 배경이었는지를 따로 기억해 두면 그 경우가 걸러집니다.
+    let pressedOnBg = false;
+    bg.addEventListener("mousedown", e => { pressedOnBg = (e.target === bg); });
+    bg.addEventListener("click", e => {
+      if (pressedOnBg && e.target === bg) closeModal();
+      pressedOnBg = false;
+    });
+
     document.addEventListener("keydown", escClose);
   }
   onMount?.(root);
