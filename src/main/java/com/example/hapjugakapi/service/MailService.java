@@ -1,5 +1,6 @@
 package com.example.hapjugakapi.service;
 
+import com.example.hapjugakapi.exception.MailSendException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -152,7 +153,9 @@ public class MailService {
             // 왜 실패했는지 로그에 남긴다. 이게 없으면 "메일이 안 와요"에서 더 나아갈 수 없다.
             log.error("메일 발송 실패 to={} 이유={}", mask(to),
                     e.awsErrorDetails() == null ? e.getMessage() : e.awsErrorDetails().errorMessage());
-            throw new IllegalStateException("메일을 보내지 못했습니다.", e);
+            // IllegalStateException 으로 던지면 GlobalExceptionHandler 가 409 로 내보낸다.
+            // 메일이 안 간 건 "충돌"이 아니라 "바깥 서비스가 지금 안 된다"는 뜻이라 503 이 맞다.
+            throw new MailSendException("메일을 보내지 못했습니다.", e);
         }
     }
 

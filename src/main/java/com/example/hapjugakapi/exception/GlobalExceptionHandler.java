@@ -4,6 +4,7 @@ import com.example.hapjugakapi.dto.ErrorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +45,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException e) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ErrorResponse.of(401, e.getMessage()));
+    }
+
+    /**
+     * 요청이 너무 잦아 잠시 막은 경우.
+     *
+     * Retry-After 를 같이 보낸다. "다시 시도해보세요"만 주고 언제인지 안 알려주면
+     * 클라이언트는 계속 두드리는 수밖에 없다.
+     */
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ErrorResponse> handleTooManyRequests(TooManyRequestsException e) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(e.getRetryAfterSeconds()))
+                .body(ErrorResponse.of(429, e.getMessage()));
     }
 
     @ExceptionHandler(ForbiddenException.class)
@@ -110,6 +124,20 @@ public class GlobalExceptionHandler {
         log.warn("데이터 제약조건 위반", e);
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ErrorResponse.of(409, "다른 데이터가 이 항목을 참조하고 있어 처리할 수 없습니다."));
+    }
+
+    /**
+     * 메일 발송 실패.
+     *
+     * 우리 코드가 틀린 것도, 사용자가 잘못 보낸 것도 아니다.
+     * 기대던 바깥 서비스가 응답하지 않은 것이라 500 이 아니라 503 이 맞다.
+     * 실패한 이유는 MailService 에서 이미 로그에 남겼다.
+     */
+    @ExceptionHandler(MailSendException.class)
+    public ResponseEntity<ErrorResponse> handleMailSend(MailSendException e) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header(HttpHeaders.RETRY_AFTER, "30")
+                .body(ErrorResponse.of(503, "메일을 보내지 못했습니다. 잠시 후 다시 시도해주세요."));
     }
 
     /**
