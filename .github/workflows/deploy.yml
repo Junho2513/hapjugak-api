@@ -40,7 +40,9 @@ jobs:
 
       - run: chmod +x gradlew
 
-      - name: 테스트 22개
+      # 개수를 이름에 적지 않습니다. 손으로 적은 숫자는 반드시 실제와 어긋납니다.
+      # (22개로 적어둔 사이 30개가 됐습니다)
+      - name: 테스트
         run: ./gradlew test --no-daemon
         env:
           DB_PASSWORD: ci-password
