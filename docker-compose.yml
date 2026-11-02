@@ -33,6 +33,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       JAVA_TOOL_OPTIONS: "-Xmx400m -Xms128m"
       TZ: Asia/Seoul
     ports:
