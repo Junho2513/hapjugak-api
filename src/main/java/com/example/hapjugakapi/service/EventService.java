@@ -10,6 +10,7 @@ import com.example.hapjugakapi.dto.EventRequest;
 import com.example.hapjugakapi.dto.EventResponse;
 import com.example.hapjugakapi.exception.ForbiddenException;
 import com.example.hapjugakapi.exception.NotFoundException;
+import com.example.hapjugakapi.repository.ActivityLogRepository;
 import com.example.hapjugakapi.repository.EventRepository;
 import com.example.hapjugakapi.repository.MemberRepository;
 import com.example.hapjugakapi.repository.SongRepository;
@@ -25,15 +26,18 @@ public class EventService {
     private final EventRepository eventRepository;
     private final MemberRepository memberRepository;
     private final SongRepository songRepository;
+    private final ActivityLogRepository activityLogRepository;
     private final StorageService storageService;
 
     public EventService(EventRepository eventRepository,
                         MemberRepository memberRepository,
                         SongRepository songRepository,
+                        ActivityLogRepository activityLogRepository,
                         StorageService storageService) {
         this.eventRepository = eventRepository;
         this.memberRepository = memberRepository;
         this.songRepository = songRepository;
+        this.activityLogRepository = activityLogRepository;
         this.storageService = storageService;
     }
 
@@ -143,15 +147,30 @@ public class EventService {
         Event event = getEvent(id);
         checkHostOrAdmin(event, memberId);
 
-        // 이 일정에 들어가 있던 곡들을 먼저 후보로 되돌린다.
-        //
-        // song.event_id 가 이 일정을 참조하므로 그냥 두면 DB 가 삭제를 거부한다.
-        // 곡까지 지우는 선택지도 있었지만, 곡 추천은 일정보다 오래 산다.
-        // 일정이 사라졌다고 "이 곡 하고 싶다"는 기록까지 없앨 이유가 없다.
-        songRepository.findByEventId(id).forEach(Song::unassign);
-
+        // 커버 주소는 지금 꺼내 둔다. 아래에서 영속성 컨텍스트가 비워지면
+        // event 가 준영속이 되어 다시 읽어야 하기 때문이다. 문자열은 그대로 남는다.
         String cover = event.getCoverUrl();
-        eventRepository.delete(event);
+
+        // 이 일정의 곡을 함께 지운다.
+        //
+        // 전에는 곡을 후보로 되돌렸다. 일정 밖에 곡이 떠 있을 수 있던 구조라
+        // 그게 가능했고, "이 곡 하고 싶다"는 기록을 살려두는 뜻이었다.
+        // 이제 곡은 반드시 어느 합주의 곡이다. 돌아갈 곳이 없어졌으므로 함께 지운다.
+        //
+        // 지우는 순서가 중요하다. 참조하는 쪽부터다.
+        //   activity_log.song_id  → 곡을 참조. NOT NULL 이라 먼저 비워야 한다
+        //   slot                  → Song 에 cascade = ALL 로 묶여 있어 따라 사라진다
+        List<Long> songIds = songRepository.findByEventId(id).stream()
+                .map(Song::getId)
+                .toList();
+
+        if (!songIds.isEmpty()) {
+            // 이 호출은 영속성 컨텍스트를 비운다(clearAutomatically).
+            // 그래서 이 줄 아래에서는 위에서 읽어둔 엔티티를 쓰지 않고 id 로 다시 읽는다.
+            activityLogRepository.deleteBySongIdIn(songIds);
+            songRepository.deleteAllById(songIds);
+        }
+        eventRepository.deleteById(id);
 
         // S3 삭제는 DB 가 커밋된 뒤에 해야 한다.
         // 먼저 지우면 트랜잭션이 되돌아갔을 때 커버만 사라진다.

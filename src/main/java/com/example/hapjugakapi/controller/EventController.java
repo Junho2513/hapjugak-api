@@ -83,7 +83,8 @@ public class EventController {
         return eventService.complete(id, memberId);
     }
 
-    @Operation(summary = "일정 삭제", description = "이 일정에 들어가 있던 곡은 지워지지 않고 후보로 돌아갑니다.")
+    @Operation(summary = "일정 삭제",
+            description = "이 일정의 곡과 자리, 활동 기록도 함께 지워집니다. 되돌릴 수 없습니다. 주최자와 관리자만 할 수 있습니다.")
     @ApiResponse(responseCode = "204", description = "삭제되었습니다")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)

@@ -20,6 +20,7 @@ import com.example.hapjugakapi.repository.SongRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 
 @Service
@@ -41,6 +42,14 @@ public class SongService {
         this.activityLogRepository = activityLogRepository;
     }
 
+    /**
+     * 일정 없이 곡을 만든다. 없어질 예정이다.
+     *
+     * 화면이 아직 이 경로로 곡을 올린다. 지금 지우면 배포하는 순간 곡 올리기가 죽는다.
+     * 새 화면이 /events/{id}/songs 로 올리게 바뀐 뒤, song.event_id 를 NOT NULL 로
+     * 조이는 V5 와 함께 지운다.
+     */
+    @Deprecated(forRemoval = true)
     @Transactional
     public SongResponse create(SongRequest request, Long proposerId) {
         Member proposer = getMember(proposerId);
@@ -58,6 +67,85 @@ public class SongService {
             }
         }
         return SongResponse.from(songRepository.save(song));
+    }
+
+    /**
+     * 일정 안에 곡을 올린다.
+     *
+     * 전에는 곡을 먼저 만들어 두고 나중에 일정에 끼워 넣었다.
+     * 그래서 "어느 합주에서 할지 모르는 곡"이라는 상태가 존재했고,
+     * 화면에는 그 곡들만 모아 보는 탭이 따로 있었다.
+     *
+     * 이 사이트는 오프라인 합주를 돕는 곳이다.
+     * 곡은 "언젠가 하고 싶은 것"이 아니라 "이 날 이 합주실에서 할 것"이다.
+     * 그래서 곡은 처음부터 일정 안에서 만들어진다.
+     */
+    @Transactional
+    public SongResponse createIn(Long eventId, SongRequest request, Long proposerId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new NotFoundException("합주 일정을 찾을 수 없습니다."));
+        checkAcceptingSongs(event);
+        checkSongQuota(event, proposerId);
+
+        Member proposer = getMember(proposerId);
+
+        Song song = new Song(
+                request.title(),
+                request.artist(),
+                request.youtubeUrl(),
+                request.description(),
+                proposer
+        );
+        song.assignTo(event);
+
+        // 파트를 안 적어 보내면 그 합주의 기본 편성을 그대로 쓴다.
+        // 매번 같은 파트를 다시 고르게 하는 것은 일을 두 번 시키는 것이다.
+        Collection<Part> parts = (request.parts() == null || request.parts().isEmpty())
+                ? event.getDefaultParts()
+                : request.parts();
+        for (Part part : parts) {
+            song.addSlot(part);
+        }
+        return SongResponse.from(songRepository.save(song));
+    }
+
+    /** 그 일정의 곡. 일정 자체가 링크로 열려 있으므로 곡도 같은 규칙을 따른다. */
+    public List<SongResponse> findByEvent(Long eventId) {
+        if (!eventRepository.existsById(eventId)) {
+            throw new NotFoundException("합주 일정을 찾을 수 없습니다.");
+        }
+        return songRepository.search(new SongSearchCondition(null, null, null, eventId), Viewer.anonymous())
+                .stream()
+                .map(SongResponse::from)
+                .toList();
+    }
+
+    /**
+     * 「1인당 최대 곡수」가 드디어 무언가를 막는다.
+     *
+     * 전에는 일정에 적어두기만 하고 아무 데서도 보지 않았다.
+     * 곡이 일정 밖에 떠 있던 구조에서는 셀 수가 없었기 때문이다 —
+     * "이 사람이 이 합주에 몇 곡 올렸나"를 물을 대상이 없었다.
+     * 곡이 일정 안으로 들어오면서 비로소 셀 수 있게 됐다.
+     */
+    private void checkSongQuota(Event event, Long proposerId) {
+        int limit = event.getMaxSongsPerUser();
+        if (limit <= 0) {
+            return;   // 0 이면 제한 없음
+        }
+        long mine = songRepository.countByEventIdAndProposerId(event.getId(), proposerId);
+        if (mine >= limit) {
+            throw new ConflictException("이 합주에는 한 사람당 " + limit + "곡까지 올릴 수 있습니다.");
+        }
+    }
+
+    private void checkAcceptingSongs(Event event) {
+        if (event.isCompleted()) {
+            throw new ConflictException("이미 끝난 합주입니다.");
+        }
+        if (event.isDeadlinePassed()) {
+            throw new ConflictException("곡 신청이 마감된 일정입니다.");
+        }
     }
 
     @Transactional
@@ -103,12 +191,7 @@ public class SongService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("합주 일정을 찾을 수 없습니다."));
 
-        if (event.isDeadlinePassed()) {
-            throw new ConflictException("곡 신청이 마감된 일정입니다.");
-        }
-        if (event.isCompleted()) {
-            throw new ConflictException("이미 끝난 합주입니다.");
-        }
+        checkAcceptingSongs(event);
         song.assignTo(event);
         return SongResponse.from(song);
     }

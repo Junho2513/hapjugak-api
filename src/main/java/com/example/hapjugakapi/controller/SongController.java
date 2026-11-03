@@ -34,7 +34,18 @@ public class SongController {
         this.songService = songService;
     }
 
-    @Operation(summary = "곡 올리기", description = "parts 에 적은 파트만큼 빈 자리가 함께 만들어집니다.")
+    /**
+     * 일정 없이 곡을 만든다. 없어질 예정이다.
+     *
+     * 화면이 아직 이 주소로 곡을 올린다. 지금 지우면 배포하는 순간 곡 올리기가 죽는다.
+     * 새 화면이 POST /events/{id}/songs 를 쓰도록 바뀐 뒤,
+     * song.event_id 를 NOT NULL 로 조이는 V5 와 함께 지운다.
+     */
+    @Deprecated(forRemoval = true)
+    @Operation(summary = "곡 올리기 (없어질 예정)",
+            deprecated = true,
+            description = "일정 안에서 올리려면 POST /events/{eventId}/songs 를 쓰세요. "
+                    + "이 주소는 화면이 전환되는 동안만 남아 있습니다.")
     @ApiResponse(responseCode = "201", description = "곡이 만들어졌습니다")
     @PostMapping
     public ResponseEntity<SongResponse> create(
@@ -87,13 +98,18 @@ public class SongController {
         return songService.update(songId, request, memberId);
     }
 
-    @Operation(summary = "곡을 일정에 넣기")
+    @Operation(summary = "곡을 다른 일정으로 옮기기",
+            description = "마감됐거나 끝난 일정으로는 옮길 수 없습니다.")
     @PatchMapping("/{songId}/event/{eventId}")
     public SongResponse assignToEvent(@PathVariable Long songId, @PathVariable Long eventId) {
         return songService.assignToEvent(songId, eventId);
     }
 
-    @Operation(summary = "곡을 일정에서 빼기", description = "다시 후보곡이 됩니다.")
+    @Deprecated(forRemoval = true)
+    @Operation(summary = "곡을 일정에서 빼기 (없어질 예정)",
+            deprecated = true,
+            description = "곡은 이제 반드시 일정에 속하므로 빼낼 곳이 없습니다. "
+                    + "다른 일정으로 옮기거나, 곡을 지우세요.")
     @PatchMapping("/{songId}/event")
     public SongResponse unassign(@PathVariable Long songId) {
         return songService.unassign(songId);

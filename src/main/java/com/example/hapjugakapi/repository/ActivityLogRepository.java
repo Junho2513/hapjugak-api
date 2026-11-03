@@ -24,4 +24,23 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
     @Modifying(flushAutomatically = true)
     @Query("delete from ActivityLog l where l.song.id = :songId")
     void deleteBySongId(@Param("songId") Long songId);
+
+    /**
+     * 일정을 지울 때 쓴다. 그 일정의 곡이 여러 개이므로 한 번에 지운다.
+     * 곡마다 deleteBySongId 를 부르면 곡 수만큼 DELETE 가 나간다.
+     *
+     * 빈 목록을 넘기면 `in ()` 이 되어 문법 오류가 나므로 부르는 쪽에서 막는다.
+     *
+     * clearAutomatically 가 필요한 이유 —
+     * 이런 벌크 DELETE 는 영속성 컨텍스트를 지나쳐 DB 만 건드린다.
+     * 그래서 이미 읽어둔 ActivityLog 가 메모리에는 그대로 남고, 지워진 곡을
+     * 여전히 가리킨다. 그 상태로 곡을 지우면 flush 때 Hibernate 가
+     * "없는 것을 참조한다"며 거부한다(TransientPropertyValueException).
+     *
+     * 비운 뒤에는 들고 있던 엔티티가 전부 준영속이 되므로, 부르는 쪽은
+     * 필요한 것을 다시 읽어야 한다.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("delete from ActivityLog l where l.song.id in :songIds")
+    void deleteBySongIdIn(@Param("songIds") List<Long> songIds);
 }
