@@ -7,6 +7,8 @@ import com.example.hapjugakapi.dto.TokenResponse;
 import com.example.hapjugakapi.exception.UnauthorizedException;
 import com.example.hapjugakapi.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,10 +35,16 @@ public class AuthController {
      * 시도 제한을 서비스가 아니라 여기서 거는 이유:
      * 기준 중 하나가 IP 인데, IP 는 HTTP 의 개념이다.
      * 서비스가 HttpServletRequest 를 알게 되면 그때부터 테스트할 때마다 가짜 요청을 만들어야 한다.
+     *
+     * 200 을 직접 적어둔 이유: @ApiResponse 를 하나라도 쓰면 springdoc 이
+     * 자동으로 넣어주던 성공 응답이 빠진다. 그대로 두면 문서가 실패 경우만 보여준다.
      */
     @Operation(summary = "자체 로그인",
             description = "응답의 accessToken 을 오른쪽 위 Authorize 에 넣으면 이 화면에서 바로 호출해볼 수 있습니다. "
                     + "실패가 잦으면 잠시 막힙니다(429).")
+    @ApiResponse(responseCode = "200", description = "토큰을 발급했습니다",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = TokenResponse.class)))
     @ApiResponse(responseCode = "401", description = "이메일 또는 비밀번호가 올바르지 않습니다")
     @ApiResponse(responseCode = "429", description = "로그인 시도가 너무 많습니다. Retry-After 헤더에 남은 시간이 담깁니다")
     @PostMapping("/login")

@@ -34,6 +34,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/google", "/members").permitAll()
                         .requestMatchers(HttpMethod.GET, "/members/me").authenticated()
                         .requestMatchers(HttpMethod.GET, "/members").hasRole("ADMIN")
+                        // 남의 프로필은 로그인한 사람만. 이 줄이 없으면 아래 GET /** 에 걸려
+                        // 누구나 /members/1, /members/2 … 로 회원 정보를 훑을 수 있다.
+                        .requestMatchers(HttpMethod.GET, "/members/*").authenticated()
+                        // 나머지 조회는 열어둔다. 합주 일정과 곡은 로그인 없이도 볼 수 있어야
+                        // 링크를 받은 사람이 들어와 보고 가입을 결정할 수 있다.
                         .requestMatchers(HttpMethod.GET, "/**").permitAll()
                         .anyRequest().authenticated()
                 )

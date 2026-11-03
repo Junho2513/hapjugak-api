@@ -5,6 +5,7 @@ import com.example.hapjugakapi.domain.Member;
 import com.example.hapjugakapi.domain.Role;
 import com.example.hapjugakapi.domain.UploadKind;
 import com.example.hapjugakapi.dto.MemberRequest;
+import com.example.hapjugakapi.dto.MemberPublicResponse;
 import com.example.hapjugakapi.dto.MemberResponse;
 import com.example.hapjugakapi.exception.ConflictException;
 import com.example.hapjugakapi.exception.ForbiddenException;
@@ -54,8 +55,20 @@ public class MemberService {
                 .toList();
     }
 
+    /** 본인 또는 관리자만 본다. 이메일·역할이 들어 있다. */
     public MemberResponse findById(Long id) {
         return MemberResponse.from(getMember(id));
+    }
+
+    /**
+     * 남이 보는 프로필. 이메일과 역할이 빠진다.
+     *
+     * 돌려주는 타입 자체를 다르게 둔 것이 요점이다.
+     * 같은 MemberResponse 를 쓰면서 "여기선 이메일을 지우자"로 처리하면
+     * 지우는 걸 한 번 잊는 순간 그대로 새어 나간다.
+     */
+    public MemberPublicResponse findPublicById(Long id) {
+        return MemberPublicResponse.from(getMember(id));
     }
 
     @Transactional

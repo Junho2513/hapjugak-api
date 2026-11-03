@@ -1,10 +1,13 @@
 package com.example.hapjugakapi.controller;
 
+import com.example.hapjugakapi.dto.MemberPublicResponse;
 import com.example.hapjugakapi.dto.MemberRequest;
 import com.example.hapjugakapi.dto.MemberResponse;
 import com.example.hapjugakapi.dto.OnCreate;
 import com.example.hapjugakapi.service.MemberService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -54,16 +57,35 @@ public class MemberController {
         return memberService.findAll();
     }
 
-    @Operation(summary = "내 정보")
+    @Operation(summary = "내 정보", description = "로그인한 본인의 정보입니다. 여기에만 이메일이 들어 있습니다.")
     @GetMapping("/me")
     public MemberResponse me(@AuthenticationPrincipal Long memberId) {
         return memberService.findById(memberId);
     }
 
-    @Operation(summary = "회원 한 명 조회")
+    /**
+     * 남의 프로필 보기. 로그인한 사람만 볼 수 있고 이메일은 들어 있지 않다.
+     *
+     * 전에는 누구나 부를 수 있었고 응답에 이메일이 그대로 담겨 있었다.
+     * id 를 1부터 세어가며 부르면 회원 전체의 이메일을 수집할 수 있었다.
+     * 목록(GET /members)을 관리자로 막아둔 것이 아무 의미가 없는 상태였다.
+     *
+     * 본인 정보는 GET /members/me 를 쓴다.
+     *
+     * 200 을 직접 적어둔 이유: @ApiResponse 를 하나라도 쓰면 springdoc 이
+     * 자동으로 넣어주던 성공 응답이 빠진다. 그대로 두면 문서가 실패 경우만 보여준다.
+     */
+    @Operation(summary = "회원 한 명 조회",
+            description = "로그인한 사람만 볼 수 있습니다. 이메일·역할은 돌려주지 않습니다. "
+                    + "본인 정보는 /members/me 를 쓰세요.")
+    @ApiResponse(responseCode = "200", description = "공개 프로필",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = MemberPublicResponse.class)))
+    @ApiResponse(responseCode = "401", description = "로그인이 필요합니다")
+    @ApiResponse(responseCode = "404", description = "회원을 찾을 수 없습니다")
     @GetMapping("/{id}")
-    public MemberResponse findById(@PathVariable Long id) {
-        return memberService.findById(id);
+    public MemberPublicResponse findById(@PathVariable Long id) {
+        return memberService.findPublicById(id);
     }
 
     @Operation(summary = "내 정보 수정", description = "보낸 항목만 바뀝니다. 비워 보낸 항목은 그대로 둡니다.")

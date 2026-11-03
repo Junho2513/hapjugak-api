@@ -123,7 +123,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException e) {
         log.warn("데이터 제약조건 위반", e);
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ErrorResponse.of(409, "다른 데이터가 이 항목을 참조하고 있어 처리할 수 없습니다."));
+                .body(ErrorResponse.of(409, "다른 곳에서 쓰고 있어 처리할 수 없습니다."));
     }
 
     /**
