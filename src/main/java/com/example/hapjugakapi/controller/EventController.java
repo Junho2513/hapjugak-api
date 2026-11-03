@@ -1,5 +1,6 @@
 package com.example.hapjugakapi.controller;
 
+import com.example.hapjugakapi.config.Viewer;
 import com.example.hapjugakapi.dto.EventRequest;
 import com.example.hapjugakapi.dto.EventResponse;
 import com.example.hapjugakapi.dto.OnCreate;
@@ -46,13 +47,16 @@ public class EventController {
      *   GET /events?completed=true    마감된 일정
      *   GET /events?completed=false   진행 중인 일정
      */
-    @Operation(summary = "일정 목록", description = "completed 를 주지 않으면 전체, true 면 마감된 것, false 면 진행 중인 것만 돌려줍니다.")
+    @Operation(summary = "일정 목록",
+            description = "completed 를 주지 않으면 전체, true 면 마감된 것, false 면 진행 중인 것만 돌려줍니다. "
+                    + "비공개 일정은 주최자 본인, 이미 자리를 잡은 참가자, 관리자에게만 보입니다.")
     @GetMapping
     public List<EventResponse> find(@RequestParam(required = false) Boolean completed) {
-        return eventService.find(completed);
+        return eventService.find(completed, Viewer.current());
     }
 
-    @Operation(summary = "일정 하나 조회")
+    @Operation(summary = "일정 하나 조회",
+            description = "비공개 일정도 링크(주소)를 아는 사람은 볼 수 있습니다. 목록에 뜨지 않을 뿐입니다.")
     @GetMapping("/{id}")
     public EventResponse findById(@PathVariable Long id) {
         return eventService.findById(id);

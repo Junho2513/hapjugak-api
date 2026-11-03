@@ -1,6 +1,9 @@
 package com.example.hapjugakapi.repository;
 
+import com.example.hapjugakapi.config.Viewer;
+import com.example.hapjugakapi.domain.Event;
 import com.example.hapjugakapi.domain.Part;
+import com.example.hapjugakapi.domain.QEvent;
 import com.example.hapjugakapi.domain.QMember;
 import com.example.hapjugakapi.domain.QSlot;
 import com.example.hapjugakapi.domain.QSong;
@@ -24,24 +27,74 @@ public class SongRepositoryImpl implements SongRepositoryCustom {
     }
 
     @Override
-    public List<Song> search(SongSearchCondition condition) {
+    public List<Song> search(SongSearchCondition condition, Viewer viewer) {
         QSong song = QSong.song;
         QSlot slot = QSlot.slot;
         QMember slotMember = new QMember("slotMember");
+        QEvent event = QEvent.event;
 
         return queryFactory
                 .selectFrom(song).distinct()
                 .leftJoin(song.proposer).fetchJoin()
                 .leftJoin(song.slots, slot).fetchJoin()
                 .leftJoin(slot.member, slotMember).fetchJoin()
+                // 공개 여부를 보려면 일정을 붙여야 한다. 일정에 안 들어간 후보곡도 남아야 하므로
+                // 반드시 left join 이다. song.event.visibility 처럼 바로 타고 들어가면
+                // QueryDSL 이 inner join 을 만들어 후보곡이 통째로 사라진다.
+                .leftJoin(song.event, event)
                 .where(
                         keywordContains(song, condition.keyword()),
                         candidateOnly(song, condition.candidateOnly()),
                         eventIdEq(song, condition.eventId()),
-                        hasOpenPart(song, condition.openPart())
+                        hasOpenPart(song, condition.openPart()),
+                        eventVisibleTo(song, event, viewer)
                 )
                 .orderBy(song.id.desc())
                 .fetch();
+    }
+
+    /**
+     * 비공개 일정에 들어간 곡은 목록에서 뺀다.
+     *
+     * 일정 목록만 거르고 여기를 두면 반만 막은 것이 된다.
+     * GET /songs 가 eventId 를 그대로 실어 보내므로, 그것만으로
+     * "비공개 일정 7번이 있다"와 그 안의 곡 목록이 드러난다.
+     * 단건 조회는 열려 있으니 id 를 아는 것은 곧 링크를 받은 것과 같다.
+     *
+     * 규칙은 일정 목록과 같다 — 공개 일정, 내가 연 일정, 내가 자리를 잡은 일정, 관리자.
+     * 아직 일정에 안 들어간 후보곡은 숨길 이유가 없으므로 항상 남는다.
+     */
+    private BooleanExpression eventVisibleTo(QSong song, QEvent event, Viewer viewer) {
+        if (viewer.admin()) {
+            return null;
+        }
+
+        // song.event_id 를 보는 것뿐이라 조인이 필요 없다.
+        BooleanExpression 후보곡 = song.event.isNull();
+        BooleanExpression 공개됨 = event.visibility.eq(Event.Visibility.PUBLIC);
+
+        if (viewer.isAnonymous()) {
+            return 후보곡.or(공개됨);
+        }
+        return 후보곡
+                .or(공개됨)
+                .or(event.host.id.eq(viewer.memberId()))
+                .or(자리를잡았음(event, viewer.memberId()));
+    }
+
+    private BooleanExpression 자리를잡았음(QEvent event, Long memberId) {
+        QSlot slot = new QSlot("joinedSlot");
+        QSong song = new QSong("joinedSong");
+
+        return JPAExpressions
+                .selectOne()
+                .from(slot)
+                .join(slot.song, song)
+                .where(
+                        song.event.eq(event),
+                        slot.member.id.eq(memberId)
+                )
+                .exists();
     }
 
     private BooleanExpression keywordContains(QSong song, String keyword) {

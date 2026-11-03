@@ -1,5 +1,6 @@
 package com.example.hapjugakapi.service;
 
+import com.example.hapjugakapi.config.Viewer;
 import com.example.hapjugakapi.domain.Event;
 import com.example.hapjugakapi.domain.Member;
 import com.example.hapjugakapi.domain.Part;
@@ -83,9 +84,11 @@ public class SongService {
      * 곡 80건에 쿼리 100개를 쓰고 있었다.
      *
      * 조건이 전부 null 이면 전체 조회가 되므로 search 하나로 충분하다.
+     *
+     * 비공개 일정에 들어간 곡은 보는 사람에 따라 빠진다. 규칙은 SongRepositoryImpl 에 적어 뒀다.
      */
-    public List<SongResponse> search(SongSearchCondition condition) {
-        return songRepository.search(condition).stream()
+    public List<SongResponse> search(SongSearchCondition condition, Viewer viewer) {
+        return songRepository.search(condition, viewer).stream()
                 .map(SongResponse::from)
                 .toList();
     }

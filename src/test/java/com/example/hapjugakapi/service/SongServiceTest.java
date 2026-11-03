@@ -1,5 +1,6 @@
 package com.example.hapjugakapi.service;
 
+import com.example.hapjugakapi.config.Viewer;
 import com.example.hapjugakapi.domain.Event;
 import com.example.hapjugakapi.domain.Member;
 import com.example.hapjugakapi.domain.Part;
@@ -130,9 +131,9 @@ class SongServiceTest {
         songService.claimSlot(song.id(), song.slots().get(0).id(), 기타리스트.getId(), false);
 
         List<SongResponse> 드럼_빈곡 = songService.search(
-                new SongSearchCondition(null, Part.DRUM, null, null));
+                new SongSearchCondition(null, Part.DRUM, null, null), Viewer.anonymous());
         List<SongResponse> 보컬_빈곡 = songService.search(
-                new SongSearchCondition(null, Part.VOCAL, null, null));
+                new SongSearchCondition(null, Part.VOCAL, null, null), Viewer.anonymous());
 
         assertEquals(1, 드럼_빈곡.size());
         assertEquals(0, 보컬_빈곡.size());

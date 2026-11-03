@@ -1,5 +1,6 @@
 package com.example.hapjugakapi.service;
 
+import com.example.hapjugakapi.config.Viewer;
 import com.example.hapjugakapi.domain.Event;
 import com.example.hapjugakapi.domain.Member;
 import com.example.hapjugakapi.domain.Song;
@@ -108,19 +109,22 @@ public class EventService {
      * 전에는 마감된 목록이 /events/completed 라는 별도 주소였는데,
      * 그것은 "events 중 id 가 completed 인 것"으로도 읽히는 주소였다.
      * 컬렉션을 거르는 일은 경로가 아니라 질의 문자열로 표현하는 게 맞다.
+     *
+     * 비공개 일정은 보는 사람에 따라 빠진다. 규칙은 EventRepositoryImpl 에 적어 뒀다.
      */
-    public List<EventResponse> find(Boolean completed) {
-        List<Event> events;
-        if (completed == null) {
-            events = eventRepository.findAllByOrderByDateDesc();
-        } else if (completed) {
-            events = eventRepository.findByCompletedTrueOrderByDateDesc();
-        } else {
-            events = eventRepository.findByCompletedFalseOrderByDateDesc();
-        }
-        return events.stream().map(EventResponse::from).toList();
+    public List<EventResponse> find(Boolean completed, Viewer viewer) {
+        return eventRepository.findVisible(completed, viewer).stream()
+                .map(EventResponse::from)
+                .toList();
     }
 
+    /**
+     * 일정 하나.
+     *
+     * 비공개여도 막지 않는다. 「비공개 — 링크로만 참가」는 목록에 안 뜬다는 뜻이지
+     * 링크를 받은 사람도 못 본다는 뜻이 아니다. 로그인 전에 내용을 보고
+     * 들어올지 정할 수 있어야 초대가 성립한다.
+     */
     public EventResponse findById(Long id) {
         return EventResponse.from(getEvent(id));
     }

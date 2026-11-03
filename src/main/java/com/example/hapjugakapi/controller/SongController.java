@@ -1,5 +1,6 @@
 package com.example.hapjugakapi.controller;
 
+import com.example.hapjugakapi.config.Viewer;
 import com.example.hapjugakapi.domain.Part;
 import com.example.hapjugakapi.dto.SlotRequest;
 import com.example.hapjugakapi.dto.SongRequest;
@@ -57,7 +58,8 @@ public class SongController {
      *
      * 합치면서 전체 조회도 fetchJoin 이 들어 있는 경로를 타게 됐다.
      */
-    @Operation(summary = "곡 목록", description = "조건을 주지 않으면 전체를 돌려줍니다. candidateOnly=true 면 아직 일정에 안 들어간 곡만, keyword 는 제목과 아티스트를 함께 찾습니다.")
+    @Operation(summary = "곡 목록", description = "조건을 주지 않으면 전체를 돌려줍니다. candidateOnly=true 면 아직 일정에 안 들어간 곡만, keyword 는 제목과 아티스트를 함께 찾습니다. "
+            + "비공개 일정에 들어간 곡은 그 일정을 볼 수 있는 사람에게만 보입니다.")
     @GetMapping
     public List<SongResponse> find(
             @RequestParam(required = false) String keyword,
@@ -66,7 +68,8 @@ public class SongController {
             @RequestParam(required = false) Long eventId
     ) {
         return songService.search(
-                new SongSearchCondition(keyword, openPart, candidateOnly, eventId)
+                new SongSearchCondition(keyword, openPart, candidateOnly, eventId),
+                Viewer.current()
         );
     }
 

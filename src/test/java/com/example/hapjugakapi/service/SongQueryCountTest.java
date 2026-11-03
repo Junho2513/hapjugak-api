@@ -1,5 +1,6 @@
 package com.example.hapjugakapi.service;
 
+import com.example.hapjugakapi.config.Viewer;
 import com.example.hapjugakapi.domain.Member;
 import com.example.hapjugakapi.domain.Part;
 import com.example.hapjugakapi.dto.SongRequest;
@@ -54,7 +55,7 @@ class SongQueryCountTest {
         준비한다();
 
         long 쿼리수 = 쿼리수를_센다(() -> songService.search(
-                new SongSearchCondition(null, null, null, null)));
+                new SongSearchCondition(null, null, null, null), Viewer.anonymous()));
 
         System.out.println();
         System.out.println("════════ 곡 " + 곡수 + "건 조회 → 쿼리 " + 쿼리수 + "개 ════════");
