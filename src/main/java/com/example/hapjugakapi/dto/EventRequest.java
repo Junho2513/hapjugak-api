@@ -6,7 +6,6 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
@@ -23,7 +22,13 @@ public record EventRequest(
         @Size(max = 60, message = "합주 이름은 60자까지 쓸 수 있습니다.")
         String title,
 
-        @NotNull(groups = OnCreate.class, message = "합주 날짜를 정해주세요.")
+        /**
+         * 비워 둘 수 있다. 「미정」이라는 뜻이다.
+         *
+         * 전에는 필수였다. 그런데 실제로는 "날짜부터 정하고 곡을 모으는" 경우보다
+         * "곡부터 모아놓고 날짜를 맞추는" 경우가 많다. 날짜를 먼저 요구하면
+         * 아무 날짜나 적어 넣게 되고, 그 가짜 날짜가 목록에 그대로 뜬다.
+         */
         LocalDate date,
 
         LocalDate deadline,

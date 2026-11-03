@@ -40,7 +40,9 @@ public class EventRepositoryImpl implements EventRepositoryCustom {
                         completedEq(event, completed),
                         visibleTo(event, viewer)
                 )
-                .orderBy(event.date.desc())
+                // 날짜 미정을 맨 위에 둔다. 아직 잡는 중이라 사람 눈이 가야 하는 쪽이다.
+                // MySQL 은 DESC 정렬에서 NULL 을 뒤로 보내므로 명시해야 한다.
+                .orderBy(event.date.desc().nullsFirst())
                 .fetch();
     }
 

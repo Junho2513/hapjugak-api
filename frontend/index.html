@@ -96,6 +96,15 @@ input,select,textarea{font-family:inherit;font-size:15px}
 .ava-big{width:96px;height:96px;border-radius:10px;object-fit:cover;background:var(--ink-3);border:1px solid var(--line);flex:none}
 .ava-note{font-size:12px;color:var(--muted);margin:8px 0 0;line-height:1.5}
 .req{color:var(--coral);font-weight:400;font-size:10px;letter-spacing:.06em;margin-left:5px}
+/* 「미정」 — 아직 안 정해진 항목을 비워둔 채로 합주를 열 수 있게 합니다.
+   날짜부터 요구하면 아무 날짜나 적어 넣게 되고, 그 가짜 날짜가 목록에 그대로 뜹니다. */
+.tbd{display:inline-flex;align-items:center;gap:4px;margin-left:auto;font-size:11px;
+     color:var(--muted);font-weight:400;cursor:pointer;user-select:none;
+     white-space:nowrap;flex:0 0 auto}
+.tbd input{width:13px;height:13px;margin:0;accent-color:var(--amber);cursor:pointer;flex:0 0 auto}
+.tbd:has(input:checked){color:var(--amber)}
+.field label{display:flex;align-items:center;gap:6px}
+.field input:disabled,.field select:disabled{opacity:.45;cursor:not-allowed}
 
 /* ---------- hero banner ---------- */
 .hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line);background:#0C0F17}
@@ -817,7 +826,6 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
       <p class="sub">하고 싶은 곡과 파트를 올려보세요.<br>함께 연주할 사람을 찾고, 바로 합주를 시작해보세요.</p>
       <div class="cta">
         <button class="btn primary big" id="btn-new-hero">합주 열기</button>
-        <a class="btn cyan big" href="#/songs">곡 후보 보기</a>
         <a class="btn ghost big" href="#list">합주 일정 보기</a>
         <a class="btn ghost big" href="#/guide">사용법 보기</a>
         <a class="btn ghost big" href="#/memories">추억 저장소</a>
@@ -898,36 +906,6 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
   </section>
 </div>
 
-<!-- ============ SONG POOL VIEW ============ -->
-<div id="view-pool" class="hide">
-  <section>
-    <div class="wrap">
-      <a class="back" href="#/">← 처음으로</a>
-      <div class="sec-head">
-        <div>
-          <h1 class="guide-h1" style="margin-bottom:6px">곡 후보</h1>
-          <div class="note" id="pool-note"></div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn" id="btn-pool-view">카드로 보기</button>
-          <button class="btn hide" id="btn-pool-manage">자리 관리</button>
-          <button class="btn primary" id="btn-pool-add">곡 올리기</button>
-        </div>
-      </div>
-      <div class="songs" id="pool-songs"></div>
-      <div class="songs-foot">
-        <div class="legend">
-          <span><i style="background:var(--amber);border-color:var(--amber)"></i>성립</span>
-          <span><i style="background:var(--cyan-dim);border-color:var(--cyan)"></i>내 자리</span>
-          <span><i style="background:transparent;border-style:dashed;border-color:var(--line-2)"></i>입장 가능</span>
-          <span><i style="background:var(--ink-3);border-color:var(--cyan);border-style:dashed"></i>양도 가능 ⇄</span>
-        </div>
-        <div id="pool-tally"></div>
-      </div>
-    </div>
-  </section>
-</div>
-
 <!-- ============ GUIDE VIEW ============ -->
 <div id="view-guide" class="hide">
   <section>
@@ -963,7 +941,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn" id="btn-view">카드 보기</button>
           <button class="btn hide" id="btn-manage">자리 관리</button>
-          <a class="btn primary" href="#/songs">곡 후보에서 가져오기</a>
+          <button class="btn primary" id="btn-song-add">곡 올리기</button>
         </div>
       </div>
 
@@ -1300,6 +1278,14 @@ async function refreshSettings(){
 }
 async function refreshAll(){ await Promise.all([refreshEvents(), refreshSongs()]); }
 
+/* 상세 화면의 곡은 공용 목록에서 거르지 않고 그 일정에서 직접 받습니다.
+   공용 목록(GET /songs)은 비공개 일정의 곡을 빼고 내려주기 때문에,
+   링크로 들어온 사람에게는 곡이 하나도 안 보입니다. */
+async function fetchEventSongs(eventId){
+  const list = await call("GET", `/events/${eventId}/songs`);
+  return list.map(toUiSong).sort((a, b) => a.createdAt - b.createdAt);
+}
+
 /* ---------- 실시간 갱신 (SSE) ----------
    서버는 "바뀌었다"는 신호만 보냅니다. 무엇이 어떻게 바뀌었는지는
    보내지 않고, 받은 쪽이 다시 조회해서 알아냅니다.
@@ -1389,12 +1375,28 @@ store = {
     startStream();
     return () => subs.events.delete(cb);
   },
+  /* 목록 캐시에서 찾지 않고 단건 주소로 직접 읽습니다. 두 가지 이유가 있습니다.
+
+     1) 링크를 받고 처음 들어온 사람은 목록이 아직 안 받아진 상태입니다.
+        캐시만 보면 "없는 일정"으로 오해해 첫 화면으로 튕겨냅니다.
+        정작 링크로 들어온 사람이 늘 이 경우라 아무도 링크를 못 열었습니다.
+
+     2) 비공개 일정은 목록에 아예 안 실립니다(그게 비공개의 뜻입니다).
+        캐시만 보면 「링크로만 참가」가 영원히 작동하지 않습니다.
+        단건 조회는 그래서 일부러 열어둔 주소입니다. */
   watchEvent(id, cb){
     const key = String(id);
     if (!subs.one.has(key)) subs.one.set(key, new Set());
     subs.one.get(key).add(cb);
-    const found = cacheEvents.find(e => e.id === key) || null;
-    queueMicrotask(() => cb(found ? {...found} : null));
+
+    const cached = cacheEvents.find(e => e.id === key) || null;
+    if (cached) queueMicrotask(() => cb({...cached}));
+
+    call("GET", "/events/" + key)
+      .then(e => cb(toUiEvent(e)))
+      // 캐시에 있던 것까지 지우지는 않습니다. 잠깐 끊긴 것과 없는 것은 다릅니다.
+      .catch(() => { if (!cached) cb(null); });
+
     refreshEvents();
     startStream();
     return () => {
@@ -1424,18 +1426,20 @@ store = {
     startStream();
     return () => subs.songs.delete(cb);
   },
+  /* 곡은 반드시 합주 일정 안에 올립니다.
+     전에는 POST /songs 로 떠다니는 곡을 만들고 PATCH 로 일정에 끼워 넣었습니다.
+     두 번 부르는 사이에 하나만 성공하면 주인 없는 곡이 남았습니다. 이제 한 번에 끝납니다. */
   async addSong(song){
-    const created = await call("POST", "/songs", {
+    if (!song.eventId) throw new Error("합주 일정을 먼저 고른 뒤에 곡을 올려주세요");
+    const created = await call("POST", `/events/${song.eventId}/songs`, {
       title: song.title,
       artist: song.artist || null,
       youtubeUrl: song.youtube || null,
       description: song.description || null,
       parts: (song.requiredParts || []).map(p => PART_TO_API[p]).filter(Boolean)
     });
-    const id = String(created.id);
-    if (song.eventId) await call("PATCH", `/songs/${id}/event/${song.eventId}`);
     await refreshSongs();
-    return id;
+    return String(created.id);
   },
   async updateSong(songId, patch){
     /* 일정 배정·해제는 전용 주소가 따로 있습니다. */
@@ -1818,6 +1822,9 @@ function feeText(e){
   return money || note || "미정";
 }
 function fmtDate(iso){
+  /* 날짜 미정인 일정이 있습니다. 표시하는 곳마다 삼항 연산자를 쓰는 대신
+     여기서 한 번에 처리합니다. 빠뜨린 곳에서 "Invalid Date"가 뜨지 않습니다. */
+  if (!iso) return "날짜 미정";
   const d = new Date(iso+"T00:00:00");
   if (isNaN(d)) return iso;
   return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${DAYS[d.getDay()]}`;
@@ -2148,9 +2155,8 @@ async function pickProfilePhoto(file){
    ============================================================ */
 let allEvents = [], region = "전체", selectedDate = null, showPast = false;
 let allSongs = [];
-/* 일정에 배정된 곡만 골라냅니다. eventId가 비어 있으면 곡 후보입니다. */
+/* 이 일정의 곡만 골라냅니다. */
 const songsOf = eid => allSongs.filter(sg => sg.eventId === eid);
-const poolSongs = () => allSongs.filter(sg => !sg.eventId);
 const calRef = new Date(); calRef.setDate(1);
 const pad2 = n => String(n).padStart(2,"0");
 const iso = (y,m,d) => `${y}-${pad2(m+1)}-${pad2(d)}`;
@@ -2174,7 +2180,7 @@ function renderCalendar(){
   $("#cal-label").textContent = `${y}년 ${m+1}월`;
 
   const counts = {};
-  allEvents.filter(canSeeInList).forEach(e => { counts[e.date] = (counts[e.date]||0) + 1; });
+  allEvents.filter(canSeeInList).forEach(e => { if (e.date) counts[e.date] = (counts[e.date]||0) + 1; });
 
   const first = new Date(y,m,1).getDay();
   const days  = new Date(y,m+1,0).getDate();
@@ -2230,12 +2236,13 @@ function renderFilters(){
 function renderCards(){
   const box = $("#event-cards"); box.innerHTML = "";
   const today = todayISO();
-  const isPast = e => eventDone(e) || e.date < today;
+  /* 날짜 미정은 지난 합주가 아닙니다. 아직 잡는 중이니 예정 쪽에 둡니다. */
+  const isPast = e => eventDone(e) || (!!e.date && e.date < today);
   const list = allEvents
     .filter(canSeeInList)
     .filter(e => selectedDate ? e.date === selectedDate : (showPast ? isPast(e) : !isPast(e)))
     .filter(e => region === "전체" || e.region === region);
-  if (showPast && !selectedDate) list.sort((a,b) => b.date.localeCompare(a.date));
+  if (showPast && !selectedDate) list.sort((a,b) => (b.date||"").localeCompare(a.date||""));
 
   $("#list-title").textContent = showPast ? "지난 합주" : "모집 중인 합주";
   const note = $("#list-note"); note.innerHTML = "";
@@ -2267,7 +2274,7 @@ function renderCards(){
     a.innerHTML = `
       ${e.cover ? `<div class="card-cover"><img src="${e.cover}" alt=""></div>` : ""}
       ${eventDone(e) ? `<div class="card-done mono">합주 완료</div>` : ""}
-      <div class="when">${esc(fmtDate(e.date))}${eventTime(e) ? " " + esc(eventTime(e)) : ""} · ${esc(e.region||"미정")}</div>
+      <div class="when">${esc(fmtDate(e.date))}${eventTime(e) ? " " + esc(eventTime(e)) : ""} · ${esc(e.region||"지역 미정")}</div>
       <h3>${esc(e.title)}</h3>
       <div class="where">${esc([e.studio, e.room].filter(Boolean).join(" ") || "합주실 미정")}${e.genre ? " · " + esc(e.genre) : ""}</div>
       <div class="meter">${Array.from({length:8},(_,i)=>`<b class="${i < Math.round(8*(done/Math.max(songs.length,1)))?"on":""}"></b>`).join("")}</div>
@@ -2288,8 +2295,8 @@ store.watchEvents(list => {
 store.watchSongs(list => {
   allSongs = list;
   renderCards();
-  if (curEvent){ curSongs = songsOf(curEvent.id); renderMatrix(); }
-  if (location.hash === "#/songs") renderPool();
+  // 상세 화면의 곡은 공용 목록이 아니라 그 일정에서 다시 받습니다(비공개 일정 때문입니다).
+  if (curEvent) reloadEventSongs(curEvent.id);
   if (location.hash === "#/memories") renderMemories();
 });
 
@@ -2302,18 +2309,29 @@ function openEvent(id){
   closeEvent();
   showView("event");
   prevDone = new Set();
-  // 곡은 전역 구독에서 들어오므로 여기서는 이 일정 몫만 추려 씁니다.
+  // 캐시에 있으면 먼저 그려 둡니다. 없으면 잠깐 빈 화면이고, 곧 서버 응답이 채웁니다.
   curEvent = allEvents.find(e => e.id === id) || null;
   curSongs = songsOf(id);
   if (curEvent) renderEventHead(curEvent);
   renderMatrix();
+  reloadEventSongs(id);
   unsubEvent = store.watchEvent(id, ev => {
     if (!ev){ location.hash = "#/"; return; }
     curEvent = ev;
     renderEventHead(ev);
-    curSongs = songsOf(ev.id);
     renderMatrix();
   });
+}
+
+/* 이 일정의 곡을 받아 다시 그립니다.
+   화면이 바뀌는 사이에 늦게 도착한 응답이 끼어들지 않도록 id 를 다시 확인합니다. */
+async function reloadEventSongs(id){
+  try {
+    const list = await fetchEventSongs(id);
+    if (!curEvent || curEvent.id !== id) return;
+    curSongs = list;
+    renderMatrix();
+  } catch(e){ /* 일정이 사라졌거나 잠깐 끊긴 경우입니다. 화면은 그대로 둡니다. */ }
 }
 function closeEvent(){
   manageMode = false;
@@ -2526,62 +2544,6 @@ function songCard(song, done){
   return card;
 }
 
-/* ── 곡 후보 화면 ─────────────────────────────────
-   일정에 배정되지 않은 곡들이 모이는 공용 공간입니다. */
-let poolCompact = true;
-
-function renderPool(){
-  const box = $("#pool-songs");
-  const prevCompact = compactView;
-  compactView = poolCompact;
-  const prevEvent = curEvent;
-  curEvent = null;            // 곡 후보에는 마감이나 주최자 개념이 없습니다
-  box.innerHTML = "";
-
-  const songs = poolSongs();
-  $("#btn-pool-view").textContent = poolCompact ? "카드로 보기" : "한 줄로 보기";
-  const pm = $("#btn-pool-manage");
-  pm.classList.toggle("hide", !isAdmin());
-  pm.classList.toggle("primary", manageMode);
-  pm.textContent = manageMode ? "자리 관리 끄기" : "자리 관리";
-
-  if (!songs.length){
-    box.append(el("div","empty","아직 올라온 곡이 없습니다. 하고 싶은 곡을 올려보세요."));
-    $("#pool-note").textContent = "";
-    $("#pool-tally").textContent = "";
-    compactView = prevCompact; curEvent = prevEvent;
-    return;
-  }
-
-  const unset = songs.filter(isUnset);
-  const done  = songs.filter(isDone);
-  const open  = songs.filter(sg => !isUnset(sg) && !isDone(sg)).sort((a,b) => {
-    const left = sg => (sg.requiredParts||[]).filter(p => !sg.slots?.[p]).length;
-    return left(a) - left(b);
-  });
-
-  const group = (label, list, cls) => {
-    if (!list.length) return;
-    const head = el("div","group-head " + cls);
-    head.append(el("h3","",label));
-    head.append(el("span","group-n mono",`${list.length}곡`));
-    box.append(head);
-    list.forEach(sg => box.append(songCard(sg, cls === "is-done")));
-  };
-
-  group("성립 — 일정으로 보낼 수 있습니다", done, "is-done");
-  group("곡 후보", open, "is-open");
-  group("편성 미정", unset, "is-unset");
-
-  $("#pool-note").textContent = (manageMode && isAdmin())
-    ? "자리 관리 중입니다. 아무 칸이나 눌러 다른 사람을 넣거나 빼거나 바꿀 수 있습니다."
-    : "하고 싶은 곡을 올리고 파트를 잡는 공간입니다. 자리가 다 차면 일정으로 보낼 수 있습니다.";
-  $("#pool-tally").textContent = `성립 ${done.length} / 전체 ${songs.length}곡`;
-
-  compactView = prevCompact;
-  curEvent = prevEvent;
-}
-
 /* 일정을 옮길 수 있는지 판단합니다.
    보통은 로그인한 사람 누구나 가능하지만, 이미 합주를 마친 일정에 속한 곡은
    그 일정의 주최자와 관리자만 건드릴 수 있습니다. */
@@ -2595,7 +2557,8 @@ function canMoveSong(song){
   return movableInto(cur);
 }
 
-/* 성립한 곡을 특정 일정으로 보냅니다. 완료된 합주만 권한이 필요합니다. */
+/* 곡을 다른 일정으로 옮깁니다.
+   곡은 반드시 어느 일정엔가 속하므로 "빼내기"는 없습니다. 옮기거나, 지우거나입니다. */
 function moveModal(song){
   if (!requireLogin()) return;
   if (!canMoveSong(song)){
@@ -2604,12 +2567,12 @@ function moveModal(song){
   }
   const today = todayISO();
   const list = allEvents
-    .filter(e => e.date >= today || eventDone(e) || e.id === song.eventId)
-    .sort((a,b) => a.date.localeCompare(b.date));
+    .filter(e => !e.date || e.date >= today || eventDone(e) || e.id === song.eventId)
+    .sort((a,b) => (a.date || "").localeCompare(b.date || ""));
   const cur = song.eventId ? allEvents.find(e => e.id === song.eventId) : null;
 
   modal(`
-    <h3>일정으로 보내기</h3>
+    <h3>다른 일정으로 옮기기</h3>
     <p class="hint">${esc(song.title)}${cur ? ` — 지금은 «${esc(cur.title)}»에 들어 있습니다.` : ""}
       ${eventDone(cur) ? "합주가 끝난 일정이라 주최자와 관리자만 옮길 수 있습니다." : ""}</p>
     ${list.length
@@ -2617,7 +2580,6 @@ function moveModal(song){
       : `<div class="empty">예정된 합주 일정이 없습니다. 먼저 합주를 열어주세요.</div>`}
     <div class="err" id="mv-err"></div>
     <div class="modal-actions">
-      ${cur ? `<button class="btn ghost" id="mv-out" style="margin-right:auto;color:var(--coral)">일정에서 빼기</button>` : ""}
       <button class="btn ghost" id="mv-cancel">닫기</button>
     </div>`, root => {
     root.querySelector("#mv-cancel").onclick = closeModal;
@@ -2626,9 +2588,9 @@ function moveModal(song){
     const apply = async (eventId, label) => {
       try {
         await store.updateSong(song.id, {eventId});
-        logIt(song.id, eventId ? "moved_in" : "moved_out", {songTitle: song.title, detail: label});
+        logIt(song.id, "moved_in", {songTitle: song.title, detail: label});
         closeModal();
-        toast(eventId ? `«${label}»(으)로 보냈습니다` : "곡 후보로 되돌렸습니다");
+        toast(`«${label}»(으)로 옮겼습니다`);
       } catch(e){ console.error(e); err.textContent = errText(e); }
     };
 
@@ -2639,14 +2601,13 @@ function moveModal(song){
       b.type = "button";
       b.disabled = e.id === song.eventId || locked;
       b.append(el("b","",e.title));
-      b.append(el("span","",`${fmtDate(e.date)} · ${e.region||"지역 미정"} · ${[e.studio,e.room].filter(Boolean).join(" ")||"합주실 미정"}`));
+      b.append(el("span","",`${e.date ? fmtDate(e.date) : "날짜 미정"} · ${e.region||"지역 미정"} · ${[e.studio,e.room].filter(Boolean).join(" ")||"합주실 미정"}`));
       if (e.id === song.eventId) b.append(el("span","move-now","현재 일정"));
       else if (eventDone(e)) b.append(el("span","move-now", locked ? "합주 완료 · 주최자만" : "합주 완료"));
       if (!b.disabled) b.onclick = () => apply(e.id, e.title);
       box?.append(b);
     });
 
-    root.querySelector("#mv-out")?.addEventListener("click", () => apply("", cur?.title || ""));
   });
 }
 
@@ -2654,7 +2615,7 @@ function moveModal(song){
    합주 완료로 표시된 일정을 최근 순으로 모아 보여줍니다. */
 function renderMemories(){
   const list = allEvents.filter(eventDone).filter(canSeeInList)
-    .sort((a,b) => b.date.localeCompare(a.date) || (b.completedAt || 0) - (a.completedAt || 0));
+    .sort((a,b) => (b.date||"").localeCompare(a.date||"") || (b.completedAt || 0) - (a.completedAt || 0));
 
   const stats = $("#mem-stats");
   const box = $("#mem-list");
@@ -2747,10 +2708,12 @@ function renderMatrix(){
 
   if (!curSongs.length){
     const empty = el("div","empty");
-    empty.append(document.createTextNode("이 일정에 배정된 곡이 없습니다. "));
-    const a2 = document.createElement("a");
-    a2.href = "#/songs"; a2.textContent = "곡 후보에서 성립한 곡을 보내주세요.";
-    a2.style.color = "var(--amber)";
+    empty.append(document.createTextNode("아직 올라온 곡이 없습니다. "));
+    const a2 = document.createElement("button");
+    a2.className = "btn sm primary";
+    a2.textContent = "첫 곡 올리기";
+    a2.onclick = () => songModal();
+    a2.style.marginLeft = "8px";
     empty.append(a2);
     box.append(empty);
     $("#matrix-tally").textContent = "";
@@ -2774,7 +2737,7 @@ function renderMatrix(){
     : entryClosed()
         ? `${fmtDate(curEvent.entryDeadline)}에 곡 신청이 마감됐습니다. 세트리스트가 확정된 상태입니다.`
         + ((isAdmin() || isEventHost()) ? " 주최자와 관리자는 계속 손볼 수 있습니다." : "")
-    : "곡 후보에서 성립한 곡을 이 일정으로 보내면 여기에 나타납니다. 파트는 여기서도 바꿀 수 있습니다.";
+    : "이 합주에서 할 곡을 올리고 파트를 잡는 곳입니다. 필요한 파트가 다 차면 성립으로 올라갑니다.";
 
   const done = curSongs.filter(isDone);
   // 모집 중인 곡은 자리가 적게 남은 순으로 — 곧 성립될 곡이 위로 옵니다.
@@ -2825,7 +2788,7 @@ const LOG_TEXT = {
   yield_on:     e => `${e.actorName} 님이 «${e.songTitle}» ${e.part}를 양도 가능으로 바꿨습니다`,
   yield_off:    e => `${e.actorName} 님이 «${e.songTitle}» ${e.part}를 양도 불가로 바꿨습니다`,
   moved_in:     e => `${e.actorName} 님이 이 곡을 «${e.detail}» 일정으로 보냈습니다`,
-  moved_out:    e => `${e.actorName} 님이 이 곡을 곡 후보로 되돌렸습니다`,
+  moved_out:    e => `${e.actorName} 님이 이 곡을 일정에서 빼냈습니다`,   // 옛 기록에만 남아 있습니다
   admin_assign: e => `${e.actorName} 님이 «${e.songTitle}» ${e.part}에 ${e.targetName} 님을 넣었습니다`,
   admin_clear:  e => `${e.actorName} 님이 «${e.songTitle}» ${e.part} 자리를 비웠습니다`,
 };
@@ -3012,7 +2975,7 @@ async function claimSlot(song, part, taken, mine){
       toast(closedMsg("자리를 바꿀 수 없습니다")); return;
     }
     if (!passDeadline("자리 배정을")) return;
-    // 1인당 곡수 제한은 일정 안에서만 적용됩니다. 곡 후보에는 일정이 없습니다.
+    // 1인당 곡수 제한은 일정마다 따로 셉니다.
     const limit = curEvent?.maxSongsPerUser || 0;
     if (limit){
       const inThis = Object.values(song.slots||{}).some(v => v && v.uid === auth.user.uid);
@@ -3220,7 +3183,7 @@ function adminStats(){
   return {
     users: adminUsers ? adminUsers.length : "—",
     events: allEvents.length,
-    upcoming: allEvents.filter(e => e.date >= today).length,
+    upcoming: allEvents.filter(e => !e.date || e.date >= today).length,
     hidden: allEvents.filter(e => e.visibility === "private").length,
     songs, done, unset, claims, active: people.size
   };
@@ -3442,7 +3405,7 @@ function adminEventsTab(box){
     const rows = allEvents
       .filter(e => !q || [e.title,e.region,e.studio,e.hostName,e.genre]
         .some(v => (v||"").toLowerCase().includes(q)))
-      .slice().sort((a,b) => b.date.localeCompare(a.date));
+      .slice().sort((a,b) => (b.date||"").localeCompare(a.date||""));
     count.textContent = `전체 ${allEvents.length}건`;
     list.innerHTML = "";
     if (!rows.length){ list.append(el("div","empty","찾는 합주가 없습니다.")); return; }
@@ -3455,7 +3418,7 @@ function adminEventsTab(box){
       const head = el("div","admin-name");
       head.append(el("b","",e.title));
       if (e.visibility === "private") head.append(el("span","tagp-mini","비공개"));
-      if (e.date < today) head.append(el("span","tagp-mini","지난 합주"));
+      if (e.date && e.date < today) head.append(el("span","tagp-mini","지난 합주"));
       if (e.genre) head.append(el("span","tagp-mini",e.genre));
       info.append(head);
       info.append(el("div","admin-sub",
@@ -3505,7 +3468,7 @@ function adminSiteTab(box){
   diag.append(d1, d2, d3);
 
   const paintDiag = async () => {
-    d1.textContent = `공용 곡 전체 ${allSongs.length}개 · 곡 후보 ${poolSongs().length}개 · 일정 배정 ${allSongs.filter(x=>x.eventId).length}개`;
+    d1.textContent = `곡 전체 ${allSongs.length}개`;
     const perEvent = allEvents
       .map(e => `${e.title} ${songsOf(e.id).length}곡`)
       .join(" / ") || "일정 없음";
@@ -3521,55 +3484,6 @@ function adminSiteTab(box){
   wrapD.style.gridTemplateColumns = "1fr";
   wrapD.append(diag);
   box.append(wrapD);
-
-  box.append(el("div","form-sec","일정 배정 풀기"));
-  const rel = el("div","tool");
-  rel.style.cssText = "align-items:stretch;gap:10px";
-  rel.append(el("b","","일정에 붙은 곡을 곡 후보로 되돌리기"));
-  rel.append(el("p","","일정에 배정된 곡을 모두 공용 곡 후보로 되돌립니다. 곡 정보와 잡혀 있는 자리는 그대로 남고, 어느 일정에 속하는지만 지워집니다. 되돌린 뒤 성립한 곡을 골라 다시 일정으로 보내면 됩니다."));
-
-  const pick = document.createElement("select");
-  pick.className = "";
-  pick.style.cssText = "width:100%;background:var(--ink);border:1px solid var(--line);color:var(--paper);border-radius:8px;padding:10px 12px";
-  const fill = () => {
-    pick.innerHTML = "";
-    const all = document.createElement("option");
-    all.value = ""; all.textContent = `전체 일정 (${allSongs.filter(x=>x.eventId).length}곡)`;
-    pick.append(all);
-    allEvents.forEach(e => {
-      const n = songsOf(e.id).length;
-      if (!n) return;
-      const o = document.createElement("option");
-      o.value = e.id; o.textContent = `${e.title} (${n}곡)`;
-      pick.append(o);
-    });
-  };
-  fill();
-  rel.append(pick);
-
-  const relOut = el("div","admin-sub");
-  const relGo = el("button","btn sm","곡 후보로 되돌리기");
-  relGo.onclick = async () => {
-    const target = pick.value;
-    const list = target ? songsOf(target) : allSongs.filter(x => x.eventId);
-    if (!list.length){ relOut.textContent = "되돌릴 곡이 없습니다."; return; }
-    if (!confirm(`${list.length}곡을 곡 후보로 되돌립니다.\n\n자리와 곡 정보는 그대로 남고 일정 배정만 풀립니다. 진행할까요?`)) return;
-    relGo.disabled = true; relGo.textContent = "되돌리는 중";
-    let done = 0;
-    try {
-      for (const sg of list){ await store.updateSong(sg.id, {eventId:""}); done++; }
-      relOut.textContent = `${done}곡을 곡 후보로 되돌렸습니다.`;
-      toast(`${done}곡을 되돌렸습니다`);
-      fill(); paintDiag();
-    } catch(ex){ relOut.textContent = `${done}곡까지 처리하다 멈췄습니다. ${errText(ex)}`; }
-    relGo.disabled = false; relGo.textContent = "곡 후보로 되돌리기";
-  };
-  rel.append(relGo, relOut);
-
-  const wrapR = el("div","tool-grid");
-  wrapR.style.gridTemplateColumns = "1fr";
-  wrapR.append(rel);
-  box.append(wrapR);
 
   box.append(el("div","form-sec","메인 배너 배경"));
 
@@ -3690,7 +3604,7 @@ function adminToolsTab(box){
   box.append(el("div","form-sec","정리"));
   const clean = el("div","tool-grid");
   const today = todayISO();
-  const stale = allEvents.filter(e => e.date < today);
+  const stale = allEvents.filter(e => e.date && e.date < today);
   const emptySongs = [];
   allEvents.forEach(e => songsOf(e.id).forEach(sg => {
     if (isUnset(sg)) emptySongs.push([e, sg]);
@@ -3753,11 +3667,11 @@ function eventModal(ev){
       <h3>${editing ? "합주 편집" : "합주 열기"}</h3>
       <p class="hint">${editing
         ? "고친 내용은 저장하는 즉시 참가자 화면에 반영됩니다."
-        : "합주 이름과 날짜만 채워도 열 수 있습니다. 나머지는 나중에 편집으로 채우면 됩니다."}</p>
+        : "합주 이름만 있으면 열 수 있습니다. 날짜와 장소가 아직이면 「미정」을 눌러두고 정해지는 대로 채우면 됩니다."}</p>
 
       <div class="form-sec">기본 정보</div>
       <div class="field"><label>합주 이름 <b class="req">필수</b></label>
-        <input id="f-title" placeholder="예: 3번째 수원 J-POP 합주" maxlength="60" value="${esc(ev?.title || "")}"></div>
+        <input id="f-title" placeholder="예: 3번째 홍대 합주" maxlength="60" value="${esc(ev?.title || "")}"></div>
       <div class="field"><label>장르</label>
         <select id="f-genre">${GENRES.map(g => `<option${ev?.genre === g ? " selected" : ""}>${g}</option>`).join("")}</select></div>
       <div class="field"><label>소개</label>
@@ -3765,16 +3679,20 @@ function eventModal(ev){
 
       <div class="form-sec">일정과 장소</div>
       <div class="row3">
-        <div class="field"><label>합주일 <b class="req">필수</b></label>
-          <input id="f-date" type="date" min="${DATE_MIN}" max="${dateMax()}" value="${esc(ev?.date || fallback)}"></div>
+        <div class="field"><label>합주일
+            <span class="tbd"><input type="checkbox" id="f-date-tbd"${ev && !ev.date ? " checked" : ""}>미정</span></label>
+          <input id="f-date" type="date" min="${DATE_MIN}" max="${dateMax()}" value="${esc(ev ? (ev.date || "") : fallback)}"></div>
         <div class="field"><label>시작</label><input id="f-start" type="time" value="${esc(ev?.timeStart || "")}"></div>
         <div class="field"><label>종료</label><input id="f-end" type="time" value="${esc(ev?.timeEnd || "")}"></div>
       </div>
       <div class="row2">
-        <div class="field"><label>지역</label><select id="f-region">
+        <div class="field"><label>지역
+            <span class="tbd"><input type="checkbox" id="f-region-tbd"${ev && !ev.region ? " checked" : ""}>미정</span></label>
+          <select id="f-region">
           ${AREAS.map(r => `<option${ev?.region === r ? " selected" : ""}>${r}</option>`).join("")}
         </select></div>
-        <div class="field"><label>합주실</label>
+        <div class="field"><label>합주실
+            <span class="tbd"><input type="checkbox" id="f-studio-tbd"${ev && !ev.studio ? " checked" : ""}>미정</span></label>
           <input id="f-studio" placeholder="예: 사운드바이크 홍대점" value="${esc(ev?.studio || "")}"></div>
       </div>
       <div class="field"><label>방 이름</label>
@@ -3870,24 +3788,40 @@ function eventModal(ev){
     };
     root.querySelector("#f-clear").onclick = () => { cover = ""; paintCover(); };
 
+    /* 「미정」을 켜면 그 칸을 잠그고 비웁니다.
+       잠그는 이유: 값이 남아 있는데 보내지 않으면, 화면에는 보이고 저장은 안 되는
+       상태가 됩니다. 눌러둔 사람은 저장됐다고 믿습니다. */
+    const 미정칸 = [["#f-date-tbd","#f-date"], ["#f-region-tbd","#f-region"], ["#f-studio-tbd","#f-studio"]];
+    const 미정이면 = sel => !!root.querySelector(sel)?.checked;
+    미정칸.forEach(([box, input]) => {
+      const b = root.querySelector(box), i = root.querySelector(input);
+      if (!b || !i) return;
+      const sync = () => { i.disabled = b.checked; };
+      b.onchange = sync;
+      sync();
+    });
+
     root.querySelector("#f-save").onclick = async () => {
       const err = root.querySelector("#f-err");
       const q = id => root.querySelector(id).value.trim();
-      const title = q("#f-title"), date = root.querySelector("#f-date").value;
+      const title = q("#f-title");
+      const date = 미정이면("#f-date-tbd") ? "" : root.querySelector("#f-date").value;
       const start = root.querySelector("#f-start").value, end = root.querySelector("#f-end").value;
       const deadline = root.querySelector("#f-deadline").value;
 
-      if (!title || !date) return err.textContent = "합주 이름과 날짜를 채워주세요.";
+      if (!title) return err.textContent = "합주 이름을 채워주세요.";
+      if (!date && !미정이면("#f-date-tbd")) return err.textContent = "합주 날짜를 정하거나 「미정」을 눌러주세요.";
       if (start && end && end <= start) return err.textContent = "종료 시간이 시작 시간보다 빠릅니다.";
-      if (deadline && deadline > date) return err.textContent = "곡 신청 마감은 합주일보다 늦을 수 없습니다.";
+      if (deadline && date && deadline > date) return err.textContent = "곡 신청 마감은 합주일보다 늦을 수 없습니다.";
       if (!defaults.size) return err.textContent = "모집 파트를 하나 이상 켜주세요.";
 
       const base = {
         title, date,
         timeStart: start, timeEnd: end,
         genre: root.querySelector("#f-genre").value,
-        region: root.querySelector("#f-region").value,
-        studio: q("#f-studio"), room: q("#f-room"),
+        region: 미정이면("#f-region-tbd") ? "" : root.querySelector("#f-region").value,
+        studio: 미정이면("#f-studio-tbd") ? "" : q("#f-studio"),
+        room: q("#f-room"),
         roomCapacity: Number(root.querySelector("#f-cap").value) || null,
         feeAmount: root.querySelector("#f-fee-amount").value,
         feeNote: q("#f-fee-note"),
@@ -3975,7 +3909,7 @@ function slotAdminModal(song, part){
   modal(`
     <h3>${esc(part)} 자리 관리</h3>
     <p class="hint">${esc(song.title)}${cur ? ` — 지금은 ${esc(cur.name)} 님이 맡고 있습니다.` : " — 지금은 비어 있습니다."}</p>
-    ${people.length ? `<div class="field"><label>${curEvent ? "이 합주 참가자" : "곡 후보 참가자"}</label><div class="partpick" id="sa-people"></div></div>` : ""}
+    ${people.length ? `<div class="field"><label>이 합주 참가자</label><div class="partpick" id="sa-people"></div></div>` : ""}
     ${isAdmin() ? `<div class="field"><label>가입 회원 전체</label><div class="partpick" id="sa-members"><span class="ava-note">불러오는 중</span></div></div>` : ""}
     <div class="field"><label>직접 넣기</label>
       <input id="sa-name" maxlength="20" placeholder="이름을 적어 바로 넣기">
@@ -4079,6 +4013,11 @@ function canDeleteSong(song){
 function songModal(song){
   if (!requireLogin()) return;
   const editing = !!song;
+  /* 새 곡은 반드시 어느 합주의 곡입니다. 상세 화면 안에서만 올릴 수 있습니다. */
+  if (!editing && !curEvent){
+    toast("합주 일정에 들어가서 곡을 올려주세요");
+    return;
+  }
   if (editing && !canEditSong(song)){ toast("곡을 올린 본인, 그 일정의 주최자, 관리자만 편집할 수 있습니다"); return; }
   if (closedForMe()){
     toast(closedMsg("곡을 바꿀 수 없습니다"));
@@ -4091,11 +4030,11 @@ function songModal(song){
 
   modal(`
     <h3>${editing ? "곡 편집" : "곡 올리기"}</h3>
-    <p class="hint">이 곡에 필요한 파트만 켜두세요. 꺼둔 파트는 모집하지 않습니다. 올린 뒤에도 편집으로 언제든 고칠 수 있습니다.</p>
+    <p class="hint">${editing ? "" : `«${esc(curEvent.title)}»에 올립니다. `}이 곡에 필요한 파트만 켜두세요. 꺼둔 파트는 모집하지 않습니다. 올린 뒤에도 편집으로 언제든 고칠 수 있습니다.</p>
     <div class="field"><label>곡 제목</label>
-      <input id="s-title" placeholder="예: 秒針を噛む" maxlength="80" value="${esc(song?.title || "")}"></div>
+      <input id="s-title" placeholder="예: Creep" maxlength="80" value="${esc(song?.title || "")}"></div>
     <div class="field"><label>아티스트</label>
-      <input id="s-artist" placeholder="예: ずっと真夜中でいいのに。" maxlength="80" value="${esc(song?.artist || "")}"></div>
+      <input id="s-artist" placeholder="예: Radiohead" maxlength="80" value="${esc(song?.artist || "")}"></div>
     <div class="field"><label>유튜브 링크</label>
       <input id="s-yt" placeholder="https://youtu.be/..." maxlength="200" value="${esc(song?.youtube || "")}">
       <p class="ava-note">참가자가 원곡을 바로 듣고 파트를 정할 수 있습니다. 비워둬도 됩니다.</p></div>
@@ -4169,7 +4108,7 @@ function songModal(song){
           logIt(song.id, "song_edit", {songTitle: title});
           toast("곡을 저장했습니다");
         } else {
-          const newId = await store.addSong({...base, slots:{}, proposerUid: auth.user.uid, proposerName: me().name});
+          const newId = await store.addSong({...base, eventId: curEvent.id, slots:{}, proposerUid: auth.user.uid, proposerName: me().name});
           logIt(newId, "song_add", {songTitle: title});
           toast("곡을 올렸습니다");
         }
@@ -4185,38 +4124,40 @@ function songModal(song){
 const GUIDES = {
   host: {
     title: "합주를 여는 분께",
-    lead: "날짜와 장소를 잡고, 곡 후보에서 성립한 곡을 모아 그날의 세트리스트를 만듭니다.",
+    lead: "합주를 열고, 그 안에 곡과 파트를 모아 그날의 세트리스트를 만듭니다.",
     steps: [
       ["구글로 로그인하고 프로필 만들기",
        "오른쪽 위 '구글로 시작하기'를 누르면 계정 선택 창이 뜹니다. 처음이라면 프로필 창이 이어서 열립니다. 닉네임과 연주 파트, 활동 지역을 채우면 준비 끝입니다. 파트는 여러 개 골라도 됩니다."],
       ["합주 일정 열기",
-       "'합주 열기'로 날짜와 장소를 잡습니다. 합주 이름과 날짜만 채워도 열 수 있고, 합주실이나 참가비처럼 아직 안 정해진 건 나중에 '합주 편집'으로 채우면 됩니다. 곡 신청 마감일을 걸어두면 그 날짜 이후로 자리 변경이 막혀서 세트리스트가 굳습니다."],
-      ["곡은 일정이 아니라 곡 후보에 쌓입니다",
-       "예전과 달리 곡은 일정 안에서 만들지 않습니다. 모두가 '곡 후보'라는 공용 공간에 하고 싶은 곡을 올리고 파트를 잡습니다. 주최자도 여기서 곡을 올리면 됩니다. 필요한 파트가 다 차면 그 곡은 '성립'으로 올라갑니다."],
-      ["성립한 곡을 내 일정으로 보내기",
-       "곡 후보에서 성립한 곡에는 '일정으로 보내기' 버튼이 붙습니다. 누르면 예정된 합주 목록이 뜨고, 고른 일정으로 곡이 옮겨갑니다. 이건 로그인한 사람이면 누구나 할 수 있어서, 참가자들이 알아서 채워 넣기도 합니다."],
-      ["내 일정에 들어온 곡 다듬기",
-       "내 일정으로 들어온 곡은 누가 올렸든 '편집'으로 제목, 설명, 필요한 파트를 고칠 수 있습니다. 키 조정이나 편곡 메모를 남겨두기 좋습니다. 다만 다른 사람의 자리를 빼거나 옮기는 '자리 관리'는 관리자만 할 수 있으니, 펑크가 나면 관리자에게 요청하세요."],
+       "'합주 열기'로 합주를 만듭니다. 합주 이름만 있으면 열 수 있습니다. 날짜나 장소가 아직 안 정해졌으면 각 칸의 '미정'을 눌러두세요. 정해지는 대로 '합주 편집'에서 채우면 됩니다. 날짜 미정인 합주는 목록 맨 위에 뜹니다."],
+      ["곡은 합주 안에 쌓입니다",
+       "곡은 반드시 어느 합주에서 할 곡입니다. 일정에 들어가 '곡 올리기'를 누르면 그 합주의 곡이 됩니다. 파트를 안 고르고 올리면 그 합주의 기본 편성이 그대로 적용됩니다. 필요한 파트가 다 차면 그 곡은 '성립'으로 올라갑니다."],
+      ["한 사람이 올릴 수 있는 곡 수 정하기",
+       "'1인당 최대 곡수'를 걸어두면 한 사람이 그 합주에 올릴 수 있는 곡이 제한됩니다. 한 명이 세트리스트를 다 채우는 일을 막습니다. 비워두면 제한 없습니다."],
+      ["올라온 곡 다듬기",
+       "내 합주에 올라온 곡은 누가 올렸든 '편집'으로 제목, 설명, 필요한 파트를 고칠 수 있습니다. 키 조정이나 편곡 메모를 남겨두기 좋습니다. 다만 다른 사람의 자리를 빼거나 옮기는 '자리 관리'는 관리자만 할 수 있으니, 펑크가 나면 관리자에게 요청하세요."],
+      ["곡 신청 마감",
+       "마감일을 걸어두면 그 날짜 이후로 곡 추가와 자리 변경이 막혀서 세트리스트가 굳습니다. 비워두면 합주 당일까지 열려 있습니다."],
       ["합주가 끝나면 완료로 표시",
        "일정 화면 위쪽 '합주 완료로 표시'를 누르면 그날 친 곡들이 기록으로 굳고 편집이 잠깁니다. 이 기록은 '추억 저장소'에 사진과 세트리스트로 남습니다. 합주 사진을 대표 이미지로 올려두면 앨범처럼 보입니다."]
     ]
   },
   join: {
     title: "합주에 참가하는 분께",
-    lead: "곡 후보에서 치고 싶은 곡의 빈 자리를 누르기만 하면 됩니다.",
+    lead: "가고 싶은 합주에 들어가서, 치고 싶은 곡의 빈 자리를 누르면 됩니다.",
     steps: [
       ["구글로 로그인하고 프로필 만들기",
        "오른쪽 위 '구글로 시작하기'를 누르세요. 프로필에서 연주 파트는 여러 개 고를 수 있습니다. 기타도 치고 베이스도 친다면 둘 다 켜두세요."],
-      ["곡 후보 둘러보기",
-       "첫 화면의 청록색 '곡 후보 보기' 버튼으로 들어갑니다. 여기가 모든 곡이 모이는 곳입니다. 성립된 곡이 위에, 아직 자리가 남은 곡이 가운데, 편성이 정해지지 않은 곡이 아래에 놓입니다. 모집 중인 곡은 자리가 적게 남은 순서라, 한 명만 더 오면 되는 곡이 맨 위에 보입니다."],
+      ["합주 고르기",
+       "첫 화면에 예정된 합주가 날짜순으로 뜹니다. 날짜가 아직 안 잡힌 합주는 맨 위에 '날짜 미정'으로 표시됩니다. 지역으로 거르거나 달력에서 날짜를 눌러 찾을 수도 있습니다."],
       ["빈 자리 눌러서 들어가기",
-       "'입장'이라고 쓰인 점선 칸이 비어 있는 자리입니다. 누르면 양도 여부를 고르는 창이 뜹니다. '양도 가능'으로 들어가면 나중에 더 잘 맞는 사람이 왔을 때 넘겨줄 수 있고, '양도 불가'는 내가 취소하기 전까지 아무도 못 가져갑니다. 빗금 친 칸은 그 곡에서 쓰지 않는 파트입니다."],
+       "합주에 들어가면 그날 할 곡들이 보입니다. '입장'이라고 쓰인 점선 칸이 비어 있는 자리입니다. 누르면 양도 여부를 고르는 창이 뜹니다. '양도 가능'으로 들어가면 나중에 더 잘 맞는 사람이 왔을 때 넘겨줄 수 있고, '양도 불가'는 내가 취소하기 전까지 아무도 못 가져갑니다. 빗금 친 칸은 그 곡에서 쓰지 않는 파트입니다."],
       ["규칙은 두 가지뿐입니다",
        "한 곡에서 악기는 하나만 맡습니다. 다만 보컬은 악기와 겹쳐도 되고, 건반은 두 대까지 맡을 수 있습니다. 기타 치면서 노래하는 건 당연히 됩니다. 마음이 바뀌면 내 자리를 다시 눌러 취소하거나 양도 여부를 바꾸세요."],
       ["하고 싶은 곡이 없으면 직접 올리기",
-       "'곡 올리기'로 누구나 곡을 추가할 수 있습니다. 어떤 파트가 필요한지 모르겠으면 '편성을 잘 모르겠어요'에 체크하고 넘기세요. 곡은 그대로 올라가고, 편성을 아는 사람이 대신 채워줍니다. 유튜브 링크를 넣으면 다른 사람들이 원곡을 듣고 판단할 수 있습니다."],
-      ["성립하면 일정으로 보내기",
-       "필요한 파트가 다 차면 곡에 '일정으로 보내기' 버튼이 생깁니다. 예정된 합주 중에 고르면 그날 세트리스트에 들어갑니다. 주최자만 할 수 있는 게 아니라 누구나 가능합니다."],
+       "그 합주 안에서 '곡 올리기'를 누르면 누구나 곡을 추가할 수 있습니다. 어떤 파트가 필요한지 모르겠으면 '편성을 잘 모르겠어요'에 체크하고 넘기세요. 곡은 그대로 올라가고, 편성을 아는 사람이 대신 채워줍니다. 유튜브 링크를 넣으면 다른 사람들이 원곡을 듣고 판단할 수 있습니다."],
+      ["곡이 성립하면",
+       "필요한 파트가 다 차면 그 곡은 '성립'으로 올라갑니다. 그날 확실히 치는 곡이라는 뜻입니다. 날짜가 안 맞으면 '다른 일정으로 옮기기'로 곡을 통째로 옮길 수도 있습니다."],
       ["합주 당일, 그리고 그 뒤",
        "일정 화면에서 그날 칠 곡과 내 파트를 확인하세요. 곡 설명에 키 조정이나 편곡 정보가 적혀 있을 수 있습니다. 합주가 끝나고 주최자가 완료 처리하면, '추억 저장소'에 그날의 세트리스트와 함께 친 사람들이 기록으로 남습니다."]
     ]
@@ -4227,15 +4168,15 @@ function showGuideMenu(){
   const box = $("#guide-body");
   box.innerHTML = `
     <h1 class="guide-h1">합주각 사용법</h1>
-    <p class="guide-lead">곡은 일정이 아니라 공용 '곡 후보'에 쌓입니다. 자리가 다 차면 합주 일정으로 보냅니다.</p>
+    <p class="guide-lead">합주를 열고, 그 안에 곡을 올리고, 파트 자리를 채웁니다. 다 차면 성립입니다.</p>
     <div class="flow">
-      <span class="flow-step">곡 후보에 곡 올리기</span>
+      <span class="flow-step">합주 열기</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-step">그 합주에 곡 올리기</span>
       <span class="flow-arrow">→</span>
       <span class="flow-step">파트 자리 채우기</span>
       <span class="flow-arrow">→</span>
       <span class="flow-step is-done">성립</span>
-      <span class="flow-arrow">→</span>
-      <span class="flow-step">합주 일정으로 보내기</span>
       <span class="flow-arrow">→</span>
       <span class="flow-step is-played">합주 완료 · 추억 저장소</span>
     </div>
@@ -4286,8 +4227,8 @@ function showGuide(kind){
   const end = el("div","guide-end");
   const go = document.createElement("a");
   go.className = kind === "host" ? "btn primary big" : "btn cyan big";
-  go.href = kind === "host" ? "#/" : "#/songs";
-  go.textContent = kind === "host" ? "합주 열러 가기" : "곡 후보 보러 가기";
+  go.href = "#/";
+  go.textContent = kind === "host" ? "합주 열러 가기" : "합주 둘러보러 가기";
   end.append(go);
   box.append(end);
 
@@ -4299,7 +4240,7 @@ function showGuide(kind){
    9. 라우팅 · 초기화
    ============================================================ */
 function showView(v){
-  ["list","event","guide","admin","pool","memories"].forEach(n =>
+  ["list","event","guide","admin","memories"].forEach(n =>
     $("#view-" + n).classList.toggle("hide", v !== n));
 }
 
@@ -4311,7 +4252,8 @@ function route(){
   if (curEvent) closeEvent();
 
   if (h === "#/memories"){ showView("memories"); renderMemories(); window.scrollTo(0,0); return; }
-  if (h === "#/songs"){ manageMode = false; showView("pool"); renderPool(); window.scrollTo(0,0); return; }
+  // 곡 후보 화면은 없어졌습니다. 예전 링크나 북마크를 들고 온 사람을 첫 화면으로 보냅니다.
+  if (h === "#/songs"){ location.replace("#/"); return; }
   if (h === "#/admin"){ openAdmin(); return; }
   if (h === "#/guide"){ showView("guide"); showGuideMenu(); window.scrollTo(0,0); return; }
   if (h === "#/guide/host" || h === "#/guide/join"){
@@ -4324,13 +4266,7 @@ function route(){
 }
 window.addEventListener("hashchange", route);
 $("#btn-new-hero").onclick = () => eventModal();
-$("#btn-pool-add").onclick = () => songModal();
-$("#btn-pool-view").onclick = () => { poolCompact = !poolCompact; renderPool(); };
-$("#btn-pool-manage").onclick = () => {
-  manageMode = !manageMode;
-  renderPool();
-  toast(manageMode ? "자리 관리를 켰습니다" : "자리 관리를 껐습니다");
-};
+$("#btn-song-add").onclick = () => songModal();
 $("#btn-view").onclick = () => {
   compactView = !compactView;
   renderMatrix();
