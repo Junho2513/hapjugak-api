@@ -1,5 +1,6 @@
 package com.example.hapjugakapi.controller;
 
+import com.example.hapjugakapi.config.Viewer;
 import com.example.hapjugakapi.dto.OnCreate;
 import com.example.hapjugakapi.dto.SongRequest;
 import com.example.hapjugakapi.dto.SongResponse;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -48,19 +50,19 @@ public class EventSongController {
     }
 
     /**
-     * 비공개 일정이어도 막지 않는다.
-     * 단건 조회(GET /events/{id})와 같은 규칙이다 — 주소를 아는 것이 곧 초대를 받은 것이다.
-     * 목록(GET /events, GET /songs)에서 가리는 것과는 다른 이야기다.
+     * 일정 자체와 똑같은 규칙으로 막는다.
+     * 일정은 키로 막아 놓고 곡은 그냥 내주면, 곡 목록만 훑어도 그 합주의 내용이 드러난다.
      */
     @Operation(summary = "이 합주의 곡 목록",
-            description = "비공개 일정이어도 주소를 아는 사람은 볼 수 있습니다. 목록에 뜨지 않을 뿐입니다.")
+            description = "비공개 일정은 key 가 맞아야 볼 수 있습니다. 규칙은 일정 단건 조회와 같습니다.")
     @ApiResponse(responseCode = "200", description = "곡 목록",
             content = @Content(mediaType = "application/json",
                     array = @ArraySchema(schema = @Schema(implementation = SongResponse.class))))
     @ApiResponse(responseCode = "404", description = "합주 일정을 찾을 수 없습니다")
     @GetMapping
-    public List<SongResponse> find(@PathVariable Long eventId) {
-        return songService.findByEvent(eventId);
+    public List<SongResponse> find(@PathVariable Long eventId,
+                                   @RequestParam(required = false) String key) {
+        return songService.findByEvent(eventId, key, Viewer.current());
     }
 
     @Operation(summary = "이 합주에 곡 올리기",

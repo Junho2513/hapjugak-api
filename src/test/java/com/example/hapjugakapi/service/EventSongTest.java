@@ -1,5 +1,6 @@
 package com.example.hapjugakapi.service;
 
+import com.example.hapjugakapi.config.Viewer;
 import com.example.hapjugakapi.domain.Event;
 import com.example.hapjugakapi.domain.Member;
 import com.example.hapjugakapi.domain.Part;
@@ -62,7 +63,7 @@ class EventSongTest {
 
         assertEquals(일정.getId(), 곡.eventId());
         assertEquals(2, 곡.slots().size());
-        assertEquals(1, songService.findByEvent(일정.getId()).size());
+        assertEquals(1, songService.findByEvent(일정.getId(), null, Viewer.anonymous()).size());
     }
 
     @Test

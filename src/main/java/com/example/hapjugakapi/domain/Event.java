@@ -2,9 +2,13 @@ package com.example.hapjugakapi.domain;
 
 import jakarta.persistence.*;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -13,6 +17,8 @@ import java.util.Set;
 public class Event {
 
     public enum Visibility { PUBLIC, PRIVATE }
+
+    private static final SecureRandom KEY_RANDOM = new SecureRandom();
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -66,6 +72,16 @@ public class Event {
     @Column(nullable = false, length = 10)
     private Visibility visibility = Visibility.PUBLIC;
 
+    /**
+     * 추측할 수 없는 초대 키. 비공개 일정의 주소에 붙는다.
+     *
+     * 공개 일정에도 똑같이 만들어 둔다. 나중에 비공개로 바꾸는 순간
+     * 키가 없으면 그때 만들어야 하는데, 그러면 "키가 없는 일정"이라는 상태를
+     * 코드 곳곳에서 신경 써야 한다. 항상 있는 편이 단순하다.
+     */
+    @Column(nullable = false, length = 16, unique = true)
+    private String inviteKey = newInviteKey();
+
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "event_default_part",
             joinColumns = @JoinColumn(name = "event_id"))
@@ -89,6 +105,44 @@ public class Event {
     private LocalDateTime createdAt = LocalDateTime.now();
 
     protected Event() {
+    }
+
+    /**
+     * 무작위 12바이트를 주소에 쓸 수 있는 16글자로 옮긴다.
+     *
+     * SecureRandom 을 쓴다. Math.random 이나 UUID.randomUUID 의 일부를 잘라 쓰면
+     * 앞 사람의 키를 보고 다음 키를 좁힐 여지가 생긴다. 막으려는 것이 바로 그것이다.
+     */
+    private static String newInviteKey() {
+        byte[] bytes = new byte[12];
+        KEY_RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    /** 공개였다가 비공개로 바뀌면 키를 새로 뽑는다. 공개 시절의 주소는 이미 퍼졌을 수 있다. */
+    public void setVisibility(Visibility visibility) {
+        if (visibility == Visibility.PRIVATE && this.visibility != Visibility.PRIVATE) {
+            this.inviteKey = newInviteKey();
+        }
+        this.visibility = visibility;
+    }
+
+    /** 이 사람이 이 일정을 열어도 되는지. 공개 일정은 누구나 볼 수 있다. */
+    public boolean isOpenWith(String key) {
+        if (visibility != Visibility.PRIVATE) {
+            return true;
+        }
+        if (key == null) {
+            return false;
+        }
+        // 글자를 하나씩 비교하다 다른 곳에서 멈추면, 걸린 시간으로 몇 글자가 맞았는지 샌다.
+        return MessageDigest.isEqual(
+                key.getBytes(StandardCharsets.UTF_8),
+                inviteKey.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public String getInviteKey() {
+        return inviteKey;
     }
 
     public Event(String title, LocalDate date, LocalDate deadline, String place, Member host) {
@@ -291,10 +345,6 @@ public class Event {
 
     public void setMaxSongsPerUser(int maxSongsPerUser) {
         this.maxSongsPerUser = maxSongsPerUser;
-    }
-
-    public void setVisibility(Visibility visibility) {
-        this.visibility = visibility;
     }
 
     public void setCoverUrl(String coverUrl) {

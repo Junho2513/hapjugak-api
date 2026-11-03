@@ -55,11 +55,20 @@ public class EventController {
         return eventService.find(completed, Viewer.current());
     }
 
+    /**
+     * key 를 질의 문자열로 받는 이유 —
+     * 경로에 넣으면(/events/7/Kx3f...) 캐시나 중계 서버의 접근 기록에 경로가 남기 쉽고,
+     * 무엇보다 키 없이 부르는 공개 일정과 주소 모양이 갈라진다.
+     * 선택 항목은 질의 문자열에 두는 편이 맞다.
+     */
     @Operation(summary = "일정 하나 조회",
-            description = "비공개 일정도 링크(주소)를 아는 사람은 볼 수 있습니다. 목록에 뜨지 않을 뿐입니다.")
+            description = "비공개 일정은 key 가 맞아야 열립니다. 주최자·관리자·이미 자리를 잡은 참가자는 key 없이도 볼 수 있습니다. "
+                    + "키가 틀리면 404 입니다 — 403 은 그 자리에 무언가 있다는 것을 알려주기 때문입니다.")
+    @ApiResponse(responseCode = "404", description = "합주 일정을 찾을 수 없거나, 비공개 일정의 키가 맞지 않습니다")
     @GetMapping("/{id}")
-    public EventResponse findById(@PathVariable Long id) {
-        return eventService.findById(id);
+    public EventResponse findById(@PathVariable Long id,
+                                  @RequestParam(required = false) String key) {
+        return eventService.findById(id, key, Viewer.current());
     }
 
     @Operation(summary = "일정 수정", description = "보낸 항목만 바뀝니다. 호스트와 관리자만 할 수 있습니다.")

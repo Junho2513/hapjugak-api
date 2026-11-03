@@ -13,6 +13,7 @@ import com.example.hapjugakapi.exception.NotFoundException;
 import com.example.hapjugakapi.repository.ActivityLogRepository;
 import com.example.hapjugakapi.repository.EventRepository;
 import com.example.hapjugakapi.repository.MemberRepository;
+import com.example.hapjugakapi.repository.SlotRepository;
 import com.example.hapjugakapi.repository.SongRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,17 +28,20 @@ public class EventService {
     private final MemberRepository memberRepository;
     private final SongRepository songRepository;
     private final ActivityLogRepository activityLogRepository;
+    private final SlotRepository slotRepository;
     private final StorageService storageService;
 
     public EventService(EventRepository eventRepository,
                         MemberRepository memberRepository,
                         SongRepository songRepository,
                         ActivityLogRepository activityLogRepository,
+                        SlotRepository slotRepository,
                         StorageService storageService) {
         this.eventRepository = eventRepository;
         this.memberRepository = memberRepository;
         this.songRepository = songRepository;
         this.activityLogRepository = activityLogRepository;
+        this.slotRepository = slotRepository;
         this.storageService = storageService;
     }
 
@@ -126,12 +130,49 @@ public class EventService {
     /**
      * 일정 하나.
      *
-     * 비공개여도 막지 않는다. 「비공개 — 링크로만 참가」는 목록에 안 뜬다는 뜻이지
-     * 링크를 받은 사람도 못 본다는 뜻이 아니다. 로그인 전에 내용을 보고
-     * 들어올지 정할 수 있어야 초대가 성립한다.
+     * 비공개 일정은 초대 키가 맞아야 열린다.
+     * 「비공개 — 링크로만 참가」는 목록에 안 뜬다는 뜻이지 링크를 받은 사람도
+     * 못 본다는 뜻이 아니다. 로그인 전에 내용을 보고 들어올지 정할 수 있어야
+     * 초대가 성립한다. 그래서 막아야 할 것은 "주소를 아는 사람"이 아니라
+     * "주소를 찍어보는 사람"이고, 그 구분을 키가 해준다.
+     *
+     * 키가 틀리면 403 이 아니라 404 다.
+     * 403 은 "여기 뭔가 있다"를 알려준다. 그것만으로도 훑어서 지도를 그릴 수 있다.
      */
-    public EventResponse findById(Long id) {
-        return EventResponse.from(getEvent(id));
+    public EventResponse findById(Long id, String key, Viewer viewer) {
+        Event event = getEvent(id);
+        if (!canOpen(event, key, viewer)) {
+            throw new NotFoundException("합주 일정을 찾을 수 없습니다.");
+        }
+        return EventResponse.from(event);
+    }
+
+    /**
+     * 비공개 일정을 열 수 있는 사람.
+     *
+     * 키를 가진 사람 외에 주최자·관리자·이미 참가한 사람도 열 수 있어야 한다.
+     * 참가해 놓고 링크를 잃어버렸다고 자기 합주를 못 보는 건 말이 안 된다.
+     */
+    public boolean canOpen(Event event, String key, Viewer viewer) {
+        if (event.isOpenWith(key)) {
+            return true;
+        }
+        if (viewer == null || viewer.isAnonymous()) {
+            return false;
+        }
+        if (viewer.admin() || event.getHost().getId().equals(viewer.memberId())) {
+            return true;
+        }
+        return slotRepository.existsBySongEventIdAndMemberId(event.getId(), viewer.memberId());
+    }
+
+    /** 일정의 곡을 내주기 전에도 같은 규칙을 적용한다. 곡만 따로 새면 의미가 없다. */
+    public Event openedEvent(Long id, String key, Viewer viewer) {
+        Event event = getEvent(id);
+        if (!canOpen(event, key, viewer)) {
+            throw new NotFoundException("합주 일정을 찾을 수 없습니다.");
+        }
+        return event;
     }
 
     @Transactional

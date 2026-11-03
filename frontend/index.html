@@ -1091,7 +1091,10 @@ async function call(method, path, body){
       const data = await res.json();
       if (data && data.message) message = data.message;
     } catch (e) { /* 본문이 비어 있을 수 있습니다 */ }
-    throw new Error(message);
+    // 부르는 쪽이 "없어졌다(404)"와 "잠깐 안 된다"를 구분해야 할 때가 있습니다.
+    const err = new Error(message);
+    err.status = res.status;
+    throw err;
   }
   if (res.status === 204) return null;
   const text = await res.text();
@@ -1159,6 +1162,7 @@ function toUiEvent(e){
     roomCapacity: e.roomCapacity || 0,
     maxSongsPerUser: e.maxSongsPerUser || 0,
     visibility: (e.visibility || "PUBLIC").toLowerCase(),
+    inviteKey: e.inviteKey || "",
     defaultParts: (e.defaultParts || []).map(p => PART_FROM_API[p] || p),
     cover: e.coverUrl || "",
     tags: [],
@@ -1239,7 +1243,9 @@ function toApiEvent(d){
    파이어스토어의 onSnapshot 자리는 아래 SSE 연결이 대신합니다.
    첫 콜백은 queueMicrotask로 미룹니다. 구독을 거는 쪽이 아직
    초기화되지 않은 변수를 쓸 수 있어, 동기로 부르면 그 자리에서 터집니다. */
-const subs = { events:new Set(), songs:new Set(), settings:new Set(), one:new Map() };
+/* oneKey 는 일정 하나를 구독할 때 함께 받은 초대 키입니다.
+   목록을 새로 받을 때 비공개 일정을 다시 물어보려면 키가 있어야 합니다. */
+const subs = { events:new Set(), songs:new Set(), settings:new Set(), one:new Map(), oneKey:new Map() };
 let cacheEvents = [];
 let cacheSongs = [];
 let cacheSettings = {};
@@ -1248,8 +1254,19 @@ let pollTimer = null;
 function emitEvents(){
   subs.events.forEach(cb => cb(cacheEvents.map(e => ({...e}))));
   subs.one.forEach((cbs, id) => {
-    const found = cacheEvents.find(e => e.id === id) || null;
-    cbs.forEach(cb => cb(found ? {...found} : null));
+    const found = cacheEvents.find(e => e.id === id);
+    if (found){ cbs.forEach(cb => cb({...found})); return; }
+    const q = subs.oneKey.get(id) ? ("?key=" + encodeURIComponent(subs.oneKey.get(id))) : "";
+
+    /* 목록에 없다고 없어진 것이 아닙니다.
+       비공개 일정은 애초에 목록에 실리지 않습니다(그게 비공개의 뜻입니다).
+       여기서 null 을 보내면, 링크로 잘 들어와 보고 있던 사람이
+       목록을 새로 받는 순간 첫 화면으로 튕겨 나갑니다.
+
+       정말 지워졌는지는 단건으로 물어봐야 압니다. 404 일 때만 null 입니다. */
+    call("GET", "/events/" + id + q)
+      .then(e => cbs.forEach(cb => cb(toUiEvent(e))))
+      .catch(err => { if (err && err.status === 404) cbs.forEach(cb => cb(null)); });
   });
 }
 function emitSongs(){ subs.songs.forEach(cb => cb(cacheSongs.map(s => ({...s})))); }
@@ -1281,8 +1298,9 @@ async function refreshAll(){ await Promise.all([refreshEvents(), refreshSongs()]
 /* 상세 화면의 곡은 공용 목록에서 거르지 않고 그 일정에서 직접 받습니다.
    공용 목록(GET /songs)은 비공개 일정의 곡을 빼고 내려주기 때문에,
    링크로 들어온 사람에게는 곡이 하나도 안 보입니다. */
-async function fetchEventSongs(eventId){
-  const list = await call("GET", `/events/${eventId}/songs`);
+async function fetchEventSongs(eventId, inviteKey){
+  const q = inviteKey ? ("?key=" + encodeURIComponent(inviteKey)) : "";
+  const list = await call("GET", `/events/${eventId}/songs${q}`);
   return list.map(toUiSong).sort((a, b) => a.createdAt - b.createdAt);
 }
 
@@ -1384,24 +1402,26 @@ store = {
      2) 비공개 일정은 목록에 아예 안 실립니다(그게 비공개의 뜻입니다).
         캐시만 보면 「링크로만 참가」가 영원히 작동하지 않습니다.
         단건 조회는 그래서 일부러 열어둔 주소입니다. */
-  watchEvent(id, cb){
+  watchEvent(id, inviteKey, cb){
     const key = String(id);
+    const q = inviteKey ? ("?key=" + encodeURIComponent(inviteKey)) : "";
     if (!subs.one.has(key)) subs.one.set(key, new Set());
     subs.one.get(key).add(cb);
+    if (inviteKey) subs.oneKey.set(key, inviteKey);
 
     const cached = cacheEvents.find(e => e.id === key) || null;
     if (cached) queueMicrotask(() => cb({...cached}));
 
-    call("GET", "/events/" + key)
+    call("GET", "/events/" + key + q)
       .then(e => cb(toUiEvent(e)))
-      // 캐시에 있던 것까지 지우지는 않습니다. 잠깐 끊긴 것과 없는 것은 다릅니다.
-      .catch(() => { if (!cached) cb(null); });
+      // 잠깐 끊긴 것과 없어진 것은 다릅니다. 없어졌을 때만 내보냅니다.
+      .catch(err => { if (!cached && err && err.status === 404) cb(null); });
 
     refreshEvents();
     startStream();
     return () => {
       const set = subs.one.get(key);
-      if (set){ set.delete(cb); if (!set.size) subs.one.delete(key); }
+      if (set){ set.delete(cb); if (!set.size){ subs.one.delete(key); subs.oneKey.delete(key); } }
     };
   },
   async createEvent(data){
@@ -2304,18 +2324,21 @@ store.watchSongs(list => {
    7. 상세 화면 + 파트 매트릭스
    ============================================================ */
 let unsubEvent = null, unsubSongs = null, curEvent = null, curSongs = [], prevDone = new Set();
+/* 지금 보고 있는 일정의 초대 키. 주소에서 왔습니다. 비공개 일정을 다시 물어볼 때 씁니다. */
+let curInviteKey = null;
 
-function openEvent(id){
+function openEvent(id, inviteKey){
   closeEvent();
   showView("event");
   prevDone = new Set();
+  curInviteKey = inviteKey || null;
   // 캐시에 있으면 먼저 그려 둡니다. 없으면 잠깐 빈 화면이고, 곧 서버 응답이 채웁니다.
   curEvent = allEvents.find(e => e.id === id) || null;
   curSongs = songsOf(id);
   if (curEvent) renderEventHead(curEvent);
   renderMatrix();
   reloadEventSongs(id);
-  unsubEvent = store.watchEvent(id, ev => {
+  unsubEvent = store.watchEvent(id, curInviteKey, ev => {
     if (!ev){ location.hash = "#/"; return; }
     curEvent = ev;
     renderEventHead(ev);
@@ -2327,7 +2350,7 @@ function openEvent(id){
    화면이 바뀌는 사이에 늦게 도착한 응답이 끼어들지 않도록 id 를 다시 확인합니다. */
 async function reloadEventSongs(id){
   try {
-    const list = await fetchEventSongs(id);
+    const list = await fetchEventSongs(id, curInviteKey);
     if (!curEvent || curEvent.id !== id) return;
     curSongs = list;
     renderMatrix();
@@ -2335,6 +2358,7 @@ async function reloadEventSongs(id){
 }
 function closeEvent(){
   manageMode = false;
+  curInviteKey = null;
   unsubEvent?.(); unsubEvent = unsubSongs = null; curEvent = null; curSongs = [];
 
 }
@@ -2364,6 +2388,12 @@ function renderEventHead(e){
   if (e.visibility === "private") rows.push(["공개", "비공개"]);
 
   $("#ev-meta").innerHTML = rows.map(([k,v]) => `<span>${esc(k)} <u>${esc(v)}</u></span>`).join("");
+
+  /* 공유 링크. 비공개 일정이면 초대 키까지 붙여서 줍니다.
+     키를 따로 알려주게 하면 아무도 안 씁니다. 링크 하나로 끝나야 합니다. */
+  const share = el("button","btn sm","링크 복사");
+  share.onclick = () => copyShareLink(e);
+  $("#ev-meta").append(share);
   if (auth.user && (e.hostUid === auth.user.uid || isAdmin())){
     const b = el("button","btn sm","합주 편집");
     b.onclick = () => eventModal(curEvent);
@@ -2373,6 +2403,11 @@ function renderEventHead(e){
     const c = el("button","btn sm" + (done ? "" : " primary"), done ? "완료 해제" : "합주 완료로 표시");
     c.onclick = () => completeEvent(e, !done);
     $("#ev-meta").append(c);
+
+    const d = el("button","btn sm","합주 삭제");
+    d.style.color = "var(--coral)";
+    d.onclick = () => deleteEventFlow(e);
+    $("#ev-meta").append(d);
   }
 
   $("#ev-title").classList.toggle("is-done", eventDone(e));
@@ -2609,6 +2644,45 @@ function moveModal(song){
     });
 
   });
+}
+
+/* 이 일정으로 바로 들어오는 주소를 만듭니다.
+   비공개 일정은 초대 키가 붙습니다. 키가 없으면 받은 사람이 404 를 봅니다. */
+function shareLinkOf(e){
+  const base = location.origin + location.pathname;
+  const tail = (e.visibility === "private" && e.inviteKey) ? `/${e.inviteKey}` : "";
+  return `${base}#/e/${e.id}${tail}`;
+}
+
+async function copyShareLink(e){
+  const url = shareLinkOf(e);
+  try {
+    await navigator.clipboard.writeText(url);
+    toast(e.visibility === "private" ? "비공개 링크를 복사했습니다" : "링크를 복사했습니다");
+  } catch(err){
+    /* 클립보드는 https 가 아니거나 권한이 없으면 막힙니다. 그때는 눈으로 보고 복사하게 합니다. */
+    prompt("아래 주소를 복사하세요", url);
+  }
+}
+
+/* 일정을 지웁니다. 주최자와 관리자만 할 수 있습니다(서버에서도 다시 확인합니다).
+
+   확인 창에 곡 개수를 적어 보여주는 이유 —
+   곡은 이제 일정 안에만 존재하므로, 일정을 지우면 곡도 같이 사라집니다.
+   돌아갈 곳이 없어졌습니다. "일정만 지우는 것"이라고 생각하고 누르면
+   남의 곡과 잡아둔 자리까지 날아갑니다. 숫자를 보여주고 한 번 더 묻습니다. */
+async function deleteEventFlow(e){
+  const n = curSongs.length;
+  const 경고 = n
+    ? `«${e.title}»을(를) 지웁니다.\n\n이 합주의 곡 ${n}개와 잡혀 있는 자리, 활동 기록도 함께 사라집니다.\n되돌릴 수 없습니다. 진행할까요?`
+    : `«${e.title}»을(를) 지웁니다.\n\n되돌릴 수 없습니다. 진행할까요?`;
+  if (!confirm(경고)) return;
+
+  try {
+    await store.deleteEvent(e.id);
+    toast("합주를 지웠습니다");
+    location.hash = "#/";
+  } catch(err){ console.error(err); toast(errText(err)); }
 }
 
 /* ── 추억 저장소 ─────────────────────────────────
@@ -3682,8 +3756,12 @@ function eventModal(ev){
         <div class="field"><label>합주일
             <span class="tbd"><input type="checkbox" id="f-date-tbd"${ev && !ev.date ? " checked" : ""}>미정</span></label>
           <input id="f-date" type="date" min="${DATE_MIN}" max="${dateMax()}" value="${esc(ev ? (ev.date || "") : fallback)}"></div>
-        <div class="field"><label>시작</label><input id="f-start" type="time" value="${esc(ev?.timeStart || "")}"></div>
-        <div class="field"><label>종료</label><input id="f-end" type="time" value="${esc(ev?.timeEnd || "")}"></div>
+        <div class="field"><label>시작
+            <span class="tbd"><input type="checkbox" id="f-start-tbd"${ev && !ev.timeStart ? " checked" : ""}>미정</span></label>
+          <input id="f-start" type="time" value="${esc(ev?.timeStart || "")}"></div>
+        <div class="field"><label>종료
+            <span class="tbd"><input type="checkbox" id="f-end-tbd"${ev && !ev.timeEnd ? " checked" : ""}>미정</span></label>
+          <input id="f-end" type="time" value="${esc(ev?.timeEnd || "")}"></div>
       </div>
       <div class="row2">
         <div class="field"><label>지역
@@ -3791,7 +3869,8 @@ function eventModal(ev){
     /* 「미정」을 켜면 그 칸을 잠그고 비웁니다.
        잠그는 이유: 값이 남아 있는데 보내지 않으면, 화면에는 보이고 저장은 안 되는
        상태가 됩니다. 눌러둔 사람은 저장됐다고 믿습니다. */
-    const 미정칸 = [["#f-date-tbd","#f-date"], ["#f-region-tbd","#f-region"], ["#f-studio-tbd","#f-studio"]];
+    const 미정칸 = [["#f-date-tbd","#f-date"], ["#f-start-tbd","#f-start"], ["#f-end-tbd","#f-end"],
+                   ["#f-region-tbd","#f-region"], ["#f-studio-tbd","#f-studio"]];
     const 미정이면 = sel => !!root.querySelector(sel)?.checked;
     미정칸.forEach(([box, input]) => {
       const b = root.querySelector(box), i = root.querySelector(input);
@@ -3806,7 +3885,8 @@ function eventModal(ev){
       const q = id => root.querySelector(id).value.trim();
       const title = q("#f-title");
       const date = 미정이면("#f-date-tbd") ? "" : root.querySelector("#f-date").value;
-      const start = root.querySelector("#f-start").value, end = root.querySelector("#f-end").value;
+      const start = 미정이면("#f-start-tbd") ? "" : root.querySelector("#f-start").value;
+      const end   = 미정이면("#f-end-tbd")   ? "" : root.querySelector("#f-end").value;
       const deadline = root.querySelector("#f-deadline").value;
 
       if (!title) return err.textContent = "합주 이름을 채워주세요.";
@@ -4246,8 +4326,12 @@ function showView(v){
 
 function route(){
   const h = location.hash;
-  const m = h.match(/^#\/e\/(.+)$/);
-  if (m){ openEvent(m[1]); return; }
+  /* #/e/7              공개 일정
+     #/e/7/Kx3f9_aQ2LmP   비공개 일정 — 뒤에 붙는 것이 초대 키
+     키를 주소에 넣는 이유는 링크 하나만 건네면 끝나게 하려는 것입니다.
+     받은 사람이 키를 따로 입력해야 한다면 아무도 안 씁니다. */
+  const m = h.match(/^#\/e\/([^/?]+)(?:\/([A-Za-z0-9_-]+))?$/);
+  if (m){ openEvent(m[1], m[2] || null); return; }
 
   if (curEvent) closeEvent();
 

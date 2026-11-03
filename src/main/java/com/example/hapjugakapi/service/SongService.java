@@ -32,14 +32,19 @@ public class SongService {
     private final EventRepository eventRepository;
     private final ActivityLogRepository activityLogRepository;
 
+    /** 비공개 일정을 열어도 되는지 판단하는 규칙은 EventService 한 곳에만 둔다. */
+    private final EventService eventService;
+
     public SongService(SongRepository songRepository,
                        MemberRepository memberRepository,
                        EventRepository eventRepository,
-                       ActivityLogRepository activityLogRepository) {
+                       ActivityLogRepository activityLogRepository,
+                       EventService eventService) {
         this.songRepository = songRepository;
         this.memberRepository = memberRepository;
         this.eventRepository = eventRepository;
         this.activityLogRepository = activityLogRepository;
+        this.eventService = eventService;
     }
 
     /**
@@ -109,11 +114,19 @@ public class SongService {
         return SongResponse.from(songRepository.save(song));
     }
 
-    /** 그 일정의 곡. 일정 자체가 링크로 열려 있으므로 곡도 같은 규칙을 따른다. */
-    public List<SongResponse> findByEvent(Long eventId) {
-        if (!eventRepository.existsById(eventId)) {
-            throw new NotFoundException("합주 일정을 찾을 수 없습니다.");
-        }
+    /**
+     * 그 일정의 곡.
+     *
+     * 일정을 열 수 있는 사람만 곡도 볼 수 있다. 일정은 초대 키로 막아 놓고
+     * 곡은 그냥 내주면, 곡 목록만 훑어도 그 합주가 무엇인지 드러난다.
+     * 판단은 EventService 한 곳에서만 한다 — 규칙이 두 군데로 갈라지면
+     * 한쪽만 고치는 날이 온다.
+     *
+     * 여기서 Viewer.anonymous() 로 검색하는 것은 일부러다. 접근 판단은 위에서 이미 끝났고,
+     * 통과했다면 이 일정의 곡은 전부 보여야 한다.
+     */
+    public List<SongResponse> findByEvent(Long eventId, String key, Viewer viewer) {
+        eventService.openedEvent(eventId, key, viewer);
         return songRepository.search(new SongSearchCondition(null, null, null, eventId), Viewer.anonymous())
                 .stream()
                 .map(SongResponse::from)
