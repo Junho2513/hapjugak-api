@@ -72,10 +72,11 @@ public class EventService {
         if (request.studio() != null) event.setStudio(request.studio());
         if (request.room() != null) event.setRoom(request.room());
         if (request.genre() != null) event.setGenre(request.genre());
-        if (request.fee() != null) event.setFee(request.fee());
+        if (request.feeAmount() != null) event.setFeeAmount(request.feeAmount());
+        if (request.feeNote() != null) event.setFeeNote(request.feeNote());
         if (request.description() != null) event.setDescription(request.description());
         if (request.afterparty() != null) event.setAfterparty(request.afterparty());
-        if (request.capacity() != null) event.setCapacity(request.capacity());
+        if (request.roomCapacity() != null) event.setRoomCapacity(request.roomCapacity());
         if (request.maxSongsPerUser() != null) event.setMaxSongsPerUser(request.maxSongsPerUser());
         if (request.visibility() != null) event.setVisibility(request.visibility());
         applyCover(event, request.coverUrl());

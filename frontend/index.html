@@ -1174,10 +1174,11 @@ function toUiEvent(e){
     studio: e.studio || "",
     room: e.room || "",
     genre: e.genre || "",
-    fee: e.fee || "",
+    feeAmount: (e.feeAmount ?? ""),
+    feeNote: e.feeNote || "",
     description: e.description || "",
     afterparty: e.afterparty || "",
-    capacity: e.capacity || 0,
+    roomCapacity: e.roomCapacity || 0,
     maxSongsPerUser: e.maxSongsPerUser || 0,
     visibility: (e.visibility || "PUBLIC").toLowerCase(),
     defaultParts: (e.defaultParts || []).map(p => PART_FROM_API[p] || p),
@@ -1243,10 +1244,11 @@ function toApiEvent(d){
   if (has(d, "studio")) body.studio = d.studio;
   if (has(d, "room")) body.room = d.room;
   if (has(d, "genre")) body.genre = d.genre;
-  if (has(d, "fee")) body.fee = d.fee;
+  if (has(d, "feeAmount")) body.feeAmount = (d.feeAmount === "" || d.feeAmount == null) ? null : Number(d.feeAmount);
+  if (has(d, "feeNote")) body.feeNote = d.feeNote;
   if (has(d, "description")) body.description = d.description;
   if (has(d, "afterparty")) body.afterparty = d.afterparty;
-  if (has(d, "capacity")) body.capacity = d.capacity;
+  if (has(d, "roomCapacity")) body.roomCapacity = d.roomCapacity;
   if (has(d, "maxSongsPerUser")) body.maxSongsPerUser = d.maxSongsPerUser;
   if (has(d, "visibility")) body.visibility = String(d.visibility || "public").toUpperCase();
   if (has(d, "defaultParts")) body.defaultParts = (d.defaultParts || []).map(p => PART_TO_API[p]).filter(Boolean);
@@ -1794,6 +1796,27 @@ const pad2n = n => String(n).padStart(2,"0");
 const localISO = (d = new Date()) =>
   `${d.getFullYear()}-${pad2n(d.getMonth()+1)}-${pad2n(d.getDate())}`;
 const todayISO = () => localISO();
+
+/* 날짜 칸의 상·하한.
+   비워두면 브라우저가 27만 년까지 받습니다. 실제로 96874년 마감일이 들어왔습니다.
+   서버에서도 같은 범위로 막지만, 눌러보기 전에 알려주는 편이 친절합니다. */
+const DATE_MIN = "2000-01-01";
+const dateMax = () => {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() + 2);
+  return localISO(d);
+};
+
+/* 참가비는 숫자와 안내 문구로 나뉘어 들어옵니다.
+   둘 다 없으면 "미정", 숫자만 있으면 "15,000원",
+   둘 다 있으면 "15,000원 · 대관비 N빵" 으로 보여줍니다. */
+function feeText(e){
+  const amount = (e.feeAmount === "" || e.feeAmount == null) ? null : Number(e.feeAmount);
+  const money = amount == null ? "" : (amount === 0 ? "무료" : amount.toLocaleString("ko-KR") + "원");
+  const note = (e.feeNote || "").trim();
+  if (money && note) return money + " · " + note;
+  return money || note || "미정";
+}
 function fmtDate(iso){
   const d = new Date(iso+"T00:00:00");
   if (isNaN(d)) return iso;
@@ -2313,8 +2336,8 @@ function renderEventHead(e){
   const rows = [
     ["합주실", place],
     ["지역", e.region || "미정"],
-    ["정원", (e.capacity || "제한 없음") + (e.capacity ? "명" : "")],
-    ["참가비", e.fee || "미정"],
+    ["수용 인원", (e.roomCapacity || "제한 없음") + (e.roomCapacity ? "명" : "")],
+    ["참가비", feeText(e)],
     ["주최", e.hostName || "—"]
   ];
   if (e.entryDeadline) rows.push(["곡 신청 마감", fmtDate(e.entryDeadline)]);
@@ -3743,7 +3766,7 @@ function eventModal(ev){
       <div class="form-sec">일정과 장소</div>
       <div class="row3">
         <div class="field"><label>합주일 <b class="req">필수</b></label>
-          <input id="f-date" type="date" value="${esc(ev?.date || fallback)}"></div>
+          <input id="f-date" type="date" min="${DATE_MIN}" max="${dateMax()}" value="${esc(ev?.date || fallback)}"></div>
         <div class="field"><label>시작</label><input id="f-start" type="time" value="${esc(ev?.timeStart || "")}"></div>
         <div class="field"><label>종료</label><input id="f-end" type="time" value="${esc(ev?.timeEnd || "")}"></div>
       </div>
@@ -3759,14 +3782,19 @@ function eventModal(ev){
 
       <div class="form-sec">참가 조건</div>
       <div class="row2">
-        <div class="field"><label>정원</label>
-          <input id="f-cap" type="number" min="2" max="200" value="${esc(ev?.capacity || 30)}"></div>
-        <div class="field"><label>참가비</label>
-          <input id="f-fee" placeholder="예: 15,000원 (대관비 N빵)" maxlength="40" value="${esc(ev?.fee || "")}"></div>
+        <div class="field"><label>연습실 수용 인원</label>
+          <input id="f-cap" type="number" min="2" max="200" value="${esc(ev?.roomCapacity || 30)}"></div>
+        <div class="field"><label>참가비 (원)</label>
+          <input id="f-fee-amount" type="number" min="0" max="1000000" step="1000" placeholder="예: 15000" value="${esc(ev?.feeAmount ?? "")}"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>참가비 안내</label>
+          <input id="f-fee-note" placeholder="예: 대관비 N빵, 현금만" maxlength="40" value="${esc(ev?.feeNote || "")}"></div>
+        <div class="field"></div>
       </div>
       <div class="row2">
         <div class="field"><label>곡 신청 마감</label>
-          <input id="f-deadline" type="date" value="${esc(ev?.entryDeadline || "")}">
+          <input id="f-deadline" type="date" min="${DATE_MIN}" max="${dateMax()}" value="${esc(ev?.entryDeadline || "")}">
           <p class="ava-note">비워두면 합주 당일까지 신청할 수 있습니다.</p></div>
         <div class="field"><label>1인당 최대 곡수</label>
           <select id="f-maxsongs">
@@ -3860,8 +3888,9 @@ function eventModal(ev){
         genre: root.querySelector("#f-genre").value,
         region: root.querySelector("#f-region").value,
         studio: q("#f-studio"), room: q("#f-room"),
-        capacity: Number(root.querySelector("#f-cap").value) || null,
-        fee: q("#f-fee"),
+        roomCapacity: Number(root.querySelector("#f-cap").value) || null,
+        feeAmount: root.querySelector("#f-fee-amount").value,
+        feeNote: q("#f-fee-note"),
         entryDeadline: deadline,
         maxSongsPerUser: Number(root.querySelector("#f-maxsongs").value) || 0,
         afterparty: root.querySelector("#f-after").value,

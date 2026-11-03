@@ -85,10 +85,16 @@ public class GlobalExceptionHandler {
      * "입력값이 올바르지 않습니다" 한 줄만 주면 사용자는 어디를 고쳐야 할지 모른다.
      * 제약마다 적어둔 한국어 메시지가 여기로 모인다.
      */
+    /**
+     * 항목 하나짜리 제약(@Size, @Min)은 FieldError 로, 항목끼리 비교하는 제약(@AssertTrue)은
+     * 경우에 따라 ObjectError 로 들어온다. 전에는 앞엣것만 읽어서,
+     * "종료 시각이 시작 시각보다 빠릅니다" 같은 안내가 통째로 사라지고
+     * "입력값이 올바르지 않습니다" 로 뭉개질 수 있었다.
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException e) {
-        String message = e.getBindingResult().getFieldErrors().stream()
-                .map(org.springframework.validation.FieldError::getDefaultMessage)
+        String message = e.getBindingResult().getAllErrors().stream()
+                .map(org.springframework.validation.ObjectError::getDefaultMessage)
                 .filter(Objects::nonNull)
                 .distinct()
                 .collect(Collectors.joining(" "));

@@ -41,8 +41,15 @@ public class Event {
     @Column(length = 40)
     private String genre;
 
+    /**
+     * 참가비를 둘로 나눠 둔 이유: 한 칸이던 시절에는 "15,000", "만오천",
+     * "대관비 N빵" 이 한 컬럼에 섞여 들어와 정렬도 필터도 할 수 없었다.
+     * 숫자는 숫자로, 사람에게 하는 말은 말로 둔다.
+     */
+    private Integer feeAmount;
+
     @Column(length = 200)
-    private String fee;
+    private String feeNote;
 
     @Column(length = 2000)
     private String description;
@@ -50,7 +57,8 @@ public class Event {
     @Column(length = 40)
     private String afterparty;
 
-    private int capacity;
+    /** 연습실이 몇 명 들어가는 방인지. 안내값이고 자리를 막지는 않는다. */
+    private int roomCapacity;
 
     private int maxSongsPerUser;
 
@@ -173,8 +181,12 @@ public class Event {
         return genre;
     }
 
-    public String getFee() {
-        return fee;
+    public Integer getFeeAmount() {
+        return feeAmount;
+    }
+
+    public String getFeeNote() {
+        return feeNote;
     }
 
     public String getDescription() {
@@ -185,8 +197,8 @@ public class Event {
         return afterparty;
     }
 
-    public int getCapacity() {
-        return capacity;
+    public int getRoomCapacity() {
+        return roomCapacity;
     }
 
     public int getMaxSongsPerUser() {
@@ -257,8 +269,12 @@ public class Event {
         this.genre = genre;
     }
 
-    public void setFee(String fee) {
-        this.fee = fee;
+    public void setFeeAmount(Integer feeAmount) {
+        this.feeAmount = feeAmount;
+    }
+
+    public void setFeeNote(String feeNote) {
+        this.feeNote = feeNote;
     }
 
     public void setDescription(String description) {
@@ -269,8 +285,8 @@ public class Event {
         this.afterparty = afterparty;
     }
 
-    public void setCapacity(int capacity) {
-        this.capacity = capacity;
+    public void setRoomCapacity(int roomCapacity) {
+        this.roomCapacity = roomCapacity;
     }
 
     public void setMaxSongsPerUser(int maxSongsPerUser) {
