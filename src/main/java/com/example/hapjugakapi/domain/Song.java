@@ -87,6 +87,11 @@ public class Song {
             String label = raw.trim();
             if (!label.isEmpty() && !wanted.contains(label)) wanted.add(label);
         }
+        /* 보여줄 차례로 세운 뒤에 번호를 매긴다. 적은 차례가 아니라
+           보컬 → 통기타 → 기타 → 베이스 → 드럼 → 키보드 → 직접 적은 것 순이다.
+           안정 정렬이라 직접 적은 파트끼리는 적은 차례가 그대로 남는다. */
+        wanted.sort(PartNames.displayOrder());
+
         slots.removeIf(slot -> !wanted.contains(slot.getLabel()));
         for (int i = 0; i < wanted.size(); i++) {
             String label = wanted.get(i);

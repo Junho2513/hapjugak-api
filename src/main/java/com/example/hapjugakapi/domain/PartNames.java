@@ -1,5 +1,6 @@
 package com.example.hapjugakapi.domain;
 
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,57 @@ public final class PartNames {
             Part.KEY1, "키보드1",
             Part.KEY2, "키보드2"
     );
+
+    /**
+     * 보여줄 차례. 보컬 → 통기타 → 기타 → 베이스 → 드럼 → 키보드,
+     * 그 뒤에 직접 적은 파트가 적은 순서대로 붙는다.
+     * 같은 파트가 여럿이면 번호 순으로 나란히 선다(기타1, 기타2).
+     */
+    private static final List<String> PRESETS =
+            List.of("보컬", "통기타", "기타", "베이스", "드럼", "키보드");
+
+    /**
+     * 차례는 <b>기본 버튼에 있는 이름인가</b>로만 가린다.
+     * 악기가 겹치는지 보는 {@link #kindOf} 와는 다르다 — 「신디사이저」는 건반이지만
+     * 기본 버튼에 없으니 직접 적은 파트로 쳐서 맨 뒤에 선다.
+     */
+    public static int rankOf(String label) {
+        int i = PRESETS.indexOf(baseNameOf(label));
+        return i < 0 ? 90 : i;
+    }
+
+    /** 이름 뒤의 번호를 뗀 밑이름. 「기타2」 → 「기타」. */
+    public static String baseNameOf(String label) {
+        if (label == null) return "";
+        String name = label.trim();
+        int i = name.length();
+        while (i > 0 && Character.isDigit(name.charAt(i - 1))) i--;
+        return name.substring(0, i).trim();
+    }
+
+    /** 이름 뒤에 붙은 번호. 없으면 0. */
+    public static int numberOf(String label) {
+        if (label == null) return 0;
+        String name = label.trim();
+        int i = name.length();
+        while (i > 0 && Character.isDigit(name.charAt(i - 1))) i--;
+        if (i == name.length()) return 0;
+        try {
+            return Integer.parseInt(name.substring(i));
+        } catch (NumberFormatException e) {
+            return 0;   // 자릿수가 터무니없이 길면 번호로 보지 않는다
+        }
+    }
+
+    /**
+     * 자리 이름을 보여줄 차례로 세운다.
+     *
+     * <p>직접 적은 파트끼리는 순위가 같다. 안정 정렬을 쓰면 적은 차례가 그대로 남는다.
+     */
+    public static Comparator<String> displayOrder() {
+        return Comparator.comparingInt(PartNames::rankOf)
+                .thenComparingInt(PartNames::numberOf);
+    }
 
     /**
      * 이름에서 악기 종류를 짐작한다. 모르면 {@code null}.

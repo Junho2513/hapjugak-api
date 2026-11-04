@@ -1288,7 +1288,7 @@ img,svg{-webkit-user-drag:none;user-drag:none}
 const GOOGLE_CLIENT_ID = "1012332237618-84qdq4jcvj9s7torlkqojjbss6n3j4kn.apps.googleusercontent.com";
 
 /* 어느 버전이 떠 있는지 확인용 표시. 화면 맨 아래와 콘솔에 찍힙니다. */
-const BUILD = "0922-0642";
+const BUILD = "1105-0230";
 console.log("합주각 빌드", BUILD);
 
 /* 자리는 「이름」으로 다룹니다. 「보컬1」, 「기타2」, 「색소폰」처럼 적은 그대로입니다.
@@ -1304,6 +1304,26 @@ const KIND_PREFIX = [
   ["키보드","키보드"], ["건반","키보드"], ["신디","키보드"], ["피아노","키보드"],
   ["보컬","보컬"], ["노래","보컬"]
 ];
+/* 보여줄 차례. 보컬 → 통기타 → 기타 → 베이스 → 드럼 → 키보드,
+   그 뒤에 직접 적은 파트가 적은 순서대로 붙습니다.
+   같은 파트가 여럿이면 번호 순으로 나란히 섭니다(기타1, 기타2). */
+/* 차례는 「기본 버튼에 있는 이름인가」로만 가립니다.
+   악기가 겹치는지 보는 partKind 와는 다릅니다 — 「신디사이저」는 건반이지만
+   기본 버튼에 없으니 직접 적은 파트로 쳐서 맨 뒤에 섭니다. */
+function partRank(label){
+  const i = PART_PRESETS.indexOf(baseName(label));
+  return i < 0 ? 90 : i;
+}
+function partNumber(label){
+  const m = String(label || "").match(/(\d+)$/);
+  return m ? Number(m[1]) : 0;
+}
+/* 직접 적은 파트끼리는 순위가 같습니다 — 자바스크립트 정렬은 순서를 유지하므로
+   적은 차례 그대로 남습니다. */
+function byPartOrder(a, b){
+  return partRank(a) - partRank(b) || partNumber(a) - partNumber(b);
+}
+
 function partKind(label){
   const name = String(label || "").trim();
   for (const [prefix, kind] of KIND_PREFIX) if (name.startsWith(prefix)) return kind;
@@ -1454,6 +1474,9 @@ function toUiSong(s){
     if (sl.taken) slots[p] = { uid:String(sl.memberId), name:sl.memberNickname,
       photo: sl.memberPhotoUrl || "", open:!!sl.openToHandover };
   }
+  /* 서버가 어떤 차례로 주든 화면은 늘 같은 차례로 보여줍니다. */
+  requiredParts.sort(byPartOrder);
+
   return {
     id: String(s.id),
     title: s.title || "",
@@ -3344,6 +3367,8 @@ function partPicker(initial){
       seen[b] = (seen[b] || 0) + 1;
       return b + seen[b];
     });
+    /* 고른 차례가 아니라 보여줄 차례로 세웁니다 — 곡 카드에 보이는 것과 같아야 합니다. */
+    list.sort(byPartOrder);
   };
 
   const add = raw => {
@@ -3787,7 +3812,7 @@ function renderRoster(){
       r.append(el("i","", (person.name || "?").slice(0,1)));
     }
     r.append(el("span","nm", person.name));
-    r.append(el("span","pt", [...person.parts].join(" · ")));
+    r.append(el("span","pt", [...person.parts].sort(byPartOrder).join(" · ")));
     box.append(r);
   });
 }

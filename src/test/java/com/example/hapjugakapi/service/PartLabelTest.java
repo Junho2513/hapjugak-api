@@ -65,11 +65,29 @@ class PartLabelTest {
     }
 
     @Test
-    @DisplayName("적은 차례 그대로 보여준다")
+    @DisplayName("어떤 차례로 적든 보컬·통기타·기타·베이스·드럼·키보드 순으로 선다")
     void 차례() {
         SongResponse 곡 = 올리기(List.of("드럼", "보컬", "베이스"));
 
-        assertEquals(List.of("드럼", "보컬", "베이스"),
+        assertEquals(List.of("보컬", "베이스", "드럼"),
+                곡.slots().stream().map(s -> s.label()).toList());
+    }
+
+    @Test
+    @DisplayName("같은 파트가 여럿이면 번호 순으로 나란히 선다")
+    void 차례_번호() {
+        SongResponse 곡 = 올리기(List.of("키보드2","베이스","보컬2","기타2","보컬1","통기타","드럼","기타1","키보드1"));
+
+        assertEquals(List.of("보컬1","보컬2","통기타","기타1","기타2","베이스","드럼","키보드1","키보드2"),
+                곡.slots().stream().map(s -> s.label()).toList());
+    }
+
+    @Test
+    @DisplayName("직접 적은 파트는 맨 뒤에, 적은 차례 그대로")
+    void 차례_직접적은것() {
+        SongResponse 곡 = 올리기(List.of("신디사이저","보컬","트럼본","기타1","드럼","베이스1","베이스2","키보드"));
+
+        assertEquals(List.of("보컬","기타1","베이스1","베이스2","드럼","키보드","신디사이저","트럼본"),
                 곡.slots().stream().map(s -> s.label()).toList());
     }
 
