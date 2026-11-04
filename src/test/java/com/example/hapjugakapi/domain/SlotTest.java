@@ -13,7 +13,7 @@ class SlotTest {
 
     private Slot drumSlot() {
         Song song = new Song("곡", "가수", null, null, member("제안자"));
-        return new Slot(song, Part.DRUM);
+        return new Slot(song, "드럼", Part.DRUM, 0);
     }
 
     @Test

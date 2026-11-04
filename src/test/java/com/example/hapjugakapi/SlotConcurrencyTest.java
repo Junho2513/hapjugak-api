@@ -1,7 +1,6 @@
 package com.example.hapjugakapi;
 
 import com.example.hapjugakapi.domain.Member;
-import com.example.hapjugakapi.domain.Part;
 import com.example.hapjugakapi.domain.Slot;
 import com.example.hapjugakapi.domain.Song;
 import com.example.hapjugakapi.repository.MemberRepository;
@@ -46,7 +45,7 @@ class SlotConcurrencyTest {
         Member proposer = memberRepository.save(newMember("제안자"));
 
         Song song = new Song("동시성 테스트곡", "테스터", null, null, proposer);
-        song.addSlot(Part.DRUM);
+        song.addSlot("드럼");
         Song saved = songRepository.save(song);
 
         Long songId = saved.getId();

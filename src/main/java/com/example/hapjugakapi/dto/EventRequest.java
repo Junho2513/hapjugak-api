@@ -64,7 +64,8 @@ public record EventRequest(
         @Max(value = 200, message = "수용 인원은 200명까지 지정할 수 있습니다.")
         Integer roomCapacity,
 
-        @Min(value = 1, message = "한 사람당 곡 수는 1곡 이상이어야 합니다.")
+        // 0은 「제한 없음」입니다. 화면의 기본값이라 반드시 통과해야 합니다.
+        @Min(value = 0, message = "한 사람당 곡 수는 0곡(제한 없음) 이상이어야 합니다.")
         @Max(value = 50, message = "한 사람당 곡 수는 50곡까지 지정할 수 있습니다.")
         Integer maxSongsPerUser,
 

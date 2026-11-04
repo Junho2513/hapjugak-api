@@ -2,7 +2,6 @@ package com.example.hapjugakapi.repository;
 
 import com.example.hapjugakapi.config.Viewer;
 import com.example.hapjugakapi.domain.Event;
-import com.example.hapjugakapi.domain.Part;
 import com.example.hapjugakapi.domain.QEvent;
 import com.example.hapjugakapi.domain.QMember;
 import com.example.hapjugakapi.domain.QSlot;
@@ -119,8 +118,14 @@ public class SongRepositoryImpl implements SongRepositoryCustom {
         return song.event.id.eq(eventId);
     }
 
-    private BooleanExpression hasOpenPart(QSong song, Part part) {
-        if (part == null) {
+    /**
+     * 그 이름의 자리가 비어 있는 곡을 찾는다.
+     *
+     * <p>앞부분만 맞아도 걸리게 한 것은 의도다. 자리 이름에는 번호가 붙는다
+     * (「기타1」, 「기타2」). 「기타」로 찾는 사람은 둘 중 아무 자리나 찾는 것이다.
+     */
+    private BooleanExpression hasOpenPart(QSong song, String part) {
+        if (part == null || part.isBlank()) {
             return null;
         }
         QSlot openSlot = new QSlot("openSlot");
@@ -129,7 +134,7 @@ public class SongRepositoryImpl implements SongRepositoryCustom {
                 .from(openSlot)
                 .where(
                         openSlot.song.eq(song),
-                        openSlot.part.eq(part),
+                        openSlot.label.startsWith(part.trim()),
                         openSlot.member.isNull()
                 )
                 .exists();

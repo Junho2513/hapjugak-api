@@ -3,7 +3,6 @@ package com.example.hapjugakapi.service;
 import com.example.hapjugakapi.config.Viewer;
 import com.example.hapjugakapi.domain.Event;
 import com.example.hapjugakapi.domain.Member;
-import com.example.hapjugakapi.domain.Part;
 import com.example.hapjugakapi.dto.EventResponse;
 import com.example.hapjugakapi.dto.SongRequest;
 import com.example.hapjugakapi.dto.SongResponse;
@@ -148,7 +147,7 @@ class EventVisibilityTest {
 
     private SongResponse 곡만들기(String 제목) {
         return songService.create(
-                new SongRequest(제목, "아티스트", null, null, List.of(Part.VOCAL, Part.DRUM)),
+                new SongRequest(제목, "아티스트", null, null, List.of("보컬", "드럼")),
                 주최자.getId()
         );
     }

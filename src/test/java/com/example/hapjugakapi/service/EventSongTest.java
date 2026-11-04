@@ -59,7 +59,7 @@ class EventSongTest {
     @Test
     @DisplayName("일정 안에 곡을 올리면 그 일정의 곡이 된다")
     void 올리기() {
-        SongResponse 곡 = songService.createIn(일정.getId(), 요청("첫 곡", List.of(Part.VOCAL, Part.DRUM)), 참가자.getId());
+        SongResponse 곡 = songService.createIn(일정.getId(), 요청("첫 곡", List.of("보컬", "드럼")), 참가자.getId());
 
         assertEquals(일정.getId(), 곡.eventId());
         assertEquals(2, 곡.slots().size());
@@ -83,11 +83,11 @@ class EventSongTest {
         일정.setMaxSongsPerUser(2);
         eventRepository.save(일정);
 
-        songService.createIn(일정.getId(), 요청("한 곡", List.of(Part.VOCAL)), 참가자.getId());
-        songService.createIn(일정.getId(), 요청("두 곡", List.of(Part.VOCAL)), 참가자.getId());
+        songService.createIn(일정.getId(), 요청("한 곡", List.of("보컬")), 참가자.getId());
+        songService.createIn(일정.getId(), 요청("두 곡", List.of("보컬")), 참가자.getId());
 
         ConflictException e = assertThrows(ConflictException.class,
-                () -> songService.createIn(일정.getId(), 요청("세 곡", List.of(Part.VOCAL)), 참가자.getId()));
+                () -> songService.createIn(일정.getId(), 요청("세 곡", List.of("보컬")), 참가자.getId()));
         assertTrue(e.getMessage().contains("2곡까지"));
     }
 
@@ -97,11 +97,11 @@ class EventSongTest {
         일정.setMaxSongsPerUser(1);
         eventRepository.save(일정);
 
-        songService.createIn(일정.getId(), 요청("참가자 곡", List.of(Part.VOCAL)), 참가자.getId());
+        songService.createIn(일정.getId(), 요청("참가자 곡", List.of("보컬")), 참가자.getId());
 
         // 다른 사람은 아직 안 올렸으므로 통과해야 한다
         assertEquals(일정.getId(),
-                songService.createIn(일정.getId(), 요청("주최자 곡", List.of(Part.VOCAL)), 주최자.getId()).eventId());
+                songService.createIn(일정.getId(), 요청("주최자 곡", List.of("보컬")), 주최자.getId()).eventId());
     }
 
     @Test
@@ -110,20 +110,20 @@ class EventSongTest {
         Event 마감됨 = 일정만들기(LocalDate.now().minusDays(1));
 
         assertThrows(ConflictException.class,
-                () -> songService.createIn(마감됨.getId(), 요청("늦었다", List.of(Part.VOCAL)), 참가자.getId()));
+                () -> songService.createIn(마감됨.getId(), 요청("늦었다", List.of("보컬")), 참가자.getId()));
     }
 
     @Test
     @DisplayName("없는 일정에 올리면 404")
     void 없는_일정() {
         assertThrows(NotFoundException.class,
-                () -> songService.createIn(999_999L, 요청("허공에", List.of(Part.VOCAL)), 참가자.getId()));
+                () -> songService.createIn(999_999L, 요청("허공에", List.of("보컬")), 참가자.getId()));
     }
 
     @Test
     @DisplayName("일정을 지우면 그 안의 곡도 함께 사라진다")
     void 일정_삭제() {
-        SongResponse 곡 = songService.createIn(일정.getId(), 요청("같이 사라질 곡", List.of(Part.VOCAL)), 참가자.getId());
+        SongResponse 곡 = songService.createIn(일정.getId(), 요청("같이 사라질 곡", List.of("보컬")), 참가자.getId());
         songService.claimSlot(곡.id(), 곡.slots().get(0).id(), 참가자.getId(), false);
 
         // 활동 기록을 일부러 하나 남긴다.
@@ -134,7 +134,7 @@ class EventSongTest {
         // 실제로 기록이 쌓이는 경로가 이쪽이고, 테스트가 그 경로를 벗어나면
         // 테스트만 통과하고 운영에서 깨지는 상황이 생긴다.
         activityLogService.create(곡.id(),
-                new ActivityLogRequest("SLOT_CLAIMED", Part.VOCAL, "보컬 자리를 잡았습니다", null),
+                new ActivityLogRequest("SLOT_CLAIMED", "보컬", "보컬 자리를 잡았습니다", null),
                 참가자.getId());
 
         eventService.delete(일정.getId(), 주최자.getId());
@@ -149,7 +149,7 @@ class EventSongTest {
         return eventRepository.save(event);
     }
 
-    private SongRequest 요청(String 제목, List<Part> 파트) {
+    private SongRequest 요청(String 제목, List<String> 파트) {
         return new SongRequest(제목, "아티스트", null, null, 파트);
     }
 }

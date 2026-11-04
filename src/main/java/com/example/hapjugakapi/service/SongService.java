@@ -3,7 +3,7 @@ package com.example.hapjugakapi.service;
 import com.example.hapjugakapi.config.Viewer;
 import com.example.hapjugakapi.domain.Event;
 import com.example.hapjugakapi.domain.Member;
-import com.example.hapjugakapi.domain.Part;
+import com.example.hapjugakapi.domain.PartNames;
 import com.example.hapjugakapi.domain.Role;
 import com.example.hapjugakapi.domain.Slot;
 import com.example.hapjugakapi.domain.Song;
@@ -67,9 +67,8 @@ public class SongService {
                 proposer
         );
         if (request.parts() != null) {
-            for (Part part : request.parts()) {
-                song.addSlot(part);
-            }
+            song.syncParts(request.parts());
+        song.refreshCompletion();
         }
         return SongResponse.from(songRepository.save(song));
     }
@@ -105,12 +104,11 @@ public class SongService {
 
         // 파트를 안 적어 보내면 그 합주의 기본 편성을 그대로 쓴다.
         // 매번 같은 파트를 다시 고르게 하는 것은 일을 두 번 시키는 것이다.
-        Collection<Part> parts = (request.parts() == null || request.parts().isEmpty())
-                ? event.getDefaultParts()
+        Collection<String> parts = (request.parts() == null || request.parts().isEmpty())
+                ? PartNames.labelsOf(event.getDefaultParts())
                 : request.parts();
-        for (Part part : parts) {
-            song.addSlot(part);
-        }
+        song.syncParts(parts);
+        song.refreshCompletion();
         return SongResponse.from(songRepository.save(song));
     }
 
@@ -172,6 +170,7 @@ public class SongService {
         if (request.youtubeUrl() != null) song.setYoutubeUrl(request.youtubeUrl());
         if (request.description() != null) song.setDescription(request.description());
         song.syncParts(request.parts());
+        song.refreshCompletion();
         return SongResponse.from(song);
     }
 
@@ -227,6 +226,7 @@ public class SongService {
 
         Slot slot = findSlot(song, slotId);
         slot.claimBy(getMember(memberId), openToHandover);
+        song.refreshCompletion();
         return SongResponse.from(song);
     }
 
@@ -241,6 +241,7 @@ public class SongService {
             throw new ConflictException("이미 본인이 잡은 자리입니다.");
         }
         slot.takeOverBy(getMember(memberId));
+        song.refreshCompletion();
         return SongResponse.from(song);
     }
 
@@ -267,6 +268,7 @@ public class SongService {
 
         Slot slot = findSlot(song, slotId);
         slot.assignTo(targetMemberId == null ? null : getMember(targetMemberId), openToHandover);
+        song.refreshCompletion();
         return SongResponse.from(song);
     }
 
@@ -283,6 +285,7 @@ public class SongService {
             throw new ForbiddenException("본인이 잡은 자리만 뺄 수 있습니다.");
         }
         slot.release();
+        song.refreshCompletion();
         return SongResponse.from(song);
     }
 

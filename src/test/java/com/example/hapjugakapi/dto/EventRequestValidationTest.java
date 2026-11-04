@@ -112,6 +112,19 @@ class EventRequestValidationTest {
         assertTrue(메시지에_있나(위반, "참가비는 0원 이상이어야 합니다."));
     }
 
+    @Test
+    @DisplayName("1인당 곡 수 0은 「제한 없음」이라 통과한다")
+    void 곡수_제한없음() {
+        assertEquals(0, 검사(기본().maxSongsPerUser(0).build()).size());
+    }
+
+    @Test
+    @DisplayName("1인당 곡 수는 음수일 수 없다")
+    void 곡수_음수() {
+        assertTrue(메시지에_있나(검사(기본().maxSongsPerUser(-1).build()),
+                "한 사람당 곡 수는 0곡(제한 없음) 이상이어야 합니다."));
+    }
+
     private Set<ConstraintViolation<EventRequest>> 검사(EventRequest request) {
         return validator.validate(request);
     }
@@ -134,12 +147,14 @@ class EventRequestValidationTest {
         private LocalTime timeStart = LocalTime.of(19, 0);
         private LocalTime timeEnd = LocalTime.of(22, 0);
         private Integer feeAmount = 15000;
+        private Integer maxSongsPerUser = 2;
 
         Builder date(LocalDate v) { this.date = v; return this; }
         Builder deadline(LocalDate v) { this.deadline = v; return this; }
         Builder timeStart(LocalTime v) { this.timeStart = v; return this; }
         Builder timeEnd(LocalTime v) { this.timeEnd = v; return this; }
         Builder feeAmount(Integer v) { this.feeAmount = v; return this; }
+        Builder maxSongsPerUser(Integer v) { this.maxSongsPerUser = v; return this; }
 
         EventRequest build() {
             return new EventRequest(
@@ -147,7 +162,7 @@ class EventRequestValidationTest {
                     "서울", "사운드바이크 홍대점", "3번 스튜디오", "록",
                     feeAmount, "대관비 N빵",
                     "처음 오셔도 괜찮습니다", "근처에서 간단히",
-                    20, 2,
+                    20, maxSongsPerUser,
                     null, null, null, null
             );
         }

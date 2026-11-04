@@ -3,7 +3,6 @@ package com.example.hapjugakapi.service;
 import com.example.hapjugakapi.config.Viewer;
 import com.example.hapjugakapi.domain.Event;
 import com.example.hapjugakapi.domain.Member;
-import com.example.hapjugakapi.domain.Part;
 import com.example.hapjugakapi.dto.SongRequest;
 import com.example.hapjugakapi.dto.SongResponse;
 import com.example.hapjugakapi.exception.NotFoundException;
@@ -173,7 +172,7 @@ class InviteKeyTest {
 
     private void 자리잡기(Event event, Member member) {
         SongResponse song = songService.createIn(event.getId(),
-                new SongRequest("참가 확인용", "아티스트", null, null, List.of(Part.VOCAL)), 주최자.getId());
+                new SongRequest("참가 확인용", "아티스트", null, null, List.of("보컬")), 주최자.getId());
         songService.claimSlot(song.id(), song.slots().get(0).id(), member.getId(), false);
     }
 }

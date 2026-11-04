@@ -1,7 +1,6 @@
 package com.example.hapjugakapi.dto;
 
 import com.example.hapjugakapi.domain.ActivityLog;
-import com.example.hapjugakapi.domain.Part;
 
 import java.time.LocalDateTime;
 
@@ -11,7 +10,7 @@ public record ActivityLogResponse(
         Long actorId,
         String actorName,
         String songTitle,
-        Part part,
+        String part,
         String detail,
         String targetName,
         LocalDateTime createdAt

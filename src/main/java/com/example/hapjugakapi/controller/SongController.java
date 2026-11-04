@@ -1,7 +1,6 @@
 package com.example.hapjugakapi.controller;
 
 import com.example.hapjugakapi.config.Viewer;
-import com.example.hapjugakapi.domain.Part;
 import com.example.hapjugakapi.dto.SlotRequest;
 import com.example.hapjugakapi.dto.SongRequest;
 import com.example.hapjugakapi.dto.SongResponse;
@@ -74,7 +73,7 @@ public class SongController {
     @GetMapping
     public List<SongResponse> find(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Part openPart,
+            @RequestParam(required = false) String openPart,
             @RequestParam(required = false) Boolean candidateOnly,
             @RequestParam(required = false) Long eventId
     ) {

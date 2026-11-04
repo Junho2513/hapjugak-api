@@ -28,9 +28,13 @@ public class ActivityLog {
     @Column(length = 100)
     private String songTitle;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 20)
-    private Part part;
+    /**
+     * 어느 자리에 대한 기록인지. 이제 종류가 아니라 <b>이름</b>을 적는다.
+     * 직접 적은 파트(「색소폰」)도 기록에 남아야 하고,
+     * 나중에 그 자리가 사라져도 기록의 이름은 그대로 남아야 한다.
+     */
+    @Column(length = 30)
+    private String part;
 
     @Column(length = 200)
     private String detail;
@@ -52,7 +56,7 @@ public class ActivityLog {
         this.songTitle = song.getTitle();
     }
 
-    public void describe(Part part, String detail, String targetName) {
+    public void describe(String part, String detail, String targetName) {
         this.part = part;
         this.detail = detail;
         this.targetName = targetName;
@@ -89,7 +93,7 @@ public class ActivityLog {
         return songTitle;
     }
 
-    public Part getPart() {
+    public String getPart() {
         return part;
     }
 

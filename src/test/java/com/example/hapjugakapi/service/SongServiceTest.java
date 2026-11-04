@@ -3,7 +3,6 @@ package com.example.hapjugakapi.service;
 import com.example.hapjugakapi.config.Viewer;
 import com.example.hapjugakapi.domain.Event;
 import com.example.hapjugakapi.domain.Member;
-import com.example.hapjugakapi.domain.Part;
 import com.example.hapjugakapi.dto.SongRequest;
 import com.example.hapjugakapi.dto.SongResponse;
 import com.example.hapjugakapi.dto.SongSearchCondition;
@@ -55,7 +54,7 @@ class SongServiceTest {
 
     private SongResponse 곡만들기() {
         return songService.create(
-                new SongRequest("廻廻奇譚", "Eve", null, null, List.of(Part.VOCAL, Part.DRUM)),
+                new SongRequest("주저하는 연인들을 위해", "잔나비", null, null, List.of("보컬", "드럼")),
                 기타리스트.getId()
         );
     }
@@ -131,9 +130,9 @@ class SongServiceTest {
         songService.claimSlot(song.id(), song.slots().get(0).id(), 기타리스트.getId(), false);
 
         List<SongResponse> 드럼_빈곡 = songService.search(
-                new SongSearchCondition(null, Part.DRUM, null, null), Viewer.anonymous());
+                new SongSearchCondition(null, "드럼", null, null), Viewer.anonymous());
         List<SongResponse> 보컬_빈곡 = songService.search(
-                new SongSearchCondition(null, Part.VOCAL, null, null), Viewer.anonymous());
+                new SongSearchCondition(null, "보컬", null, null), Viewer.anonymous());
 
         assertEquals(1, 드럼_빈곡.size());
         assertEquals(0, 보컬_빈곡.size());
@@ -175,12 +174,12 @@ class SongServiceTest {
 
         SongResponse 바뀜 = songService.update(
                 song.id(),
-                new SongRequest(null, null, null, null, List.of(Part.BASS)),
+                new SongRequest(null, null, null, null, List.of("베이스")),
                 기타리스트.getId()
         );
 
         assertEquals(1, 바뀜.totalCount());
         assertEquals(0, 바뀜.filledCount());
-        assertEquals(Part.BASS, 바뀜.slots().get(0).part());
+        assertEquals("베이스", 바뀜.slots().get(0).label());
     }
 }

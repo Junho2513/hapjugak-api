@@ -2,7 +2,6 @@ package com.example.hapjugakapi.service;
 
 import com.example.hapjugakapi.config.Viewer;
 import com.example.hapjugakapi.domain.Member;
-import com.example.hapjugakapi.domain.Part;
 import com.example.hapjugakapi.dto.SongRequest;
 import com.example.hapjugakapi.dto.SongResponse;
 import com.example.hapjugakapi.dto.SongSearchCondition;
@@ -76,7 +75,7 @@ class SongQueryCountTest {
                     new Member("m" + i + "@test.com", "pw", "회원" + i, "서울", "")));
         }
 
-        List<Part> 편성 = List.of(Part.VOCAL, Part.GUITAR1, Part.BASS, Part.DRUM);
+        List<String> 편성 = List.of("보컬", "기타1", "베이스", "드럼");
 
         for (int i = 0; i < 곡수; i++) {
             Member 추천자 = 회원들.get(i % 회원수);

@@ -56,35 +56,21 @@
 .field input:disabled,.field select:disabled{opacity:.45;cursor:not-allowed}
 
 /* ---------- hero banner ---------- */
-/* 히어로만 라이트 모드에서도 어둡게 둔다. 무대 조명이 이 서비스의 얼굴이고,
-   흰 바탕에 올리면 그냥 빈 여백이 된다. 대신 그 안의 글자색은 배경을 따라가면
-   안 되므로 아래에서 따로 고정한다. */
-.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--rule);background:#0C0F17;color:#F2EEE8}
-.hero .sub{color:#A9A4AF}
-.hero .step{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.10);color:#F2EEE8}
-.hero .step-d{color:#A9A4AF}
-.hero .btn.ghost{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.18);color:#F2EEE8}
-.hero .btn.ghost:hover{background:rgba(255,255,255,.10)}
+/* 옛 히어로 배너의 규칙들은 지웁니다. 지금 그 자리는 「무대 밴드(.band)」가 대신하고,
+   마크업 어디에서도 class="hero" 를 쓰지 않습니다.
+   그냥 둘 수 없는 이유가 있습니다 — 성립 모션이 카드에 붙이는 이름이 .song.hero 입니다.
+   이름이 겹쳐서 모션이 도는 동안 카드가 흰 글자(#F2EEE8)가 되고,
+   overflow:hidden 이 떠오르는 그림자를 잘라냈습니다. */
 /* 관리자가 올린 사진을 밴드 바닥에 깝니다. 조명(::before)과 입자(::after)가
    그 위에 얹히도록 z-index 0 입니다. 사진이 없으면 그라데이션만 보입니다. */
 .band-bg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center;display:none}
 .band-bg.on{display:block}
 .band-bg.on::after{content:"";position:absolute;inset:0;background:rgba(10,9,12,.66)}
-.hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;display:none}
-.hero-bg.on{display:block}
-.hero-bg.on::after{content:"";position:absolute;inset:0;background:rgba(8,10,18,.72)}
-.hero-beams{position:absolute;inset:0;overflow:hidden;pointer-events:none}
-.hero-beams i{position:absolute;top:-80px;height:520px;display:block}
-.hero-bg.on ~ .hero-beams{opacity:.4}
-.hero-crowd{position:absolute;left:0;right:0;bottom:0;width:100%;height:88px;display:block;fill:#05070C;opacity:.9}
-.hero-inner{position:relative;z-index:1;text-align:center;padding:64px 20px 82px}
 
 h1.headline{
   font-weight:900;font-size:clamp(44px,7.4vw,74px);line-height:1.1;margin:0 0 20px;letter-spacing:.02em;
 }
 h1.headline em{font-style:normal;color:var(--accent)}
-.hero .sub{font-size:16px;color:var(--muted);margin:0 auto 30px;line-height:1.7;max-width:44ch}
-.hero .cta{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 .btn.big{padding:19px 34px;font-size:18px;font-weight:600;border-radius:12px;letter-spacing:-.01em}
 
 .steps{display:flex;align-items:stretch;justify-content:center;gap:10px;margin-top:42px;flex-wrap:wrap}
@@ -143,7 +129,14 @@ h2{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
 .tag.ok{background:var(--accent-soft);color:var(--accent)}
 .done .tag.ok{background:var(--done-tag);color:var(--done-tag-ink)}
 
-.song-desc{font-size:13.5px;color:var(--muted);margin-top:8px;line-height:1.6;white-space:pre-wrap}
+.song-desc{font-size:13.5px;color:var(--muted);margin-top:8px;line-height:1.6;white-space:pre-wrap;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+/* 펼친 상태 — 일정 설명과 곡 설명이 같이 씁니다. */
+.song-desc.open,.head3 .desc.open{display:block;-webkit-line-clamp:none;overflow:visible}
+.more-btn{margin-top:4px;padding:2px 8px;border:1px solid var(--rule-2);border-radius:999px;
+  background:var(--surface);color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;
+  cursor:pointer;line-height:1.5}
+.more-btn:hover{border-color:var(--accent);color:var(--accent)}
 .song-unset{margin-top:12px;padding:14px;border:1px dashed var(--rule-2);border-radius:var(--r-sm);
   display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .song-unset p{font-size:13.5px;color:var(--muted)}
@@ -847,8 +840,14 @@ header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1
   font-style:normal;font-size:12px;font-weight:700;color:#fff;background:var(--ink-2)}
 .pr .nm{flex:1;font-size:13.5px;font-weight:600;letter-spacing:-0.02em}
 .pr .pt{font-size:12px;color:var(--muted)}
-/* 목록에 그대로 놓이는 성립 카드 — 모션용(.face.done 은 절대배치) 과 구분 */
-.songs .face.done{position:static;clip-path:none;inset:auto}
+/* 목록에 그대로 놓이는 성립 카드 — 모션용(.face.done 은 절대배치) 과 구분.
+   static 이 아니라 relative 인 것이 중요합니다. static 이면 이 칸이 레일(절대배치)의
+   기준 상자가 아니게 되어, 칸의 overflow:hidden 이 레일을 잘라내지 못합니다.
+   그러면 왼쪽 세로 막대가 둥근 모서리를 뚫고 네모로 튀어나옵니다. */
+.songs .face.done{position:relative;clip-path:none;inset:auto}
+/* 다만 지금 막 성립해서 모션 중인 칸은 목업(motion2.css)대로 겹쳐 놓습니다. */
+.songs .song.hero .face.done{position:absolute;inset:0;z-index:2;clip-path:inset(0 100% 0 0)}
+.songs .song.hero .rail{transform:scaleY(0)}
 /* 커버 위 버튼 */
 .cover .acts .btn{height:46px;padding:0 18px 0 15px;border-radius:13px;font-size:14.5px;
   font-weight:700;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
@@ -911,7 +910,14 @@ input,select,textarea{font-family:inherit;font-size:15px}
 .mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
 body{overflow-x:hidden}
 
-.song-desc{font-size:13.5px;color:var(--muted);margin-top:8px;line-height:1.6;white-space:pre-wrap}
+.song-desc{font-size:13.5px;color:var(--muted);margin-top:8px;line-height:1.6;white-space:pre-wrap;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+/* 펼친 상태 — 일정 설명과 곡 설명이 같이 씁니다. */
+.song-desc.open,.head3 .desc.open{display:block;-webkit-line-clamp:none;overflow:visible}
+.more-btn{margin-top:4px;padding:2px 8px;border:1px solid var(--rule-2);border-radius:999px;
+  background:var(--surface);color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;
+  cursor:pointer;line-height:1.5}
+.more-btn:hover{border-color:var(--accent);color:var(--accent)}
 .song-unset{margin-top:12px;padding:14px;border:1px dashed var(--rule-2);border-radius:var(--r-sm);
   display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .song-unset p{font-size:13.5px;color:var(--muted)}
@@ -937,6 +943,85 @@ body{overflow-x:hidden}
 
 /* ════════ responsive.css (반드시 맨 마지막) ════════ */
 /* ══ 태블릿 가로 이하 — 사이드바를 아래로 ══════════════════ */
+
+/* ── 자리에 들어갈 때 고르는 두 가지 ──────────────────────────────
+   전에는 굵은 글씨 두 줄이 나란히 있을 뿐이라 무엇이 다른지 읽어야 알았습니다.
+   「열려 있음」은 점선, 「확정」은 꽉 찬 테두리로 모양 자체를 갈라둡니다. */
+.enter-pick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 4px}
+.enter-pick.one{grid-template-columns:1fr}
+.enter-opt{display:grid;gap:7px;justify-items:start;align-content:start;text-align:left;cursor:pointer;
+  padding:15px 15px 16px;border-radius:14px;background:var(--surface);
+  font-family:inherit;transition:border-color .15s,background .15s,box-shadow .15s}
+.enter-opt b{font-size:15px;font-weight:800;letter-spacing:-0.03em;color:var(--ink)}
+.enter-opt .eo-d{font-size:12.5px;line-height:1.6;color:var(--muted);letter-spacing:-0.01em}
+.eo-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none}
+.eo-ic svg{width:18px;height:18px}
+.enter-opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* 양도 가능 — 열려 있다는 뜻으로 점선 */
+.enter-opt.eo-free{border:1.5px dashed var(--rule-2)}
+.enter-opt.eo-free .eo-ic{background:var(--surface-2);color:var(--muted)}
+.enter-opt.eo-free:hover{border-color:var(--accent);background:var(--accent-soft)}
+.enter-opt.eo-free:hover .eo-ic{background:var(--surface);color:var(--accent)}
+
+/* 양도 불가능 — 잠갔다는 뜻으로 꽉 찬 테두리 */
+.enter-opt.eo-fixed{border:1.5px solid var(--rule-2)}
+.enter-opt.eo-fixed .eo-ic{background:var(--accent-soft);color:var(--accent)}
+.enter-opt.eo-fixed:hover{border-color:var(--accent);
+  box-shadow:0 2px 4px rgba(20,18,23,.06), 0 10px 24px rgba(20,18,23,.10)}
+
+/* ── 자리(파트) 고르개 ── */
+.partpick2{display:grid;gap:10px}
+.pp-presets{display:flex;flex-wrap:wrap;gap:6px}
+.pp-presets button{display:inline-flex;align-items:center;gap:5px;height:34px;padding:0 13px;
+  border-radius:999px;border:1px solid var(--rule-2);background:var(--surface);color:var(--ink-2);
+  font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:.14s}
+.pp-presets button:hover{border-color:var(--accent);color:var(--accent)}
+.pp-presets button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.pp-n{font-size:11px;font-weight:800;min-width:0}
+.pp-n:empty{display:none}
+.pp-add{display:flex;gap:6px}
+.pp-add input{flex:1;min-width:0;height:38px;padding:0 13px;border-radius:10px;
+  border:1px solid var(--rule);background:var(--surface);color:var(--ink);
+  font-family:inherit;font-size:13.5px}
+.pp-add input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,112,26,.14)}
+.pp-addbtn{height:38px;padding:0 15px;border-radius:10px;border:1px solid var(--rule-2);
+  background:var(--surface-2);color:var(--ink-2);font-family:inherit;font-size:13px;
+  font-weight:700;cursor:pointer;flex:none}
+.pp-addbtn:hover{border-color:var(--accent);color:var(--accent)}
+.pp-chosen{display:flex;flex-wrap:wrap;gap:6px;min-height:34px;align-items:center;
+  padding:9px 10px;border-radius:10px;background:var(--surface-2)}
+.pp-none{font-size:12.5px;color:var(--ph)}
+.pp-chip{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 4px 0 11px;
+  border-radius:999px;background:var(--surface);border:1px solid var(--rule-2);
+  font-size:12.5px;font-weight:600;color:var(--ink)}
+.pp-x{width:20px;height:20px;border-radius:50%;border:0;background:none;cursor:pointer;
+  color:var(--ph);font-family:inherit;font-size:14px;line-height:1;display:grid;place-items:center}
+.pp-x:hover{background:var(--rule);color:var(--ink)}
+.partpick2.dimmed{opacity:.45;pointer-events:none}
+
+/* ── 곡 카드 오른쪽 버튼 묶음. 이 규칙이 없어서 글자만 덩그러니 놓여 있었습니다. ── */
+.acts,.song-tools{display:flex;align-items:center;gap:8px;flex:none}
+.song-yt{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:8px;
+  background:#FF0033;color:#fff;font-size:12px;font-weight:700;white-space:nowrap;transition:background .15s}
+.song-yt:hover{background:#D9002B}
+.song-yt svg{width:11px;height:13px;flex:none}
+.song-edit{display:inline-flex;align-items:center;height:28px;padding:0 11px;border-radius:8px;
+  border:1px solid var(--rule);background:var(--surface);color:var(--muted);cursor:pointer;
+  font-family:inherit;font-size:12px;font-weight:600;white-space:nowrap;transition:.15s}
+.song-edit:hover{color:var(--ink);border-color:var(--rule-2);background:var(--surface-2)}
+
+/* ── 참가자 얼굴 ── */
+.pr img{width:30px;height:30px;border-radius:50%;object-fit:cover;flex:none;display:block}
+
+/* ── 끌어서 선택되는 범위. 버튼·로고·딱지 같은 것은 잡히지 않게 하고,
+      사람이 직접 쓴 글과 입력칸만 남깁니다. ── */
+body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
+input,textarea,select,option,[contenteditable="true"],
+.head3 .desc,.song-desc,.hint,.modal p,.mono{
+  -webkit-user-select:text;-moz-user-select:text;user-select:text}
+img,svg{-webkit-user-drag:none;user-drag:none}
+
 @media (max-width:1180px){
   .cols{grid-template-columns:1fr}
   .side{position:static;grid-template-columns:1fr 1fr;display:grid;gap:14px}
@@ -977,8 +1062,11 @@ body{overflow-x:hidden}
   .head3{padding:14px}
   .head3 .thumb{height:170px}
   .h3top{flex-direction:column;gap:14px}
-  .h3acts{width:100%}
-  .h3acts .btn{flex:1;justify-content:center}
+  /* 버튼이 네 개까지 늘어납니다. 한 줄에 욱여넣으면 글자가 상자를 뚫고 나갑니다.
+     줄을 바꾸게 두고, 한 칸이 너무 좁아지지 않도록 최소 폭을 줍니다. */
+  .h3acts{width:100%;flex-wrap:wrap;gap:6px}
+  .h3acts .btn{flex:1 1 calc(50% - 3px);min-width:0;justify-content:center;
+    padding:0 10px;font-size:13px;overflow:hidden;text-overflow:ellipsis}
   .head3 h1{font-size:22px}
   .h3kv{gap:14px}
   .h3kv .fill{flex:1 1 100%}
@@ -1005,6 +1093,14 @@ body{overflow-x:hidden}
   .song .pad,.songs .face .pad{padding-left:20px}
   .songs .rail{width:7px}
 
+  /* 곡 카드 — 제목·딱지·버튼을 한 줄에 다 넣으면 찌그러집니다.
+     제목이 한 줄, 딱지와 버튼이 그 아래 한 줄입니다. */
+  .songs .s1{flex-wrap:wrap;gap:8px}
+  .songs .s1 .t{flex:1 1 100%;min-width:0}
+  .songs .s1 h3{font-size:15.5px}
+  .songs .acts{order:3;margin-left:auto}
+  .songs .s1 .tag{order:2}
+
   .month{margin-top:18px}
   .past,[style*="repeat(3,1fr)"]{grid-template-columns:1fr !important}
 }
@@ -1015,6 +1111,7 @@ body{overflow-x:hidden}
 }
 @media (max-width:640px){
   .tools .btn{width:100%;justify-content:center}
+  .enter-pick{grid-template-columns:1fr}
 }
 </style>
 <script src="https://accounts.google.com/gsi/client" id="gis-script" async></script>
@@ -1194,18 +1291,47 @@ const GOOGLE_CLIENT_ID = "1012332237618-84qdq4jcvj9s7torlkqojjbss6n3j4kn.apps.go
 const BUILD = "0922-0642";
 console.log("합주각 빌드", BUILD);
 
-const PARTS = ["Vocal","Acoustic","Guitar1","Guitar2","Bass","Drum","Key1","Key2"];
-const VOCAL = "Vocal";
-const INSTRUMENTS = PARTS.filter(p => p !== VOCAL);
-const isKey = p => p === "Key1" || p === "Key2";
+/* 자리는 「이름」으로 다룹니다. 「보컬1」, 「기타2」, 「색소폰」처럼 적은 그대로입니다.
+   전에는 정해진 여덟 가지(Vocal…Key2) 중에서만 고를 수 있어서,
+   보컬이 둘인 곡도 색소폰이 들어가는 곡도 적을 수가 없었습니다. */
+const PART_PRESETS = ["보컬","통기타","기타","베이스","드럼","키보드"];
+
+/* 이름에서 악기 종류를 짐작합니다(서버의 PartNames 와 같은 규칙).
+   「기타2」도 「기타」와 같은 종류입니다. 모르는 이름은 null — 겹침을 따지지 않습니다. */
+const KIND_PREFIX = [
+  ["통기타","통기타"], ["어쿠스틱","통기타"], ["베이스","베이스"],
+  ["일렉기타","기타"], ["기타","기타"], ["드럼","드럼"], ["퍼커션","드럼"],
+  ["키보드","키보드"], ["건반","키보드"], ["신디","키보드"], ["피아노","키보드"],
+  ["보컬","보컬"], ["노래","보컬"]
+];
+function partKind(label){
+  const name = String(label || "").trim();
+  for (const [prefix, kind] of KIND_PREFIX) if (name.startsWith(prefix)) return kind;
+  return null;
+}
+
+/* 프로필의 악기 이름과 자리 종류를 잇습니다. */
+const KIND_INST = { "보컬":"보컬", "통기타":"통기타", "기타":"일렉기타",
+                    "베이스":"베이스기타", "드럼":"드럼", "키보드":"건반" };
+
 /* 한 곡에서 악기는 하나만 맡습니다. 예외 두 가지:
-   보컬은 악기와 겹칠 수 있고, 건반은 두 대를 함께 맡을 수 있습니다.
-   part 자리에 들어가려 할 때 걸리는 다른 파트 이름을, 없으면 null을 돌려줍니다. */
+   보컬은 악기와 겹칠 수 있고, 키보드는 두 대를 함께 맡을 수 있습니다.
+   종류를 모르는 자리(직접 적은 파트)끼리는 따지지 않습니다 —
+   막아야 할 것을 못 막는 쪽이, 멀쩡한 걸 막아버리는 쪽보다 낫습니다.
+   이 자리에 들어가려 할 때 걸리는 다른 자리 이름을, 없으면 null 을 돌려줍니다. */
 function heldInstrument(slots, part, uid){
-  if (part === VOCAL) return null;
-  return INSTRUMENTS.find(p =>
-    p !== part && slots?.[p] && slots[p].uid === uid && !(isKey(part) && isKey(p))
-  ) || null;
+  const kind = partKind(part);
+  if (!kind || kind === "보컬") return null;
+  for (const other in (slots || {})){
+    if (other === part) continue;
+    const v = slots[other];
+    if (!v || v.uid !== uid) continue;
+    const k2 = partKind(other);
+    if (!k2 || k2 === "보컬") continue;
+    if (kind === "키보드" && k2 === "키보드") continue;
+    return other;
+  }
+  return null;
 }
 const AREAS = ["서울","경기","인천","부산","대구","대전","광주","거제"];
 const MY_PARTS = ["보컬","통기타","일렉기타","베이스기타","드럼","건반"];
@@ -1300,10 +1426,12 @@ async function call(method, path, body){
 }
 
 /* ---------- 이름 번역 ---------- */
-const PART_TO_API = { Vocal:"VOCAL", Acoustic:"ACOUSTIC", Guitar1:"GUITAR1", Guitar2:"GUITAR2",
-                      Bass:"BASS", Drum:"DRUM", Key1:"KEY1", Key2:"KEY2" };
-const PART_FROM_API = {};
-for (const [ui, api] of Object.entries(PART_TO_API)) PART_FROM_API[api] = ui;
+/* 서버도 이제 자리를 이름으로 주고받습니다. 옮겨 적을 표가 필요 없습니다.
+   일정의 기본 편성(defaultParts)만 아직 종류(enum)라 이 표를 씁니다. */
+const DEFAULT_PART_LABEL = { VOCAL:"보컬", ACOUSTIC:"통기타", GUITAR1:"기타1", GUITAR2:"기타2",
+                             BASS:"베이스", DRUM:"드럼", KEY1:"키보드1", KEY2:"키보드2" };
+const DEFAULT_PART_API = {};
+for (const [api, label] of Object.entries(DEFAULT_PART_LABEL)) DEFAULT_PART_API[label] = api;
 
 const INST_TO_API = { "보컬":"VOCAL", "통기타":"ACOUSTIC", "일렉기타":"GUITAR",
                       "베이스기타":"BASS", "드럼":"DRUM", "건반":"KEY" };
@@ -1320,10 +1448,11 @@ function toUiSong(s){
   const slotId = {};
   const requiredParts = [];
   for (const sl of (s.slots || [])){
-    const p = PART_FROM_API[sl.part] || sl.part;
+    const p = sl.label || sl.part;
     requiredParts.push(p);
     slotId[p] = sl.id;
-    if (sl.taken) slots[p] = { uid:String(sl.memberId), name:sl.memberNickname, open:!!sl.openToHandover };
+    if (sl.taken) slots[p] = { uid:String(sl.memberId), name:sl.memberNickname,
+      photo: sl.memberPhotoUrl || "", open:!!sl.openToHandover };
   }
   return {
     id: String(s.id),
@@ -1337,6 +1466,7 @@ function toUiSong(s){
     proposerUid: String(s.proposerId),
     proposerName: s.proposerNickname || "",
     createdAt: msOf(s.createdAt),
+    completedAt: msOf(s.completedAt),
     _slotId: slotId
   };
 }
@@ -1361,7 +1491,7 @@ function toUiEvent(e){
     maxSongsPerUser: e.maxSongsPerUser || 0,
     visibility: (e.visibility || "PUBLIC").toLowerCase(),
     inviteKey: e.inviteKey || "",
-    defaultParts: (e.defaultParts || []).map(p => PART_FROM_API[p] || p),
+    defaultParts: (e.defaultParts || []).map(p => DEFAULT_PART_LABEL[p] || p),
     cover: e.coverUrl || "",
     tags: [],
     hostUid: String(e.hostId),
@@ -1403,7 +1533,7 @@ function toUiLog(l){
     actorUid: l.actorId == null ? "" : String(l.actorId),
     actorName: l.actorName || "",
     songTitle: l.songTitle || "",
-    part: l.part ? (PART_FROM_API[l.part] || l.part) : undefined,
+    part: l.part || undefined,
     detail: l.detail || undefined,
     targetName: l.targetName || undefined,
     ts: msOf(l.createdAt)
@@ -1431,7 +1561,7 @@ function toApiEvent(d){
   if (has(d, "roomCapacity")) body.roomCapacity = d.roomCapacity;
   if (has(d, "maxSongsPerUser")) body.maxSongsPerUser = d.maxSongsPerUser;
   if (has(d, "visibility")) body.visibility = String(d.visibility || "public").toUpperCase();
-  if (has(d, "defaultParts")) body.defaultParts = (d.defaultParts || []).map(p => PART_TO_API[p]).filter(Boolean);
+  if (has(d, "defaultParts")) body.defaultParts = (d.defaultParts || []).map(p => DEFAULT_PART_API[p]).filter(Boolean);
   if (has(d, "cover")) body.coverUrl = d.cover;
   if (has(d, "completed")) body.completed = d.completed;
   return body;
@@ -1654,7 +1784,7 @@ store = {
       artist: song.artist || null,
       youtubeUrl: song.youtube || null,
       description: song.description || null,
-      parts: (song.requiredParts || []).map(p => PART_TO_API[p]).filter(Boolean)
+      parts: (song.requiredParts || []).map(p => String(p).trim()).filter(Boolean)
     });
     await refreshSongs();
     return String(created.id);
@@ -1671,7 +1801,7 @@ store = {
     if (has(patch, "youtube")) body.youtubeUrl = patch.youtube;
     if (has(patch, "description")) body.description = patch.description;
     if (has(patch, "requiredParts"))
-      body.parts = (patch.requiredParts || []).map(p => PART_TO_API[p]).filter(Boolean);
+      body.parts = (patch.requiredParts || []).map(p => String(p).trim()).filter(Boolean);
     /* patch.slots 는 무시합니다. 편성에서 빠진 파트의 자리는 서버가 함께 정리합니다. */
     if (Object.keys(body).length) await call("PATCH", "/songs/" + songId, body);
     await refreshSongs();
@@ -1723,7 +1853,7 @@ store = {
   async addLog(songId, entry){
     await call("POST", `/songs/${songId}/logs`, {
       type: entry.type,
-      part: entry.part ? (PART_TO_API[entry.part] || null) : null,
+      part: entry.part || null,
       detail: entry.detail || null,
       targetName: entry.targetName || null
     });
@@ -2401,11 +2531,8 @@ function canSeeInList(e){
    훑기가 어려워집니다. 날짜·이름·빈 파트가 세로로 줄을 맞춰야
    "어디에 내 자리가 있나"를 눈으로 쓸어내리며 찾을 수 있습니다. */
 
-/* 파트 이름(Guitar1)과 프로필의 악기 이름(일렉기타)을 잇습니다. */
-const PART_INST = { Vocal:"보컬", Acoustic:"통기타", Guitar1:"일렉기타", Guitar2:"일렉기타",
-                    Bass:"베이스기타", Drum:"드럼", Key1:"건반", Key2:"건반" };
-const PART_SHORT = { Vocal:"보컬", Acoustic:"통기타", Guitar1:"기타1", Guitar2:"기타2",
-                     Bass:"베이스", Drum:"드럼", Key1:"건반1", Key2:"건반2" };
+/* 자리 이름(「기타2」)에 맞는 프로필의 악기 이름(「일렉기타」)을 찾습니다. */
+const instOf = label => KIND_INST[partKind(label)] || null;
 
 const myInstruments = () => new Set(myProfile?.parts || []);
 
@@ -2419,13 +2546,12 @@ function openParts(songs){
     count.set(pt, (count.get(pt) || 0) + 1);
   }));
   return [...count.entries()]
-    .map(([pt, n]) => ({ part: pt, n, mine: mine.has(PART_INST[pt]) }))
+    .map(([pt, n]) => ({ part: pt, n, mine: mine.has(instOf(pt)) }))
     .sort((a, b) => (b.mine - a.mine) || (b.n - a.n));
 }
 
 const SEGS = [
   { key:"open",  label:"모집 중" },
-  { key:"mine",  label:"내 자리 있음" },
   { key:"host",  label:"내 합주" },
   { key:"past",  label:"지난 합주" }
 ];
@@ -2471,10 +2597,15 @@ function renderCards(){
      날짜 미정은 어느 쪽이든 맨 위입니다 — 아직 잡는 중이라 눈이 가야 하는 쪽입니다. */
   const past = segKey === "past";
   list.sort((a, b) => {
+    /* 어느 칸에서든 이미 지난 합주는 아래로 내립니다.
+       「내 합주」에 9월이 11월보다 위에 오던 이유입니다. */
+    const ap = isPastEvent(a), bp = isPastEvent(b);
+    if (!past && ap !== bp) return ap ? 1 : -1;
     if (!a.date && !b.date) return 0;
     if (!a.date) return -1;
     if (!b.date) return 1;
-    return past ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date);
+    // 지난 것끼리는 최근이 위, 앞으로의 것끼리는 가까운 날이 위
+    return (past || ap) ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date);
   });
 
   if (!list.length){
@@ -2501,7 +2632,6 @@ function renderCards(){
   groups.forEach(g => {
     const head = el("div","month");
     head.append(el("b","", g.key === "미정" ? "날짜 미정" : `${Number(g.key.slice(5,7))}월`));
-    head.append(el("span","", `${g.items.length}개`));
     box.append(head);
 
     const sheet = el("div","sheet");
@@ -2551,7 +2681,7 @@ function eventRow(e){
     } else {
       parts.slice(0, 2).forEach(x => {
         const sp = el("span","op" + (x.mine ? " mine" : ""));
-        sp.append(document.createTextNode(PART_SHORT[x.part] || x.part + " "));
+        sp.append(document.createTextNode(x.part + " "));
         sp.append(el("b","", String(x.n)));
         open.append(sp);
       });
@@ -2662,7 +2792,7 @@ function renderBandNext(){
   box.append(dd);
   box.append(el("h4","", next.title));
   const row = el("div","row2");
-  myParts.slice(0,2).forEach(pt => row.append(el("span","mini on", PART_SHORT[pt] || pt)));
+  myParts.slice(0,2).forEach(pt => row.append(el("span","mini on", pt)));
   row.append(el("span","mini", `곡 ${songs.length}`));
   box.append(row);
   box.onclick = () => { location.hash = "#/e/" + next.id; };
@@ -2722,13 +2852,17 @@ store.watchSongs(list => {
    7. 상세 화면 + 파트 매트릭스
    ============================================================ */
 let unsubEvent = null, unsubSongs = null, curEvent = null, curSongs = [], prevDone = new Set();
+/* 모션은 「방금 전 화면」에서 출발해야 합니다. 직전에 그렸던 차례를 들고 있습니다. */
+let prevOrderIds = [];
+/* 성립 모션이 도는 동안에는 목록을 다시 그리지 않습니다. renderMatrix 를 보세요. */
+let motionPlaying = false;
 /* 지금 보고 있는 일정의 초대 키. 주소에서 왔습니다. 비공개 일정을 다시 물어볼 때 씁니다. */
 let curInviteKey = null;
 
 function openEvent(id, inviteKey){
   closeEvent();
   showView("event");
-  prevDone = new Set();
+  prevDone = new Set(); prevOrderIds = [];
   curInviteKey = inviteKey || null;
   // 캐시에 있으면 먼저 그려 둡니다. 없으면 잠깐 빈 화면이고, 곧 서버 응답이 채웁니다.
   curEvent = allEvents.find(e => e.id === id) || null;
@@ -2793,6 +2927,7 @@ function renderEventHead(e){
   const desc = $("#ev-desc");
   desc.textContent = e.description || "";
   desc.classList.toggle("hide", !e.description);
+  setupClamp(desc, desc.parentNode);
 
   /* 주최자·관리자 버튼. 링크 복사는 누구나 쓸 수 있습니다. */
   const acts = $("#ev-acts");
@@ -2876,6 +3011,145 @@ function entryClosed(){
   return todayISO() > curEvent.entryDeadline;
 }
 
+
+/* ── 상세 화면을 갈아끼울 때 함께 지워졌던 조각들입니다. 되살립니다. ── */
+const closedForMe = () => entryClosed() && !(isAdmin() || isEventHost());
+
+function closedMsg(what){
+  if (eventDone(curEvent)) return `합주가 끝난 일정이라 ${what}`;
+  return `${fmtDate(curEvent?.entryDeadline)}에 마감돼 ${what}`;
+}
+
+function passDeadline(what){
+  if (!entryClosed()) return true;
+  if (closedForMe()) return false;
+  const why = eventDone(curEvent)
+    ? "이미 합주 완료로 표시된 일정입니다."
+    : `${fmtDate(curEvent.entryDeadline)}에 곡 신청이 마감된 합주입니다.`;
+  return confirm(`${why}\n\n주최자·관리자 권한으로 ${what} 진행할까요?`);
+}
+
+function logIt(songId, type, extra){
+  if (!songId || !auth.user) return;
+  store.addLog(songId, {
+    type,
+    actorUid: auth.user.uid,
+    actorName: myProfile?.name || "이름없음",
+    ...extra
+  }).catch(() => {});
+}
+
+const LOG_TEXT = {
+  song_add:     e => `${e.actorName} 님이 «${e.songTitle}» 곡을 올렸습니다`,
+  song_edit:    e => `${e.actorName} 님이 «${e.songTitle}» 곡 정보를 고쳤습니다`,
+  song_delete:  e => `${e.actorName} 님이 «${e.songTitle}» 곡을 삭제했습니다`,
+  parts_fill:   e => `${e.actorName} 님이 «${e.songTitle}» 편성을 ${e.detail}(으)로 정했습니다`,
+  enter:        e => `${e.actorName} 님이 «${e.songTitle}» ${e.part}에 들어왔습니다${e.detail === "open" ? " (양도 가능)" : ""}`,
+  leave:        e => `${e.actorName} 님이 «${e.songTitle}» ${e.part} 자리를 비웠습니다`,
+  takeover:     e => `${e.actorName} 님이 «${e.songTitle}» ${e.part} 자리를 ${e.targetName} 님에게서 넘겨받았습니다`,
+  yield_on:     e => `${e.actorName} 님이 «${e.songTitle}» ${e.part}를 양도 가능으로 바꿨습니다`,
+  yield_off:    e => `${e.actorName} 님이 «${e.songTitle}» ${e.part}를 양도 불가능으로 바꿨습니다`,
+  moved_in:     e => `${e.actorName} 님이 이 곡을 «${e.detail}» 일정으로 보냈습니다`,
+  moved_out:    e => `${e.actorName} 님이 이 곡을 일정에서 빼냈습니다`,   // 옛 기록에만 남아 있습니다
+  admin_assign: e => `${e.actorName} 님이 «${e.songTitle}» ${e.part}에 ${e.targetName} 님을 넣었습니다`,
+  admin_clear:  e => `${e.actorName} 님이 «${e.songTitle}» ${e.part} 자리를 비웠습니다`,
+}
+
+function whenText(ts){
+  const diff = Date.now() - ts;
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "방금";
+  if (min < 60) return `${min}분 전`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}시간 전`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day}일 전`;
+  return new Date(ts).toLocaleDateString("ko-KR");
+}
+
+function enterModal(song, part, taken){
+  const takeover = !!taken;
+  modal(`
+    <h3>${esc(part)} 자리에 들어가기</h3>
+    <p class="hint">${esc(song.title)}${takeover
+      ? ` — ${esc(taken.name)} 님이 양도 가능으로 잡아둔 자리입니다. 넘겨받으면 그분은 자리에서 빠집니다.`
+      : ""}</p>
+    <div class="enter-pick">
+      <button class="enter-opt eo-free" id="en-open" type="button">
+        <span class="eo-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10.5" rx="2.6"/><path d="M8 10.5V7a4 4 0 0 1 7.4-2.1"/></svg></span>
+        <b>양도 가능</b>
+        <span class="eo-d">다른 사람이 자리를 언제든지 양도 받아 갈 수 있는 상태로 선점합니다.</span>
+      </button>
+      <button class="enter-opt eo-fixed" id="en-lock" type="button">
+        <span class="eo-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10.5" rx="2.6"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></span>
+        <b>양도 불가능</b>
+        <span class="eo-d">자리를 확정합니다. 내가 직접 자리를 취소하기 전까지는 아무도 가져갈 수 없습니다.</span>
+      </button>
+    </div>
+    <div class="err" id="en-err"></div>
+    <div class="modal-actions"><button class="btn ghost" id="en-cancel">취소</button></div>`, root => {
+    root.querySelector("#en-cancel").onclick = closeModal;
+    const go = async open => {
+      try {
+        await store.enterSlot(song.id, part, me(), open);
+        logIt(song.id, takeover ? "takeover" : "enter", { songTitle: song.title, part,
+          targetName: takeover ? taken.name : "",
+          detail: open ? "open" : "lock"
+        });
+        closeModal();
+        toast(`${part}에 들어갔습니다${open ? " · 양도 가능" : ""}`);
+      } catch(e){ console.error(e); root.querySelector("#en-err").textContent = errText(e); }
+    };
+    root.querySelector("#en-open").onclick = () => go(true);
+    root.querySelector("#en-lock").onclick = () => go(false);
+  });
+}
+
+function mySlotModal(song, part){
+  const cur = song.slots?.[part];
+  if (!cur) return;
+  if (closedForMe()){
+    toast(closedMsg("자리를 바꿀 수 없습니다")); return;
+  }
+  if (!passDeadline("자리 변경을")) return;
+  modal(`
+    <h3>내 ${esc(part)} 자리</h3>
+    <p class="hint">${esc(song.title)} — 지금은 <b>${cur.open ? "양도 가능" : "양도 불가능"}</b> 상태입니다.</p>
+    <div class="enter-pick one">
+      <button class="enter-opt ${cur.open ? "eo-fixed" : "eo-free"}" id="my-toggle" type="button">
+        <span class="eo-ic">${cur.open ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10.5" rx="2.6"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>` : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10.5" width="16" height="10.5" rx="2.6"/><path d="M8 10.5V7a4 4 0 0 1 7.4-2.1"/></svg>`}</span>
+        <b>${cur.open ? "양도 불가능으로 바꾸기" : "양도 가능으로 바꾸기"}</b>
+        <span class="eo-d">${cur.open
+          ? "자리를 확정합니다. 내가 직접 자리를 취소하기 전까지는 아무도 가져갈 수 없습니다."
+          : "다른 사람이 자리를 언제든지 양도 받아 갈 수 있는 상태가 됩니다."}</span>
+      </button>
+    </div>
+    <div class="err" id="my-err"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="my-leave" style="margin-right:auto;color:var(--danger)">자리 비우기</button>
+      <button class="btn ghost" id="my-cancel">닫기</button>
+    </div>`, root => {
+    const err = root.querySelector("#my-err");
+    root.querySelector("#my-cancel").onclick = closeModal;
+    root.querySelector("#my-toggle").onclick = async () => {
+      try {
+        await store.enterSlot(song.id, part, me(), !cur.open);
+        logIt(song.id, cur.open ? "yield_off" : "yield_on", {songTitle: song.title, part});
+        closeModal();
+        toast(cur.open ? "양도 불가능으로 바꿨습니다" : "양도 가능으로 바꿨습니다");
+      } catch(e){ console.error(e); err.textContent = errText(e); }
+    };
+    root.querySelector("#my-leave").onclick = async () => {
+      try {
+        await store.leaveSlot(song.id, part, auth.user.uid);
+        logIt(song.id, "leave", {songTitle: song.title, part});
+        closeModal();
+        toast(`${part} 자리를 비웠습니다`);
+      } catch(e){ console.error(e); err.textContent = errText(e); }
+    };
+  });
+}
+
 async function claimSlot(song, part, taken, mine){
   if (!requireLogin()) return;
   if (mine){ mySlotModal(song, part); return; }
@@ -2949,20 +3223,11 @@ function songTools(song){
     a.className = "song-yt"; a.href = song.youtube;
     a.target = "_blank"; a.rel = "noopener noreferrer";
     a.title = "유튜브에서 원곡 열기";
-    a.append(el("i","","▶"), document.createTextNode("YouTube"));
+    a.innerHTML = '<svg viewBox="0 0 12 14" aria-hidden="true" focusable="false">'
+      + '<path d="M1.5 1.3 11 7l-9.5 5.7V1.3Z" fill="currentColor"/></svg>';
+    a.append(document.createTextNode("YouTube"));
     tools.append(a);
   }
-  if (isDone(song)){
-    const locked = !!song.eventId && !canMoveSong(song);
-    const mv = el("button","song-edit move-btn" + (locked ? " move-locked" : ""),
-      song.eventId ? "일정 바꾸기" : "일정으로 보내기");
-    mv.title = locked
-      ? "합주가 끝난 일정의 곡은 주최자와 관리자만 옮길 수 있습니다"
-      : "성립한 곡을 합주 일정에 배정합니다";
-    mv.onclick = () => moveModal(song);
-    tools.append(mv);
-  }
-
   const log = el("button","song-edit","로그");
   log.title = "이 곡의 변경 기록 보기";
   log.onclick = () => logModal(song);
@@ -2977,28 +3242,13 @@ function songTools(song){
   return tools;
 }
 
-/* 파트 이름을 그 곡의 편성에 맞춰 짧게 씁니다.
-   기타가 하나뿐이면 「기타1」이 아니라 「기타」입니다. 번호는 둘 이상일 때만 뜻이 있습니다. */
-function partLabels(req){
-  const has = p => req.includes(p);
-  return {
-    Vocal:"보컬", Acoustic:"통기타",
-    Guitar1: has("Guitar2") ? "기타1" : "기타",
-    Guitar2: "기타2",
-    Bass:"베이스", Drum:"드럼",
-    Key1: has("Key2") ? "키보드1" : "키보드",
-    Key2: "키보드2"
-  };
-}
-
 /* 파트 칸. 모집하지 않는 파트는 아예 그리지 않습니다 —
    예전에는 빗금으로 남겨뒀는데, 칸이 길어지기만 하고 읽을 것은 없었습니다. */
 function songSlots(song){
   const box = el("div","slots");
   const req = song.requiredParts || [];
-  const label = partLabels(req);
 
-  PARTS.filter(p => req.includes(p)).forEach(p => {
+  req.forEach(p => {
     const taken = song.slots?.[p];
     const mine = taken && auth.user && taken.uid === auth.user.uid;
     const held = (!taken && auth.user) ? heldInstrument(song.slots, p, auth.user.uid) : null;
@@ -3007,7 +3257,7 @@ function songSlots(song){
     const cls = mine ? "chip on mine" : taken ? "chip on" : held ? "chip locked" : "chip open";
     const c = el("span", cls);
     if (taken) c.append(el("span","dot"));
-    c.append(document.createTextNode(label[p] || p));
+    c.append(document.createTextNode(p));
     if (taken){
       const em = el("em","", taken.name);
       if (yieldable) em.append(el("span","yield-mark","⇄"));
@@ -3022,12 +3272,12 @@ function songSlots(song){
     c.setAttribute("role","button");
     c.tabIndex = 0;
     c.title = managing
-      ? `${label[p]} 자리에 사람을 넣거나 빼기`
-      : mine ? `내 자리 · ${taken.open ? "양도 가능" : "양도 불가"} · 눌러서 바꾸기`
+      ? `${p} 자리에 사람을 넣거나 빼기`
+      : mine ? `내 자리 · ${taken.open ? "양도 가능" : "양도 불가능"} · 눌러서 바꾸기`
       : taken ? (taken.open
           ? `${taken.name} 님이 양도 가능으로 잡아둔 자리입니다. 눌러서 넘겨받기`
           : `${taken.name} 님이 맡았습니다`)
-      : held ? `${held}을 맡고 있어 다른 악기는 들어갈 수 없습니다` : `${label[p]} 자리에 들어가기`;
+      : held ? `${held}을 맡고 있어 다른 악기는 들어갈 수 없습니다` : `${p} 자리에 들어가기`;
 
     const act = () => {
       if (managing){ slotAdminModal(song, p); return; }
@@ -3048,6 +3298,147 @@ function songBadge(song, done){
   const req = song.requiredParts || [];
   const left = req.filter(p => !song.slots?.[p]).length;
   return done ? el("span","tag ok","각 나왔습니다") : el("span","tag", `${left}자리 남음`);
+}
+
+/* ── 자리(파트) 고르기 ────────────────────────────────────────────
+   같은 파트를 여러 명 모집하는 일과, 목록에 없는 악기를 적는 일을
+   한 가지 방법으로 처리합니다 — 누르면 늘어나고, 늘어나면 번호가 붙습니다.
+
+     [보컬] 한 번  → 보컬
+     [보컬] 두 번  → 보컬1, 보컬2        (먼저 있던 것에도 번호가 붙습니다)
+     하나를 빼면   → 다시 보컬           (번호는 둘 이상일 때만 뜻이 있습니다)
+
+   직접 적은 이름도 똑같이 굴러갑니다. 색소폰을 두 번 누르면 색소폰1·색소폰2 입니다. */
+/* 새 곡을 올릴 때 미리 채워둘 자리. 그 합주의 기본 편성을 씁니다.
+   정해둔 것이 없으면 밴드 한 팀 분량으로 시작합니다. */
+function defaultPartsOf(e){
+  const d = (e && e.defaultParts) || [];
+  return d.length ? d.slice() : ["보컬","기타","베이스","드럼"];
+}
+
+const PART_MAX = 12;
+const baseName = label => String(label).replace(/\s*\d+$/, "").trim();
+
+function partPicker(initial){
+  let list = (initial || []).map(x => String(x).trim()).filter(Boolean);
+
+  const wrap   = el("div","partpick2");
+  const presets= el("div","pp-presets");
+  const chosen = el("div","pp-chosen");
+  const addRow = el("div","pp-add");
+  const input  = document.createElement("input");
+  input.type = "text"; input.maxLength = 20; input.placeholder = "직접 적기 — 색소폰, 코러스 …";
+  const addBtn = el("button","pp-addbtn","추가"); addBtn.type = "button";
+  const note   = el("p","ava-note","같은 파트를 두 번 누르면 번호가 붙습니다. 보컬·기타가 둘 이상일 때 이렇게 씁니다.");
+
+  /* 번호는 여기 한 곳에서만 매깁니다.
+     하나뿐이면 번호를 떼고(「보컬」), 둘 이상이면 보이는 차례대로 1부터 다시 답니다.
+     그래야 가운데 하나를 빼도 「보컬2, 보컬3」 같은 것이 남지 않습니다. */
+  const tidy = () => {
+    const total = {};
+    list.forEach(x => { const b = baseName(x); total[b] = (total[b] || 0) + 1; });
+    const seen = {};
+    list = list.map(x => {
+      const b = baseName(x);
+      if (total[b] === 1) return b;
+      seen[b] = (seen[b] || 0) + 1;
+      return b + seen[b];
+    });
+  };
+
+  const add = raw => {
+    const name = baseName(raw);
+    if (!name) return "이름을 적어주세요.";
+    if (name.length > 20) return "파트 이름은 20자까지 쓸 수 있습니다.";
+    if (/[<>]/.test(name)) return "파트 이름에 쓸 수 없는 글자가 있습니다.";
+    if (list.length >= PART_MAX) return `자리는 ${PART_MAX}개까지 만들 수 있습니다.`;
+
+    /* 같은 종류가 이미 있으면 그 옆에 붙입니다. 맨 뒤에 붙이면
+       보컬1 … 드럼 … 보컬2 처럼 흩어져서 읽기 어렵습니다. */
+    let at = -1;
+    list.forEach((x, i) => { if (baseName(x) === name) at = i; });
+    if (at < 0) list.push(name); else list.splice(at + 1, 0, name);
+    tidy();
+    paint();
+    return null;
+  };
+
+  const paint = () => {
+    chosen.innerHTML = "";
+    if (!list.length){
+      chosen.append(el("span","pp-none","아직 고른 자리가 없습니다."));
+    } else {
+      list.forEach((label, i) => {
+        const c = el("span","pp-chip");
+        c.append(document.createTextNode(label));
+        const x = el("button","pp-x","×");
+        x.type = "button"; x.title = `${label} 빼기`;
+        x.onclick = () => { list.splice(i,1); tidy(); paint(); };
+        c.append(x);
+        chosen.append(c);
+      });
+    }
+    presets.querySelectorAll("button").forEach(b => {
+      const n = list.filter(x => baseName(x) === b.dataset.name).length;
+      b.classList.toggle("on", n > 0);
+      b.querySelector(".pp-n").textContent = n > 1 ? String(n) : "";
+    });
+  };
+
+  PART_PRESETS.forEach(name => {
+    const b = el("button","");
+    b.type = "button"; b.dataset.name = name;
+    b.append(document.createTextNode(name));
+    b.append(el("span","pp-n",""));
+    b.title = `${name} 자리 추가 (다시 누르면 하나 더)`;
+    b.onclick = () => { const msg = add(name); if (msg) toast(msg); };
+    presets.append(b);
+  });
+
+  const submit = () => {
+    const msg = add(input.value);
+    if (msg){ toast(msg); return; }
+    input.value = "";
+    input.focus();
+  };
+  addBtn.onclick = submit;
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter"){ e.preventDefault(); submit(); }
+  });
+
+  addRow.append(input, addBtn);
+  wrap.append(presets, addRow, chosen, note);
+  tidy();      // 미리 채워둔 것도 번호 규칙을 따르게 합니다
+  paint();
+
+  return {
+    el: wrap,
+    get: () => list.slice(),
+    setDisabled: off => {
+      wrap.classList.toggle("dimmed", off);
+      wrap.querySelectorAll("button,input").forEach(x => x.disabled = off);
+    }
+  };
+}
+
+/* 글이 접힌 칸보다 길면 「…더보기」를 붙입니다.
+   길이를 글자 수로 재면 줄바꿈과 화면 폭에 따라 틀립니다. 실제로 잘렸는지만 봅니다. */
+function setupClamp(elm, host){
+  if (!elm || !host) return;
+  host.querySelector(".more-btn")?.remove();
+  elm.classList.remove("open");
+  if (!elm.textContent.trim()) return;
+  const check = () => {
+    if (elm.scrollHeight - elm.clientHeight < 4) return;      // 잘리지 않았습니다
+    const b = el("button","more-btn","…더보기");
+    b.type = "button";
+    b.onclick = () => {
+      const open = elm.classList.toggle("open");
+      b.textContent = open ? "접기" : "…더보기";
+    };
+    elm.after(b);
+  };
+  requestAnimationFrame(check);
 }
 
 function songCard(song, done){
@@ -3081,7 +3472,11 @@ function songCard(song, done){
   if (tools.childElementCount){ tools.className = "acts"; s1.append(tools); }
   pad.append(s1);
 
-  if (song.description) pad.append(el("p","song-desc", song.description));
+  if (song.description){
+    const d = el("p","song-desc", song.description);
+    pad.append(d);
+    requestAnimationFrame(() => setupClamp(d, pad));
+  }
 
   if (isUnset(song)){
     const panel = el("div","song-unset");
@@ -3102,69 +3497,12 @@ function songCard(song, done){
 /* 일정을 옮길 수 있는지 판단합니다.
    보통은 로그인한 사람 누구나 가능하지만, 이미 합주를 마친 일정에 속한 곡은
    그 일정의 주최자와 관리자만 건드릴 수 있습니다. */
-function movableInto(e){
-  if (!e || !eventDone(e)) return true;
-  return !!auth.user && (e.hostUid === auth.user.uid || isAdmin());
-}
-function canMoveSong(song){
-  if (!auth.user) return false;
-  const cur = song.eventId ? allEvents.find(e => e.id === song.eventId) : null;
-  return movableInto(cur);
-}
+
+
 
 /* 곡을 다른 일정으로 옮깁니다.
    곡은 반드시 어느 일정엔가 속하므로 "빼내기"는 없습니다. 옮기거나, 지우거나입니다. */
-function moveModal(song){
-  if (!requireLogin()) return;
-  if (!canMoveSong(song)){
-    toast("합주가 끝난 일정의 곡은 주최자와 관리자만 옮길 수 있습니다");
-    return;
-  }
-  const today = todayISO();
-  const list = allEvents
-    .filter(e => !e.date || e.date >= today || eventDone(e) || e.id === song.eventId)
-    .sort((a,b) => (a.date || "").localeCompare(b.date || ""));
-  const cur = song.eventId ? allEvents.find(e => e.id === song.eventId) : null;
 
-  modal(`
-    <h3>다른 일정으로 옮기기</h3>
-    <p class="hint">${esc(song.title)}${cur ? ` — 지금은 «${esc(cur.title)}»에 들어 있습니다.` : ""}
-      ${eventDone(cur) ? "합주가 끝난 일정이라 주최자와 관리자만 옮길 수 있습니다." : ""}</p>
-    ${list.length
-      ? `<div class="field"><label>보낼 일정</label><div class="move-list" id="mv-list"></div></div>`
-      : `<div class="empty-note">예정된 합주 일정이 없습니다. 먼저 합주를 열어주세요.</div>`}
-    <div class="err" id="mv-err"></div>
-    <div class="modal-actions">
-      <button class="btn ghost" id="mv-cancel">닫기</button>
-    </div>`, root => {
-    root.querySelector("#mv-cancel").onclick = closeModal;
-    const err = root.querySelector("#mv-err");
-
-    const apply = async (eventId, label) => {
-      try {
-        await store.updateSong(song.id, {eventId});
-        logIt(song.id, "moved_in", {songTitle: song.title, detail: label});
-        closeModal();
-        toast(`«${label}»(으)로 옮겼습니다`);
-      } catch(e){ console.error(e); err.textContent = errText(e); }
-    };
-
-    const box = root.querySelector("#mv-list");
-    list.forEach(e => {
-      const locked = !movableInto(e);
-      const b = el("button","move-item");
-      b.type = "button";
-      b.disabled = e.id === song.eventId || locked;
-      b.append(el("b","",e.title));
-      b.append(el("span","",`${e.date ? fmtDate(e.date) : "날짜 미정"} · ${e.region||"지역 미정"} · ${[e.studio,e.room].filter(Boolean).join(" ")||"합주실 미정"}`));
-      if (e.id === song.eventId) b.append(el("span","move-now","현재 일정"));
-      else if (eventDone(e)) b.append(el("span","move-now", locked ? "합주 완료 · 주최자만" : "합주 완료"));
-      if (!b.disabled) b.onclick = () => apply(e.id, e.title);
-      box?.append(b);
-    });
-
-  });
-}
 
 /* 이 일정으로 바로 들어오는 주소를 만듭니다.
    비공개 일정은 초대 키가 붙습니다. 키가 없으면 받은 사람이 404 를 봅니다. */
@@ -3297,6 +3635,14 @@ function renderMemories(){
 
 function renderMatrix(){
   if (!curEvent) return;
+
+  /* 성립 모션이 도는 중에는 다시 그리지 않습니다.
+     서버의 「바뀌었다」 알림 한 번에 이 함수가 여러 번 불립니다. 그때마다 목록을
+     통째로 새로 만들면 방금 시작한 모션이 중간에 지워집니다 — 물들다 말거나
+     올라가다 끊겨 보이던 것이 이것 때문이었습니다(2초 동안 네 번 불렸습니다).
+     모션이 끝나면 스스로 다시 그리므로, 여기서 건너뛰어도 최신 내용을 놓치지 않습니다. */
+  if (motionPlaying) return;
+
   const box = $("#songs");
   box.innerHTML = "";
 
@@ -3333,30 +3679,68 @@ function renderMatrix(){
     return;
   }
 
-  const done = curSongs.filter(isDone);
-  const unset = curSongs.filter(isUnset);
-  // 모집 중인 곡은 자리가 적게 남은 순으로 — 곧 성립될 곡이 위로 옵니다.
-  const open = curSongs.filter(sg => !isUnset(sg) && !isDone(sg)).sort((a,b) => {
-    const left = sg => (sg.requiredParts||[]).filter(p => !sg.slots?.[p]).length;
-    return left(a) - left(b);
-  });
+  const byMade = (a,b) => (a.createdAt || 0) - (b.createdAt || 0) || String(a.id).localeCompare(String(b.id));
+
+  /* 성립한 곡은 「먼저 성립한 것이 위」입니다. 올린 순서가 아닙니다 —
+     나중에 올린 곡이 먼저 성립했는데 저 아래 남아 있으면 찾기 어렵습니다.
+     성립이 풀리면 서버가 그 시각을 지우므로, 다시 성립하면 맨 아래로 붙습니다. */
+  const done = curSongs.filter(isDone)
+    .sort((a,b) => (a.completedAt || a.createdAt || 0) - (b.completedAt || b.createdAt || 0)
+                   || byMade(a,b));
+
+  /* 아직 모집 중인 곡과 편성 미정인 곡은 올린 순서대로입니다. */
+  const unset = curSongs.filter(isUnset).sort(byMade);
+  const open  = curSongs.filter(sg => !isUnset(sg) && !isDone(sg)).sort(byMade);
 
   /* 성립한 곡이 위, 그다음 자리 빈 곡, 편성 미정이 아래.
      구역 제목을 따로 두지 않습니다 — 레일과 바탕색만으로 이미 구분됩니다. */
   const ordered = [...done, ...open, ...unset];
-  const newlyDone = done.filter(sg => prevDone.size && !prevDone.has(sg.id)).map(sg => sg.id);
+  /* 이 화면을 한 번이라도 그린 적이 있어야 「방금 바뀐 것」을 따질 수 있습니다.
+     전에는 prevDone.size 로 판단했는데, 그러면 성립한 곡이 하나도 없던 상태에서
+     첫 곡이 성립할 때 모션이 통째로 걸러졌습니다 — 곡이 둘뿐일 때 특히 자주 걸립니다. */
+  const firstPaint = prevOrderIds.length === 0;
+  const newlyDone = firstPaint ? []
+    : done.filter(sg => !prevDone.has(sg.id)).map(sg => sg.id);
 
-  ordered.forEach(sg => box.append(songCard(sg, isDone(sg))));
+  /* 자리가 빠져서 성립이 풀린 곡 — 올라갔던 것이 내려와야 합니다. */
+  const undone = firstPaint ? []
+    : curSongs.filter(sg => prevDone.has(sg.id) && !isDone(sg)).map(sg => sg.id);
+
+  /* 바뀐 곡이 딱 하나일 때만 모션을 겁니다.
+     「성립 직전(또는 직후) 화면」을 먼저 그려놓고 거기서 출발합니다.
+     - 그 곡은 예전에 있던 자리에 그대로 두고
+     - 아직 물들지 않은 모습(.face.base)으로 그립니다
+     모션이 끝나면 제자리를 찾아 다시 그립니다. */
+  let heroId = null, heroMode = null, drawn = ordered;
+  if (prevOrderIds.length && newlyDone.length === 1 && undone.length === 0){
+    heroId = newlyDone[0]; heroMode = "done";
+  } else if (prevOrderIds.length && undone.length === 1 && newlyDone.length === 0){
+    heroId = undone[0]; heroMode = "undone";
+  }
+  if (heroId){
+    const byId = new Map(curSongs.map(sg => [sg.id, sg]));
+    const kept = prevOrderIds.map(id => byId.get(id)).filter(Boolean);
+    const extra = curSongs.filter(sg => !prevOrderIds.includes(sg.id));
+    drawn = [...kept, ...extra];
+  }
+
+  drawn.forEach(sg => box.append(songCard(sg, isDone(sg) && sg.id !== heroId)));
 
   $("#songs-count").textContent =
     `${curSongs.length}곡` + (done.length ? ` · ${done.length}곡 각 나옴` : "");
 
   prevDone = new Set(done.map(sg => sg.id));
+  prevOrderIds = drawn.map(sg => sg.id);
   renderRoster();
   renderEventFeed();
 
   // 방금 성립한 곡이 있으면 그 칸에 모션을 겁니다.
-  newlyDone.forEach(id => playDoneMotion(box.querySelector(`[data-song-id="${id}"]`)));
+  if (heroId){
+    const card = box.querySelector(`[data-song-id="${heroId}"]`);
+    const song = curSongs.find(sg => sg.id === heroId);
+    playSongMotion(card, song, heroMode, planMoves(box, drawn, ordered),
+      () => { prevOrderIds = ordered.map(sg => sg.id); renderMatrix(); });
+  }
 }
 
 /* 이 합주의 활동. 올라온 곡을 최근 순으로 보여줍니다. */
@@ -3383,19 +3767,27 @@ function renderRoster(){
   const map = new Map();
   curSongs.forEach(sg => Object.entries(sg.slots||{}).forEach(([pt,v]) => {
     if (!v) return;
-    const cur = map.get(v.uid) || {name:v.name, parts:new Set(), n:0};
+    const cur = map.get(v.uid) || {name:v.name, photo:v.photo || "", parts:new Set(), n:0};
+    if (!cur.photo && v.photo) cur.photo = v.photo;
     cur.parts.add(pt); cur.n++; map.set(v.uid, cur);
   }));
   const box = $("#roster"); box.innerHTML = "";
   $("#roster-n").textContent = map.size || "";
   if (!map.size){ box.append(el("div","fi","아직 아무도 자리를 잡지 않았습니다.")); return; }
 
-  const label = partLabels([...new Set(curSongs.flatMap(sg => sg.requiredParts || []))]);
   [...map.values()].sort((a,b) => b.n - a.n).forEach(person => {
     const r = el("div","pr");
-    r.append(el("i","", (person.name || "?").slice(0,1)));
+    if (person.photo){
+      const img = document.createElement("img");
+      img.src = person.photo; img.alt = ""; img.loading = "lazy";
+      /* 사진이 깨지면 첫 글자 동그라미로 되돌립니다. */
+      img.onerror = () => img.replaceWith(el("i","", (person.name || "?").slice(0,1)));
+      r.append(img);
+    } else {
+      r.append(el("i","", (person.name || "?").slice(0,1)));
+    }
     r.append(el("span","nm", person.name));
-    r.append(el("span","pt", [...person.parts].map(pt => label[pt] || pt).join(" · ")));
+    r.append(el("span","pt", [...person.parts].join(" · ")));
     box.append(r);
   });
 }
@@ -3409,76 +3801,175 @@ function renderRoster(){
    글자색은 건드리지 않습니다.
 
    움직임을 줄이도록 설정한 사람에게는 모션 없이 결과만 보여줍니다. */
-function playDoneMotion(card){
-  if (!card) return;
-  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+/* 지금 그려진 차례(drawn)에서 제자리 차례(ordered)로 갈 때
+   각 칸이 세로로 몇 px 움직여야 하는지 미리 계산합니다.
 
-  const face = card.querySelector(".face.done");
-  const rail = card.querySelector(".rail");
-  if (!face || !rail) return;
+   전에는 성립한 칸을 무조건 맨 위로 올렸습니다. 그런데 차례 규칙은
+   「성립 곡이 먼저, 그 안에서는 원래 올린 차례」입니다. 늦게 올린 곡이 성립하면
+   맨 위가 아니라 성립 곡 묶음의 끝으로 가야 하는데, 맨 위까지 올라갔다가
+   다시 내려오는 일이 생겼습니다. 그래서 갈 자리를 먼저 따져봅니다.
 
-  const SMOOTH = "cubic-bezier(.19,.85,.22,1)";
-  const DRAW   = "cubic-bezier(.32,.72,.26,1)";
+   움직임이 0인 칸은 아예 건드리지 않습니다 — 성립해도 제자리인 곡이 있습니다. */
+function planMoves(box, drawn, ordered){
+  const GAP = 12;
+  const els = [...box.children];
+  const h = new Map();
+  drawn.forEach((sg, i) => { if (els[i]) h.set(sg.id, els[i].getBoundingClientRect().height); });
+
+  const topsOf = list => {
+    const m = new Map(); let y = 0;
+    list.forEach(sg => { m.set(sg.id, y); y += (h.get(sg.id) || 0) + GAP; });
+    return m;
+  };
+  const before = topsOf(drawn), after = topsOf(ordered);
+
+  return drawn.map((sg, i) => ({
+    el: els[i],
+    d: Math.round((after.get(sg.id) ?? 0) - (before.get(sg.id) ?? 0))
+  })).filter(m => m.el);
+}
+
+/* ── 곡이 성립하는 순간, 그리고 풀리는 순간 ─────────────────────
+   성립: 왼쪽에서 오른쪽으로 물들고, 테두리가 시계방향으로 둘러지고,
+         파트 칸마다 선이 차례로 그어진 뒤, 제자리로 옮겨갑니다.
+   풀림: 그 반대입니다. 색이 오른쪽부터 빠지고 레일이 걷히고 내려갑니다.
+         요란하게 할 일이 아니라 테두리 선 같은 것은 넣지 않습니다.
+
+   움직임을 줄이도록 설정한 사람에게는 모션 없이 결과만 보여줍니다. */
+function playSongMotion(card, song, mode, moves, onEnd){
+  const finish = () => { try { onEnd?.(); } catch(e){ console.error(e); } };
+  if (!card || !song){ finish(); return; }
+
+  /* 성립한 모습의 칸을 한 장 더 만들어 위에 겹칩니다.
+     목업(motion2.html)과 같은 구조여야 왼쪽부터 물드는 장면이 나옵니다. */
+  const doneFace = songCard(song, true).querySelector(".face.done");
+  if (!doneFace){ finish(); return; }
+
+  /* 성립 카드에는 위쪽 진행 막대가 없고 모집 중 카드에는 있습니다(3px).
+     두 겹을 그냥 포개면 글자가 그만큼 어긋나 겹쳐 보입니다. 맞춰 줍니다. */
+  const barH = card.querySelector(".face.base .bar")?.getBoundingClientRect().height || 0;
+  if (barH) doneFace.style.paddingTop = barH + "px";
+
+  const undo = mode === "undone";
+  if (undo) doneFace.style.clipPath = "inset(0 0% 0 0)";   // 색이 다 차 있는 데서 시작
+
+  card.appendChild(doneFace);
+  card.classList.add("hero");
+  motionPlaying = true;
+
+  const cleanup = () => {
+    motionPlaying = false;
+    card.classList.remove("hero");
+    card.querySelectorAll(".ring, .edge").forEach(x => x.remove());
+    finish();
+  };
+
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches){ cleanup(); return; }
+
   const box = card.getBoundingClientRect();
-  const W = box.width;
-  if (!W) return;
+  if (!box.width){ cleanup(); return; }
 
-  const ns = "http://www.w3.org/2000/svg";
-  const rings = [];
+  const SMOOTH = 'cubic-bezier(.19,.85,.22,1)';
+  const DRAW   = 'cubic-bezier(.32,.72,.26,1)';
+  const W = box.width;
+  const add = (el2, f, o) => el2.animate(f, {fill:'both', ...o});
+
+  /* 테두리를 시계방향으로 그리는 SVG 한 장 만들기 */
   function ring(x, y, w, h, r, sw){
-    const svg = document.createElementNS(ns,"svg");
-    svg.setAttribute("class","ring");
-    Object.assign(svg.style, {left:x+"px", top:y+"px", width:w+"px", height:h+"px"});
-    const rect = document.createElementNS(ns,"rect");
-    const i = sw/2;
-    rect.setAttribute("x",i); rect.setAttribute("y",i);
-    rect.setAttribute("width", w-sw); rect.setAttribute("height", h-sw);
-    rect.setAttribute("rx", Math.min(r, (h-sw)/2));
-    rect.setAttribute("pathLength","100");   // 실제 둘레를 계산할 필요가 없습니다
-    rect.setAttribute("stroke-width", sw);
-    svg.appendChild(rect);
-    card.appendChild(svg);
-    rings.push(svg);
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns,'svg');
+    svg.setAttribute('class','ring');
+    Object.assign(svg.style, {left:x+'px', top:y+'px', width:w+'px', height:h+'px'});
+    const rect = document.createElementNS(ns,'rect');
+    const i2 = sw/2;
+    rect.setAttribute('x',i2); rect.setAttribute('y',i2);
+    rect.setAttribute('width', w-sw); rect.setAttribute('height', h-sw);
+    rect.setAttribute('rx', Math.min(r, (h-sw)/2));
+    rect.setAttribute('pathLength','100');          /* 실제 둘레를 계산할 필요가 없다 */
+    rect.setAttribute('stroke-width', sw);
+    svg.appendChild(rect); card.appendChild(svg);
     return rect;
   }
 
-  // 0. 왼쪽 레일이 위에서 아래로 그어집니다 — 여기서 색이 퍼져나갑니다
-  rail.animate([{transform:"scaleY(0)"},{transform:"scaleY(1)"}],
-    {duration:340, easing:"cubic-bezier(.2,.8,.25,1)", fill:"both"});
+  let colourEnds;      /* 색이 다 변하는 시각 */
 
-  // 1. 칸이 왼쪽부터 물듭니다
-  face.animate([{clipPath:"inset(0 100% 0 0)"},{clipPath:"inset(0 0% 0 0)"}],
-    {duration:760, delay:120, easing:SMOOTH, fill:"both"});
+  if (!undo){
+    /* 0. 왼쪽 레일이 위에서 아래로 그어진다 — 여기서 색이 퍼져나간다 */
+    add(doneFace.querySelector('.rail'),
+      [{transform:'scaleY(0)'},{transform:'scaleY(1)'}],
+      {duration:340, easing:'cubic-bezier(.2,.8,.25,1)'});
 
-  // 2. 물드는 경계의 빛
-  const edge = el("span","edge");
-  card.appendChild(edge);
-  edge.animate(
-    [{transform:"translateX(0)", opacity:0, offset:0},
-     {opacity:.9, offset:.12}, {opacity:.9, offset:.82},
-     {transform:`translateX(${W+140}px)`, opacity:0, offset:1}],
-    {duration:760, easing:SMOOTH, fill:"both"});
+    /* 1. 칸이 왼쪽부터 물든다 */
+    add(doneFace,
+      [{clipPath:'inset(0 100% 0 0)'},{clipPath:'inset(0 0% 0 0)'}],
+      {duration:760, delay:120, easing:SMOOTH});
 
-  // 3. 숨
-  card.animate([{transform:"scale(1)"},{transform:"scale(1.012)",offset:.42},{transform:"scale(1)"}],
-    {duration:840, easing:SMOOTH});
+    /* 2. 물드는 경계의 빛 */
+    const edge = el("span","edge");
+    card.appendChild(edge);
+    add(edge,
+      [{transform:'translateX(0)',opacity:0,offset:0},{opacity:.9,offset:.12},
+       {opacity:.9,offset:.82},{transform:'translateX('+(W+140)+'px)',opacity:0,offset:1}],
+      {duration:760, easing:SMOOTH});
 
-  // 4. 칸 테두리가 시계방향으로
-  const cardRing = ring(0, 0, box.width, box.height, 14, 1.6);
-  cardRing.animate([{strokeDashoffset:100},{strokeDashoffset:0}],
-    {duration:820, delay:160, easing:DRAW, fill:"both"});
+    /* 3. 숨 */
+    add(card, [{transform:'scale(1)'},{transform:'scale(1.012)',offset:.42},{transform:'scale(1)'}],
+        {duration:840, easing:SMOOTH});
 
-  // 5. 파트 칸마다 얇은 선 — 물드는 경계가 지나간 순서대로
-  [...face.querySelectorAll(".chip")].forEach(c => {
-    const b = c.getBoundingClientRect();
-    const x = b.left - box.left, y = b.top - box.top;
-    const r = ring(x, y, b.width, b.height, 999, 1.1);
-    r.animate([{strokeDashoffset:100},{strokeDashoffset:0}],
-      {duration:420, delay:180 + (x / W) * 620, easing:DRAW, fill:"both"});
+    /* 4. 칸 테두리가 시계방향으로 둘러진다 */
+    const cardRing = ring(0, 0, box.width, box.height, 14, 1.6);
+    add(cardRing, [{strokeDashoffset:100},{strokeDashoffset:0}],
+        {duration:820, delay:160, easing:DRAW});
+    add(cardRing, [{opacity:1},{opacity:1}], {duration:1});
+
+    /* 5. 파트 타원마다 얇은 선이 — 물드는 경계가 지나간 순서대로 */
+    [...doneFace.querySelectorAll('.chip')].forEach(c => {
+      const b = c.getBoundingClientRect();
+      const x = b.left - box.left, y = b.top - box.top;
+      const r = ring(x, y, b.width, b.height, 999, 1.1);
+      add(r, [{strokeDashoffset:100},{strokeDashoffset:0}],
+          {duration:420, delay:180 + (x / W) * 620, easing:DRAW});
+    });
+    colourEnds = 980;
+  } else {
+    /* 풀림 — 색이 오른쪽부터 빠지고, 레일이 위로 걷힙니다. */
+    add(doneFace,
+      [{clipPath:'inset(0 0% 0 0)'},{clipPath:'inset(0 100% 0 0)'}],
+      {duration:620, easing:SMOOTH});
+    add(doneFace.querySelector('.rail'),
+      [{transform:'scaleY(1)'},{transform:'scaleY(0)'}],
+      {duration:300, delay:320, easing:'cubic-bezier(.2,.8,.25,1)'});
+    colourEnds = 640;
+  }
+
+  /* 6. 제자리로 옮겨갑니다 — 올라갈 수도, 내려갈 수도, 가만히 있을 수도 있습니다.
+        움직일 칸이 하나도 없으면 색만 바꾸고 끝냅니다. */
+  const moving = (moves || []).filter(m => m.d !== 0);
+  const MOVE_DUR = undo ? 560 : 660;
+
+  if (!moving.length){
+    setTimeout(cleanup, colourEnds + 120);
+    return;
+  }
+
+  const mine = moving.find(m => m.el === card);
+  if (mine){
+    /* 지나가는 동안 살짝 떠오릅니다 — 안 그러면 옆 칸과 겹쳐 보입니다. */
+    add(doneFace,
+      [{boxShadow:'0 1px 2px rgba(20,18,23,.05)'},
+       {boxShadow:'0 14px 34px rgba(20,18,23,.16)',offset:.45},
+       {boxShadow:'0 1px 2px rgba(20,18,23,.05)'}],
+      {duration:MOVE_DUR + 100, delay:colourEnds - 30, easing:SMOOTH});
+  }
+
+  let last = null;
+  moving.forEach(m => {
+    last = add(m.el, [{translate:'0 0'},{translate:'0 ' + m.d + 'px'}],
+               {duration:MOVE_DUR, delay:colourEnds, easing:SMOOTH});
   });
-
-  // 6. 다 지나가면 흔적을 치웁니다. 남겨두면 다음 모션 때 겹칩니다.
-  setTimeout(() => { edge.remove(); rings.forEach(r => r.remove()); }, 1500);
+  last.addEventListener("finish", cleanup, {once:true});
+  setTimeout(() => { if (card.isConnected && card.classList.contains("hero")) cleanup(); },
+             colourEnds + MOVE_DUR + 600);
 }
 
 /* ============================================================
@@ -4054,12 +4545,16 @@ function adminToolsTab(box){
   });
 
   tool("세트리스트 (CSV)", "모든 합주의 곡과 파트별 담당자를 한 장으로 뽑습니다. 당일 인쇄용으로 쓸 수 있습니다.", "CSV 받기", () => {
-    const head = ["합주","날짜","곡","아티스트","상태", ...PARTS];
+    /* 자리 이름이 자유로워져서 열을 미리 정할 수 없습니다. 실제로 쓰인 이름을 모읍니다. */
+    const cols = [];
+    allEvents.forEach(e => songsOf(e.id).forEach(sg =>
+      (sg.requiredParts || []).forEach(pt => { if (!cols.includes(pt)) cols.push(pt); })));
+    const head = ["합주","날짜","곡","아티스트","상태", ...cols];
     const rows = [];
     allEvents.forEach(e => songsOf(e.id).forEach(sg => {
       rows.push([e.title, e.date, sg.title, sg.artist,
         isUnset(sg) ? "편성 미정" : isDone(sg) ? "성립" : "모집 중",
-        ...PARTS.map(p => (sg.requiredParts||[]).includes(p) ? (sg.slots?.[p]?.name || "") : "-")]);
+        ...cols.map(p => (sg.requiredParts||[]).includes(p) ? (sg.slots?.[p]?.name || "") : "-")]);
     }));
     download("합주각_세트리스트.csv", [head, ...rows].map(r => r.map(csvCell).join(",")).join("\n"), "text/csv;charset=utf-8");
   });
@@ -4241,7 +4736,7 @@ function eventModal(ev){
     root.querySelector("#f-cancel").onclick = closeModal;
 
     const pbox = root.querySelector("#f-parts");
-    PARTS.forEach(x => {
+    Object.values(DEFAULT_PART_LABEL).forEach(x => {
       const b = el("button","" + (defaults.has(x) ? "on" : ""), x);
       b.type = "button";
       b.onclick = () => { defaults.has(x) ? defaults.delete(x) : defaults.add(x); b.classList.toggle("on"); };
@@ -4310,7 +4805,7 @@ function eventModal(ev){
         maxSongsPerUser: Number(root.querySelector("#f-maxsongs").value) || 0,
         afterparty: root.querySelector("#f-after").value,
         visibility: root.querySelector("#f-vis").value,
-        defaultParts: PARTS.filter(x => defaults.has(x)),
+        defaultParts: Object.values(DEFAULT_PART_LABEL).filter(x => defaults.has(x)),
         description: q("#f-desc"),
         tags: q("#f-tags").split(",").map(t => t.trim()).filter(Boolean).slice(0,8),
         cover
@@ -4336,28 +4831,23 @@ function partsModal(song){
     return;
   }
   if (!passDeadline("편성 지정을")) return;
-  const picked = new Set();
   modal(`
     <h3>편성 정하기</h3>
-    <p class="hint">${esc(song.title)} — 이 곡에 필요한 파트를 켜주세요. 아는 만큼만 채워도 됩니다.</p>
-    <div class="field"><div class="partpick" id="u-parts"></div></div>
+    <p class="hint">${esc(song.title)} — 이 곡에 필요한 자리를 만들어 주세요. 아는 만큼만 채워도 됩니다.</p>
+    <div class="field"><div id="u-parts"></div></div>
     <div class="err" id="u-err"></div>
     <div class="modal-actions">
       <button class="btn ghost" id="u-cancel">취소</button>
       <button class="btn primary" id="u-save">저장하기</button>
     </div>`, root => {
-    const box = root.querySelector("#u-parts");
-    PARTS.forEach(x => {
-      const b = el("button","",x); b.type = "button";
-      b.onclick = () => { picked.has(x) ? picked.delete(x) : picked.add(x); b.classList.toggle("on"); };
-      box.append(b);
-    });
+    const pick = partPicker(defaultPartsOf(curEvent));
+    root.querySelector("#u-parts").append(pick.el);
     root.querySelector("#u-cancel").onclick = closeModal;
     root.querySelector("#u-save").onclick = async () => {
       const err = root.querySelector("#u-err");
-      if (!picked.size) return err.textContent = "파트를 하나 이상 켜주세요.";
+      const chosen = pick.get();
+      if (!chosen.length) return err.textContent = "자리를 하나 이상 만들어 주세요.";
       try {
-        const chosen = PARTS.filter(x => picked.has(x));
         await store.updateSong(song.id, {requiredParts: chosen});
         logIt(song.id, "parts_fill", {songTitle: song.title, detail: chosen.join(" · ")});
         closeModal(); toast("편성을 채웠습니다");
@@ -4505,12 +4995,9 @@ function songModal(song){
   }
   if (!passDeadline(editing ? "곡 편집을" : "곡 추가를")) return;
 
-  let picked = new Set(editing ? (song.requiredParts||[])
-    : (curEvent?.defaultParts || ["Vocal","Guitar1","Bass","Drum"]));
-
   modal(`
     <h3>${editing ? "곡 편집" : "곡 올리기"}</h3>
-    <p class="hint">${editing ? "" : `«${esc(curEvent.title)}»에 올립니다. `}이 곡에 필요한 파트만 켜두세요. 꺼둔 파트는 모집하지 않습니다. 올린 뒤에도 편집으로 언제든 고칠 수 있습니다.</p>
+    <p class="hint">${editing ? "" : `«${esc(curEvent.title)}»에 올립니다. `}이 곡에 필요한 자리만 만들어 두세요. 만들지 않은 자리는 모집하지 않습니다. 올린 뒤에도 편집으로 언제든 고칠 수 있습니다.</p>
     <div class="field"><label>곡 제목</label>
       <input id="s-title" placeholder="예: Creep" maxlength="80" value="${esc(song?.title || "")}"></div>
     <div class="field"><label>아티스트</label>
@@ -4520,8 +5007,8 @@ function songModal(song){
       <p class="ava-note">참가자가 원곡을 바로 듣고 파트를 정할 수 있습니다. 비워둬도 됩니다.</p></div>
     <div class="field"><label>설명</label>
       <textarea id="s-desc" maxlength="500" placeholder="키 조정, 원곡 대비 편곡, 난이도, 참고 영상 등">${esc(song?.description || "")}</textarea></div>
-    <div class="field"><label>필요한 파트</label>
-      <div class="partpick" id="s-parts"></div>
+    <div class="field"><label>필요한 자리</label>
+      <div id="s-parts"></div>
       <label class="unset-toggle"><input type="checkbox" id="s-unset"${editing && !(song.requiredParts||[]).length ? " checked" : ""}>
         <span>편성을 잘 모르겠어요 — 나중에 채우기</span></label>
       <p class="ava-note">모르면 체크하고 넘어가세요. 곡은 그대로 올라가고, 편성을 아는 분이 대신 채워줍니다.${editing ? " 파트를 끄면 그 자리에 들어와 있던 사람도 함께 빠집니다." : ""}</p></div>
@@ -4532,19 +5019,11 @@ function songModal(song){
       <button class="btn primary" id="s-save">${editing ? "저장하기" : "올리기"}</button>
     </div>`, root => {
 
-    const box = root.querySelector("#s-parts");
-    PARTS.forEach(p => {
-      const b = el("button","" + (picked.has(p)?"on":""),p);
-      b.type = "button";
-      b.onclick = () => { picked.has(p) ? picked.delete(p) : picked.add(p); b.classList.toggle("on"); };
-      box.append(b);
-    });
+    const pick = partPicker(song?.requiredParts || defaultPartsOf(curEvent));
+    root.querySelector("#s-parts").append(pick.el);
 
     const unsetBox = root.querySelector("#s-unset");
-    const syncUnset = () => {
-      box.classList.toggle("dimmed", unsetBox.checked);
-      box.querySelectorAll("button").forEach(b => b.disabled = unsetBox.checked);
-    };
+    const syncUnset = () => pick.setDisabled(unsetBox.checked);
     unsetBox.onchange = syncUnset;
     syncUnset();
 
@@ -4566,12 +5045,12 @@ function songModal(song){
       const yt = root.querySelector("#s-yt").value.trim();
       if (!title) return err.textContent = "곡 제목을 적어주세요.";
       const unset = root.querySelector("#s-unset").checked;
-      if (!unset && !picked.size)
-        return err.textContent = "파트를 하나 이상 켜거나, 아래 '편성을 잘 모르겠어요'를 눌러주세요.";
+      if (!unset && !pick.get().length)
+        return err.textContent = "자리를 하나 이상 만들거나, 아래 '편성을 잘 모르겠어요'를 눌러주세요.";
       if (yt && !/^https?:\/\/(www\.|m\.|music\.)?(youtube\.com|youtu\.be)\//i.test(yt))
         return err.textContent = "유튜브 주소를 확인해 주세요. 비워두셔도 됩니다.";
 
-      const requiredParts = unset ? [] : PARTS.filter(p => picked.has(p));
+      const requiredParts = unset ? [] : pick.get();
       const base = {
         title,
         artist: root.querySelector("#s-artist").value.trim(),
@@ -4808,16 +5287,14 @@ function applyTheme(mode){
     b.title = dark ? "밝은 화면으로" : "어두운 화면으로";
   }
 }
-applyTheme(readTheme());
+/* 고른 적이 없으면 밝은 화면으로 시작합니다. 기기 설정을 따라가지 않습니다. */
+applyTheme(readTheme() || "light");
 $("#theme-toggle").onclick = () => {
-  const now = readTheme() || (systemDark() ? "dark" : "light");
+  const now = readTheme() || "light";
   const next = now === "dark" ? "light" : "dark";
   try { localStorage.setItem(THEME_KEY, next); } catch(e){ /* 저장이 막혀도 이번 세션에는 적용됩니다 */ }
   applyTheme(next);
 };
-/* 아직 고른 적이 없으면 기기 설정이 바뀔 때 따라갑니다. */
-window.matchMedia?.("(prefers-color-scheme: dark)")
-  ?.addEventListener?.("change", () => { if (!readTheme()) applyTheme(""); });
 
 $("#build-tag").textContent = BUILD;
 route();

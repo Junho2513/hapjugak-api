@@ -19,6 +19,8 @@ public record SongResponse(
         long filledCount,
         int totalCount,
         LocalDateTime createdAt,
+        /** 자리가 다 찬 순간. 화면은 성립한 곡을 이 순서로 줄 세웁니다(먼저 성립한 곡이 위). */
+        LocalDateTime completedAt,
         List<SlotResponse> slots
 ) {
     public static SongResponse from(Song song) {
@@ -36,6 +38,7 @@ public record SongResponse(
                 song.getFilledCount(),
                 song.getSlots().size(),
                 song.getCreatedAt(),
+                song.getCompletedAt(),
                 song.getSlots().stream().map(SlotResponse::from).toList()
         );
     }
