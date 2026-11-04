@@ -1,8 +1,10 @@
 package com.example.hapjugakapi.service;
 
+import com.example.hapjugakapi.domain.Event;
 import com.example.hapjugakapi.domain.Member;
 import com.example.hapjugakapi.dto.SongRequest;
 import com.example.hapjugakapi.dto.SongResponse;
+import com.example.hapjugakapi.repository.EventRepository;
 import com.example.hapjugakapi.repository.MemberRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -11,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -40,16 +43,24 @@ class SongCompletionOrderTest {
     @Autowired
     private MemberRepository memberRepository;
 
+    @Autowired
+    private EventRepository eventRepository;
+
     private Member 보컬, 기타;
+
+    /** 곡은 반드시 어느 일정 안에 있다. */
+    private Event 일정;
 
     @BeforeEach
     void setUp() {
         보컬 = memberRepository.save(new Member("v@test.com", "pw", "보컬맨", "서울", ""));
         기타 = memberRepository.save(new Member("g@test.com", "pw", "기타맨", "서울", ""));
+        일정 = eventRepository.save(new Event(
+                "합주", LocalDate.now().plusDays(30), LocalDate.now().plusDays(7), "홍대", 보컬));
     }
 
     private SongResponse 두자리곡(String 제목) {
-        return songService.create(
+        return songService.createIn(일정.getId(),
                 new SongRequest(제목, "아티스트", null, null, List.of("보컬", "기타")), 보컬.getId());
     }
 

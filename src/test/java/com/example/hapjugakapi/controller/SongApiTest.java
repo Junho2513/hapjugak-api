@@ -24,7 +24,7 @@ class SongApiTest {
     @Test
     @DisplayName("토큰 없이 곡을 등록하면 401")
     void 비인증_등록_차단() throws Exception {
-        mockMvc.perform(post("/songs")
+        mockMvc.perform(post("/events/1/songs")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -40,7 +40,7 @@ class SongApiTest {
     @Test
     @DisplayName("조회는 토큰 없이도 된다")
     void 비인증_조회_허용() throws Exception {
-        mockMvc.perform(get("/songs").param("candidateOnly", "true"))
+        mockMvc.perform(get("/songs"))
                 .andExpect(status().isOk());
     }
 

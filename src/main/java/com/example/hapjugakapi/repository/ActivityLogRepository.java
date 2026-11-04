@@ -43,4 +43,35 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("delete from ActivityLog l where l.song.id in :songIds")
     void deleteBySongIdIn(@Param("songIds") List<Long> songIds);
+
+    /**
+     * 탈퇴한 사람의 이름을 기록에서 지운다.
+     *
+     * activity_log 는 actor_id(FK) 와 actor_name(이름 사본)을 함께 들고 있다.
+     * 일부러 중복시킨 것이다 — 기록은 "그때 그 이름"을 보여줘야 하므로
+     * 나중에 닉네임을 바꿔도 옛 기록은 옛 이름으로 남는다.
+     *
+     * 그 덕에 탈퇴할 때 문제가 된다. member 행에서 이름을 지워도
+     * 이 사본에는 그대로 남는다. 기록을 통째로 지우면 남의 곡 역사가 사라지므로,
+     * 이름만 「탈퇴한 사용자」로 덮는다.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update ActivityLog l set l.actorName = :placeholder where l.actor.id = :memberId")
+    int anonymizeActorName(@Param("memberId") Long memberId,
+                           @Param("placeholder") String placeholder);
+
+    /**
+     * 「민수 님에게서 넘겨받았습니다」 같은 줄의 상대 이름도 지운다.
+     *
+     * target_name 에는 FK 가 없다. 이름 문자열만 들어 있어서 누구인지 특정할 수 없고,
+     * 닉네임이 같은 사람을 가려낼 방법도 없다.
+     *
+     * 그래서 이름이 정확히 같은 줄을 전부 덮는다. 같은 닉네임을 쓰는 다른 사람이
+     * 있었다면 그 사람 이름도 「탈퇴한 사용자」로 보이게 된다. 기록 한 줄의
+     * 표시가 뭉개지는 쪽이, 나간 사람의 이름이 남아 있는 쪽보다 낫다고 봤다.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update ActivityLog l set l.targetName = :placeholder where l.targetName = :nickname")
+    int anonymizeTargetName(@Param("nickname") String nickname,
+                            @Param("placeholder") String placeholder);
 }

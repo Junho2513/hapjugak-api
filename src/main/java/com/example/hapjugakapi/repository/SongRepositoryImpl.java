@@ -37,13 +37,15 @@ public class SongRepositoryImpl implements SongRepositoryCustom {
                 .leftJoin(song.proposer).fetchJoin()
                 .leftJoin(song.slots, slot).fetchJoin()
                 .leftJoin(slot.member, slotMember).fetchJoin()
-                // 공개 여부를 보려면 일정을 붙여야 한다. 일정에 안 들어간 후보곡도 남아야 하므로
-                // 반드시 left join 이다. song.event.visibility 처럼 바로 타고 들어가면
-                // QueryDSL 이 inner join 을 만들어 후보곡이 통째로 사라진다.
+                // 공개 여부를 보려면 일정을 붙여야 한다.
+                //
+                // left join 으로 둔다. 지금은 곡에 일정이 반드시 있으므로(V8) inner join
+                // 이어도 결과가 같지만, song.event.visibility 처럼 바로 타고 들어가면
+                // QueryDSL 이 묵시적으로 join 을 만든다. 어떤 join 이 생기는지가
+                // 눈에 보이지 않는 쪽이 나중에 더 비싸다.
                 .leftJoin(song.event, event)
                 .where(
                         keywordContains(song, condition.keyword()),
-                        candidateOnly(song, condition.candidateOnly()),
                         eventIdEq(song, condition.eventId()),
                         hasOpenPart(song, condition.openPart()),
                         eventVisibleTo(song, event, viewer)
@@ -102,13 +104,6 @@ public class SongRepositoryImpl implements SongRepositoryCustom {
         }
         return song.title.containsIgnoreCase(keyword)
                 .or(song.artist.containsIgnoreCase(keyword));
-    }
-
-    private BooleanExpression candidateOnly(QSong song, Boolean candidateOnly) {
-        if (candidateOnly == null || !candidateOnly) {
-            return null;
-        }
-        return song.event.isNull();
     }
 
     private BooleanExpression eventIdEq(QSong song, Long eventId) {

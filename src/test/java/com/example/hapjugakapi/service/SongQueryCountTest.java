@@ -1,10 +1,12 @@
 package com.example.hapjugakapi.service;
 
 import com.example.hapjugakapi.config.Viewer;
+import com.example.hapjugakapi.domain.Event;
 import com.example.hapjugakapi.domain.Member;
 import com.example.hapjugakapi.dto.SongRequest;
 import com.example.hapjugakapi.dto.SongResponse;
 import com.example.hapjugakapi.dto.SongSearchCondition;
+import com.example.hapjugakapi.repository.EventRepository;
 import com.example.hapjugakapi.repository.MemberRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
@@ -16,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
@@ -43,6 +46,7 @@ class SongQueryCountTest {
 
     @Autowired private SongService songService;
     @Autowired private MemberRepository memberRepository;
+    @Autowired private EventRepository eventRepository;
     @Autowired private EntityManager em;
     @Autowired private EntityManagerFactory emf;
 
@@ -54,7 +58,7 @@ class SongQueryCountTest {
         준비한다();
 
         long 쿼리수 = 쿼리수를_센다(() -> songService.search(
-                new SongSearchCondition(null, null, null, null), Viewer.anonymous()));
+                new SongSearchCondition(null, null, null), Viewer.anonymous()));
 
         System.out.println();
         System.out.println("════════ 곡 " + 곡수 + "건 조회 → 쿼리 " + 쿼리수 + "개 ════════");
@@ -77,9 +81,13 @@ class SongQueryCountTest {
 
         List<String> 편성 = List.of("보컬", "기타1", "베이스", "드럼");
 
+        // 곡은 일정 안에만 있을 수 있다. 하나 열어두고 전부 거기에 넣는다.
+        Event 일정 = eventRepository.save(new Event(
+                "합주", LocalDate.now().plusDays(30), LocalDate.now().plusDays(7), "홍대", 회원들.get(0)));
+
         for (int i = 0; i < 곡수; i++) {
             Member 추천자 = 회원들.get(i % 회원수);
-            SongResponse 곡 = songService.create(
+            SongResponse 곡 = songService.createIn(일정.getId(),
                     new SongRequest("곡" + i, "아티스트" + i, null, null, 편성),
                     추천자.getId());
 

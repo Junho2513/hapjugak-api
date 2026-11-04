@@ -96,16 +96,39 @@ public class MemberController {
     }
 
     /**
-     * 삭제 후에는 돌려줄 표현이 없으므로 204 No Content 다.
+     * 내가 나간다.
+     *
+     * 길을 따로 둔 이유 — 본인 탈퇴와 관리자의 강제 탈퇴는 쓰는 쪽이 다르다.
+     * 화면에서는 「탈퇴하기」 버튼이 자기 id 를 알 필요가 없는 쪽이 간단하고,
+     * 다른 사람 id 를 넣어 부를 길이 아예 없는 편이 안전하다.
+     *
+     * 돌려줄 표현이 없으므로 204 No Content 다.
      * 본문이 비어 있다는 것을 상태코드로 알리면 클라이언트가 응답을 파싱하려 하지 않는다.
      */
-    @Operation(summary = "회원 삭제", description = "본인 또는 관리자만 할 수 있습니다.")
-    @ApiResponse(responseCode = "204", description = "삭제되었습니다")
+    @Operation(summary = "탈퇴",
+            description = "회원 정보가 DB 에서 지워집니다. 되돌릴 수 없습니다. "
+                    + "남긴 글과 기록은 「탈퇴한 사용자」로 남고, 잡고 있던 자리는 비워집니다.")
+    @ApiResponse(responseCode = "204", description = "탈퇴했습니다")
+    @ApiResponse(responseCode = "401", description = "로그인이 필요합니다")
+    @DeleteMapping("/me")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void withdrawMe(@AuthenticationPrincipal Long memberId) {
+        memberService.withdraw(memberId, memberId);
+    }
+
+    /**
+     * 관리자가 내보낸다. 하는 일은 본인 탈퇴와 같다.
+     */
+    @Operation(summary = "회원 탈퇴시키기",
+            description = "본인 또는 관리자만 할 수 있습니다. 하는 일은 /members/me 탈퇴와 같습니다.")
+    @ApiResponse(responseCode = "204", description = "탈퇴 처리되었습니다")
+    @ApiResponse(responseCode = "403", description = "본인도 관리자도 아닙니다")
+    @ApiResponse(responseCode = "409", description = "이미 탈퇴한 회원입니다")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id,
-                       @AuthenticationPrincipal Long memberId) {
-        memberService.delete(id, memberId);
+    public void withdraw(@PathVariable Long id,
+                         @AuthenticationPrincipal Long memberId) {
+        memberService.withdraw(id, memberId);
     }
 
     /**

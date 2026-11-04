@@ -13,7 +13,13 @@ public class Member {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    /**
+     * 탈퇴하면 NULL 이 된다. 그래서 nullable 이다.
+     *
+     * UNIQUE 는 그대로 둔다. MySQL 은 NULL 을 여러 개 허용하므로 탈퇴자가
+     * 몇 명이든 걸리지 않고, 같은 주소로 다시 가입하는 길도 열려 있다.
+     */
+    @Column(unique = true)
     private String email;
 
     private String password;
@@ -49,6 +55,12 @@ public class Member {
 
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    /** 탈퇴한 시각. 차 있으면 탈퇴한 회원이다. */
+    private LocalDateTime deletedAt;
+
+    /** 탈퇴한 회원이 화면에 나타날 때 쓰는 이름. */
+    public static final String WITHDRAWN_NICKNAME = "탈퇴한 사용자";
 
     protected Member() {
     }
@@ -97,6 +109,50 @@ public class Member {
         this.createdAt = createdAt;
     }
 
+    /**
+     * 탈퇴 — 행은 남기고 사람을 지운다.
+     *
+     * 행을 지울 수 없는 이유는 V8 마이그레이션에 적어두었다. 간단히는,
+     * 이 사람이 연 합주와 올린 곡이 member.id 를 가리키고 있어서
+     * 지우면 DB 가 거부하거나(지금) 남의 기록까지 끌려 내려간다(CASCADE).
+     *
+     * 그래서 남길 것과 지울 것을 나눈다.
+     *   남는 것 — id, 가입일, 「탈퇴한 사용자」라는 이름.
+     *             이 셋으로는 누구였는지 알 수 없다.
+     *   지우는 것 — 이메일, 비밀번호, 구글 식별자, 지역, 소개, 사진, 악기.
+     *
+     * 구글 식별자(providerId)를 같이 비우는 것이 중요하다. 이메일만 지우고
+     * 두면 같은 구글 계정으로 다시 들어왔을 때 그 값으로 옛 사람과 이어질 수 있다.
+     *
+     * 역할도 USER 로 되돌린다. 관리자가 탈퇴한 뒤에도 관리자로 남아 있을 이유가 없다.
+     *
+     * 사진 파일 자체는 S3 에 있다. 이 메서드는 주소만 지우므로,
+     * 부르는 쪽(MemberService)이 파일도 지워야 한다.
+     * 지울 주소를 알아야 하니 돌려준다.
+     *
+     * @return 지워야 할 사진 주소. 사진이 없었으면 null.
+     */
+    public String withdraw(LocalDateTime now) {
+        String photoToDelete = this.photoUrl;
+
+        this.email = null;
+        this.password = null;
+        this.providerId = null;
+        this.area = null;
+        this.bio = null;
+        this.photoUrl = null;
+        this.instruments.clear();
+        this.nickname = WITHDRAWN_NICKNAME;
+        this.role = Role.USER;
+        this.deletedAt = now;
+
+        return photoToDelete;
+    }
+
+    public boolean isWithdrawn() {
+        return deletedAt != null;
+    }
+
     public Long getId() {
         return id;
     }
@@ -143,6 +199,10 @@ public class Member {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
     }
 
     public void setNickname(String nickname) {

@@ -101,40 +101,30 @@ class EventVisibilityTest {
     @Test
     @DisplayName("곡 목록에도 비공개 일정의 곡은 끼지 않는다")
     void 곡목록에서도_걸러진다() {
-        SongResponse 비공개곡 = 곡만들기("숨은 곡");
-        songService.assignToEvent(비공개곡.id(), 비공개일정.getId());
-
-        SongResponse 공개곡 = 곡만들기("보이는 곡");
-        songService.assignToEvent(공개곡.id(), 공개일정.getId());
+        SongResponse 비공개곡 = 곡만들기(비공개일정, "숨은 곡");
+        SongResponse 공개곡 = 곡만들기(공개일정, "보이는 곡");
 
         List<SongResponse> 목록 = songService.search(
-                new SongSearchCondition(null, null, null, null), Viewer.anonymous());
+                new SongSearchCondition(null, null, null), Viewer.anonymous());
 
         assertTrue(곡이들어있나(목록, 공개곡));
         assertFalse(곡이들어있나(목록, 비공개곡),
                 "일정 목록만 거르고 곡 목록을 두면 eventId 가 그대로 새어 나간다");
     }
 
-    @Test
-    @DisplayName("아직 일정에 안 들어간 후보곡은 누구에게나 보인다")
-    void 후보곡은_남는다() {
-        SongResponse 후보 = 곡만들기("아직 미정");
-
-        List<SongResponse> 목록 = songService.search(
-                new SongSearchCondition(null, null, null, null), Viewer.anonymous());
-
-        assertTrue(곡이들어있나(목록, 후보),
-                "event 가 null 인 곡까지 사라지면 조인을 잘못 건 것이다");
-    }
+    /*
+     * 「아직 일정에 안 들어간 후보곡은 누구에게나 보인다」가 여기 있었다.
+     * V8 이 song.event_id 를 NOT NULL 로 조이면서 그런 곡이 생길 수 없게 되었다.
+     * 확인할 상태가 사라졌으므로 테스트도 지운다.
+     */
 
     @Test
     @DisplayName("eventId 로 콕 집어 물어봐도 비공개 일정의 곡은 안 준다")
     void 아이디로_직접_물어봐도() {
-        SongResponse 비공개곡 = 곡만들기("숨은 곡");
-        songService.assignToEvent(비공개곡.id(), 비공개일정.getId());
+        SongResponse 비공개곡 = 곡만들기(비공개일정, "숨은 곡");
 
         List<SongResponse> 목록 = songService.search(
-                new SongSearchCondition(null, null, null, 비공개일정.getId()), Viewer.anonymous());
+                new SongSearchCondition(null, null, 비공개일정.getId()), Viewer.anonymous());
 
         assertTrue(목록.isEmpty());
     }
@@ -145,16 +135,16 @@ class EventVisibilityTest {
         return eventRepository.save(event);
     }
 
-    private SongResponse 곡만들기(String 제목) {
-        return songService.create(
+    private SongResponse 곡만들기(Event event, String 제목) {
+        return songService.createIn(
+                event.getId(),
                 new SongRequest(제목, "아티스트", null, null, List.of("보컬", "드럼")),
                 주최자.getId()
         );
     }
 
     private void 자리잡기(Event event, Member member) {
-        SongResponse song = 곡만들기("참가 확인용");
-        songService.assignToEvent(song.id(), event.getId());
+        SongResponse song = 곡만들기(event, "참가 확인용");
         songService.claimSlot(song.id(), song.slots().get(0).id(), member.getId(), false);
     }
 

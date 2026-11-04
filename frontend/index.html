@@ -1861,8 +1861,14 @@ store = {
     list.forEach(u => markAdmin(u.uid, u.role === "ADMIN"));
     return list;
   },
+  /* 관리자가 내보냅니다. 본인 탈퇴와 하는 일은 같습니다. */
   async deleteProfile(uid){
     await call("DELETE", "/members/" + uid);
+  },
+  /* 내가 나갑니다. 내 id 를 보내지 않는 쪽이 안전합니다 —
+     남의 id 를 넣어 부를 길이 아예 없습니다. */
+  async withdraw(){
+    await call("DELETE", "/members/me");
   },
 
   /* ----- 사이트 설정 ----- */
@@ -1955,10 +1961,10 @@ store = {
     return String(created.id);
   },
   async updateSong(songId, patch){
-    /* 일정 배정·해제는 전용 주소가 따로 있습니다. */
-    if (has(patch, "eventId")){
-      if (patch.eventId) await call("PATCH", `/songs/${songId}/event/${patch.eventId}`);
-      else await call("PATCH", `/songs/${songId}/event`);
+    /* 다른 일정으로 옮기는 것은 전용 주소가 따로 있습니다.
+       빼내기는 없습니다 — 곡은 반드시 어느 일정 안에 있습니다. */
+    if (has(patch, "eventId") && patch.eventId){
+      await call("PATCH", `/songs/${songId}/event/${patch.eventId}`);
     }
     const body = {};
     if (has(patch, "title")) body.title = patch.title;
@@ -4361,7 +4367,8 @@ function profileModal({first = false} = {}){
     <div class="modal-actions">
       ${first
         ? `<button class="btn ghost" id="p-out">취소</button>`
-        : `<button class="btn ghost" id="p-out">로그아웃</button><button class="btn ghost" id="p-cancel">닫기</button>`}
+        : `<button class="btn ghost" id="p-quit" style="color:var(--danger);margin-right:auto">탈퇴하기</button>
+           <button class="btn ghost" id="p-out">로그아웃</button><button class="btn ghost" id="p-cancel">닫기</button>`}
       <button class="btn primary" id="p-save">${first ? "가입 마치기" : "저장하기"}</button>
     </div>`, root => {
 
@@ -4398,6 +4405,27 @@ function profileModal({first = false} = {}){
 
     root.querySelector("#p-out").onclick = () => { closeModal(); auth.signOut(); };
     root.querySelector("#p-cancel")?.addEventListener("click", closeModal);
+
+    /* 탈퇴.
+       되돌릴 수 없고 사람이 실수로 누르기 쉬운 자리라, 닉네임을 직접 치게 합니다.
+       「예/아니오」 한 번은 손이 먼저 움직이지만, 글자를 옮겨 적는 동안에는 읽게 됩니다. */
+    root.querySelector("#p-quit")?.addEventListener("click", async () => {
+      const name = myProfile?.name || auth.user.name || "";
+      const typed = prompt(
+        "탈퇴하면 이메일·비밀번호·지역·소개·사진이 DB에서 지워집니다. 되돌릴 수 없습니다.\n\n"
+        + "· 올린 곡과 남긴 기록은 「탈퇴한 사용자」로 남습니다\n"
+        + "· 잡고 있던 자리는 비워집니다 (성립된 곡은 성립이 풀립니다)\n"
+        + "· 같은 메일로 다시 가입할 수 있지만, 예전 기록과는 이어지지 않습니다\n\n"
+        + `계속하려면 닉네임 「${name}」 을 그대로 적어주세요.`);
+      if (typed === null) return;
+      if (typed.trim() !== name){ toast("닉네임이 달라서 그만두었습니다"); return; }
+      try {
+        await store.withdraw();
+        closeModal();
+        auth.signOut();
+        toast("탈퇴했습니다. 그동안 고마웠습니다");
+      } catch(ex){ err.textContent = ex.message || "탈퇴하지 못했습니다"; }
+    });
 
     root.querySelector("#p-save").onclick = async () => {
       const name   = root.querySelector("#p-name").value.trim();
@@ -4584,12 +4612,14 @@ function adminUserRow(u){
   ed.onclick = () => adminEditUser(u);
   acts.append(ed);
   if (!ADMIN_UIDS.includes(u.uid)){
-    const rm = el("button","btn sm ghost","삭제");
+    const rm = el("button","btn sm ghost","내보내기");
     rm.style.color = "var(--danger)";
     rm.onclick = async () => {
-      if (!confirm(`${u.name} 님의 프로필을 삭제할까요?\n\n로그인 계정 자체는 남아 있어서, 다시 접속하면 프로필을 새로 만들게 됩니다. 이미 잡아둔 파트 자리는 그대로 남습니다.`)) return;
-      try { await store.deleteProfile(u.uid); adminUsers = adminUsers.filter(x => x.uid !== u.uid); renderAdmin(); toast("프로필을 삭제했습니다"); }
-      catch(e){ toast("삭제하지 못했습니다"); }
+      if (!confirm(`${u.name} 님을 탈퇴 처리할까요?\n\n`
+        + `이메일·비밀번호·지역·소개·사진이 DB에서 지워집니다. 되돌릴 수 없습니다.\n`
+        + `올린 곡과 남긴 기록은 「탈퇴한 사용자」로 남고, 잡고 있던 자리는 비워집니다.`)) return;
+      try { await store.deleteProfile(u.uid); adminUsers = adminUsers.filter(x => x.uid !== u.uid); renderAdmin(); toast("탈퇴 처리했습니다"); }
+      catch(e){ toast("처리하지 못했습니다"); }
     };
     acts.append(rm);
   }
@@ -4709,7 +4739,10 @@ function adminEventsTab(box){
       rm.onclick = async () => {
         if (!confirm(`"${e.title}" 합주를 삭제할까요?\n\n곡 ${songs.length}개와 잡혀 있는 자리가 모두 사라지며, 되돌릴 수 없습니다.`)) return;
         try {
-          for (const sg of songs) await store.updateSong(sg.id, {eventId:""});
+          /* 곡을 먼저 일정에서 떼어내던 줄이 여기 있었습니다.
+             곡이 일정 밖에 떠 있을 수 있던 시절의 순서인데, 지금은 서버가
+             일정을 지울 때 그 안의 곡과 자리와 기록을 함께 지웁니다.
+             곡은 이제 일정 없이 존재할 수 없어서, 떼어내려 하면 서버가 거절합니다. */
           await store.deleteEvent(e.id);
           toast("합주를 삭제했습니다"); renderAdmin();
         } catch(err){ toast("삭제하지 못했습니다"); }

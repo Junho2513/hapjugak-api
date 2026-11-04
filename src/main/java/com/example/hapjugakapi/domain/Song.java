@@ -29,8 +29,18 @@ public class Song {
     @JoinColumn(name = "proposer_id", nullable = false)
     private Member proposer;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id")
+    /**
+     * 곡은 반드시 어느 일정 안에 있다.
+     *
+     * 전에는 비워둘 수 있었다. 곡이 일정 밖에 떠 있는 「곡 후보」라는 것이 있었고,
+     * V4 가 그 개념을 걷어냈다. 그때 "V5 에서 NOT NULL 로 조인다"고 적어두고
+     * V5 가 다른 일로 가면서 DB 쪽만 그대로 남아 있었다.
+     *
+     * 가정이 코드에만 있고 DB 에는 없으면, 언젠가 그 가정이 틀어졌을 때
+     * 엉뚱한 곳에서 NullPointerException 으로 만난다. V8 에서 조였다.
+     */
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
     @OneToMany(mappedBy = "song", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -112,12 +122,15 @@ public class Song {
         this.event = event;
     }
 
-    public void unassign() {
-        this.event = null;
-    }
+    /**
+     * unassign() 이 여기 있었다. 곡을 일정 밖으로 빼내던 메서드인데,
+     * V4 가 「곡 후보」를 걷어낸 뒤로 부르는 곳이 없었다.
+     * 이제 event 가 NOT NULL 이라 불렀다면 저장할 때 터졌을 코드다.
+     */
 
+    /** 늘 false 다. 옛 응답 형식을 쓰는 화면이 있어 칸만 남겨둔다. */
     public boolean isCandidate() {
-        return event == null;
+        return false;
     }
 
     public long getFilledCount() {

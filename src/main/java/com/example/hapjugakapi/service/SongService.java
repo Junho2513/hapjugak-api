@@ -47,31 +47,13 @@ public class SongService {
         this.eventService = eventService;
     }
 
-    /**
-     * 일정 없이 곡을 만든다. 없어질 예정이다.
+    /*
+     * create() — 「일정 없이 곡 만들기」가 여기 있었다.
      *
-     * 화면이 아직 이 경로로 곡을 올린다. 지금 지우면 배포하는 순간 곡 올리기가 죽는다.
-     * 새 화면이 /events/{id}/songs 로 올리게 바뀐 뒤, song.event_id 를 NOT NULL 로
-     * 조이는 V5 와 함께 지운다.
+     * 없앨 조건 두 가지를 주석에 적어두었다. 화면이 /events/{id}/songs 로 옮길 것,
+     * 그리고 song.event_id 가 NOT NULL 로 조여질 것. 둘 다 이루어졌다(V8).
+     * 곡은 createIn() 으로만 만든다.
      */
-    @Deprecated(forRemoval = true)
-    @Transactional
-    public SongResponse create(SongRequest request, Long proposerId) {
-        Member proposer = getMember(proposerId);
-
-        Song song = new Song(
-                request.title(),
-                request.artist(),
-                request.youtubeUrl(),
-                request.description(),
-                proposer
-        );
-        if (request.parts() != null) {
-            song.syncParts(request.parts());
-        song.refreshCompletion();
-        }
-        return SongResponse.from(songRepository.save(song));
-    }
 
     /**
      * 일정 안에 곡을 올린다.
@@ -125,7 +107,7 @@ public class SongService {
      */
     public List<SongResponse> findByEvent(Long eventId, String key, Viewer viewer) {
         eventService.openedEvent(eventId, key, viewer);
-        return songRepository.search(new SongSearchCondition(null, null, null, eventId), Viewer.anonymous())
+        return songRepository.search(new SongSearchCondition(null, null, eventId), Viewer.anonymous())
                 .stream()
                 .map(SongResponse::from)
                 .toList();
@@ -208,16 +190,11 @@ public class SongService {
         return SongResponse.from(song);
     }
 
-    @Transactional
-    public SongResponse unassign(Long songId) {
-        Song song = getSong(songId);
-        Event event = song.getEvent();
-        if (event != null && event.isCompleted()) {
-            throw new ConflictException("이미 끝난 합주의 곡은 뺄 수 없습니다.");
-        }
-        song.unassign();
-        return SongResponse.from(song);
-    }
+    /*
+     * unassign() 이 여기 있었다. 곡을 일정 밖으로 빼내던 것인데,
+     * V8 이 song.event_id 를 NOT NULL 로 조이면서 할 수 없는 일이 되었다.
+     * 자세한 사정은 Song.event 의 주석에 적어두었다.
+     */
 
     @Transactional
     public SongResponse claimSlot(Long songId, Long slotId, Long memberId, boolean openToHandover) {

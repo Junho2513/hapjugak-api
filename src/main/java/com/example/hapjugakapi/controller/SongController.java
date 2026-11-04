@@ -4,22 +4,16 @@ import com.example.hapjugakapi.config.Viewer;
 import com.example.hapjugakapi.dto.SlotRequest;
 import com.example.hapjugakapi.dto.SongRequest;
 import com.example.hapjugakapi.dto.SongResponse;
-import com.example.hapjugakapi.dto.OnCreate;
 import com.example.hapjugakapi.dto.SongSearchCondition;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.groups.Default;
 import com.example.hapjugakapi.service.SongService;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.net.URI;
 import java.util.List;
 
 @Tag(name = "곡과 자리", description = "곡을 올리고 · 일정에 넣고 · 파트 자리를 잡습니다")
@@ -33,32 +27,20 @@ public class SongController {
         this.songService = songService;
     }
 
-    /**
-     * 일정 없이 곡을 만든다. 없어질 예정이다.
+    /*
+     * POST /songs — 「일정 없이 곡 만들기」가 여기 있었다.
      *
-     * 화면이 아직 이 주소로 곡을 올린다. 지금 지우면 배포하는 순간 곡 올리기가 죽는다.
-     * 새 화면이 POST /events/{id}/songs 를 쓰도록 바뀐 뒤,
-     * song.event_id 를 NOT NULL 로 조이는 V5 와 함께 지운다.
+     * 없앨 예정으로 표시해 두고, 조건을 두 가지 적어두었다.
+     * 화면이 POST /events/{id}/songs 로 옮겨갈 것, 그리고 song.event_id 가
+     * NOT NULL 로 조여질 것. 둘 다 이루어졌으므로(V8) 지운다.
+     *
+     * 곡을 올리려면 POST /events/{eventId}/songs 를 쓴다.
      */
-    @Deprecated(forRemoval = true)
-    @Operation(summary = "곡 올리기 (없어질 예정)",
-            deprecated = true,
-            description = "일정 안에서 올리려면 POST /events/{eventId}/songs 를 쓰세요. "
-                    + "이 주소는 화면이 전환되는 동안만 남아 있습니다.")
-    @ApiResponse(responseCode = "201", description = "곡이 만들어졌습니다")
-    @PostMapping
-    public ResponseEntity<SongResponse> create(
-            @Validated({Default.class, OnCreate.class}) @RequestBody SongRequest request,
-            @AuthenticationPrincipal Long memberId) {
-        SongResponse created = songService.create(request, memberId);
-        return ResponseEntity.created(locationOf(created.id())).body(created);
-    }
 
     /**
-     * 곡 목록. 네 가지 조건으로 거를 수 있고, 조건이 없으면 전체를 돌려준다.
+     * 곡 목록. 세 가지 조건으로 거를 수 있고, 조건이 없으면 전체를 돌려준다.
      *
      *   GET /songs                        전체
-     *   GET /songs?candidateOnly=true     아직 일정에 안 들어간 곡
      *   GET /songs?eventId=3              특정 일정의 곡
      *   GET /songs?keyword=&openPart=     검색
      *
@@ -68,17 +50,16 @@ public class SongController {
      *
      * 합치면서 전체 조회도 fetchJoin 이 들어 있는 경로를 타게 됐다.
      */
-    @Operation(summary = "곡 목록", description = "조건을 주지 않으면 전체를 돌려줍니다. candidateOnly=true 면 아직 일정에 안 들어간 곡만, keyword 는 제목과 아티스트를 함께 찾습니다. "
+    @Operation(summary = "곡 목록", description = "조건을 주지 않으면 전체를 돌려줍니다. keyword 는 제목과 아티스트를 함께 찾습니다. "
             + "비공개 일정에 들어간 곡은 그 일정을 볼 수 있는 사람에게만 보입니다.")
     @GetMapping
     public List<SongResponse> find(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String openPart,
-            @RequestParam(required = false) Boolean candidateOnly,
             @RequestParam(required = false) Long eventId
     ) {
         return songService.search(
-                new SongSearchCondition(keyword, openPart, candidateOnly, eventId),
+                new SongSearchCondition(keyword, openPart, eventId),
                 Viewer.current()
         );
     }
@@ -104,15 +85,13 @@ public class SongController {
         return songService.assignToEvent(songId, eventId);
     }
 
-    @Deprecated(forRemoval = true)
-    @Operation(summary = "곡을 일정에서 빼기 (없어질 예정)",
-            deprecated = true,
-            description = "곡은 이제 반드시 일정에 속하므로 빼낼 곳이 없습니다. "
-                    + "다른 일정으로 옮기거나, 곡을 지우세요.")
-    @PatchMapping("/{songId}/event")
-    public SongResponse unassign(@PathVariable Long songId) {
-        return songService.unassign(songId);
-    }
+    /*
+     * PATCH /songs/{songId}/event — 「곡을 일정에서 빼기」가 여기 있었다.
+     *
+     * V4 가 「곡 후보」를 걷어낸 뒤로 쓸 데가 없어서 없앨 예정으로 표시해 두었고,
+     * V8 이 song.event_id 를 NOT NULL 로 조이면서 부를 수 없는 길이 되었다.
+     * 다른 일정으로 옮기려면 위의 /event/{eventId} 를, 없애려면 DELETE 를 쓴다.
+     */
 
     // ───────────────────────────────────────────────────────────────
     // 자리(slot) 관련 엔드포인트
@@ -180,10 +159,4 @@ public class SongController {
         songService.delete(songId, memberId);
     }
 
-    private static URI locationOf(Long id) {
-        return ServletUriComponentsBuilder.fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(id)
-                .toUri();
-    }
 }

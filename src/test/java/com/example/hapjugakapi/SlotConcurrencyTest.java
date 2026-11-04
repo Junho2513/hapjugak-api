@@ -1,8 +1,10 @@
 package com.example.hapjugakapi;
 
+import com.example.hapjugakapi.domain.Event;
 import com.example.hapjugakapi.domain.Member;
 import com.example.hapjugakapi.domain.Slot;
 import com.example.hapjugakapi.domain.Song;
+import com.example.hapjugakapi.repository.EventRepository;
 import com.example.hapjugakapi.repository.MemberRepository;
 import com.example.hapjugakapi.repository.SlotRepository;
 import com.example.hapjugakapi.repository.SongRepository;
@@ -12,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -33,6 +36,9 @@ class SlotConcurrencyTest {
     private MemberRepository memberRepository;
 
     @Autowired
+    private EventRepository eventRepository;
+
+    @Autowired
     private SongRepository songRepository;
 
     @Autowired
@@ -41,10 +47,20 @@ class SlotConcurrencyTest {
     @Test
     @DisplayName("10명이 동시에 같은 파트를 신청해도 1명만 성공한다")
     void 동시_파트_신청() throws InterruptedException {
-        // given — 곡 하나와 드럼 자리 하나를 만든다
+        // given — 합주 하나, 그 안에 곡 하나, 드럼 자리 하나를 만든다
+        //
+        // 일정을 먼저 여는 이유: 곡은 반드시 어느 일정 안에 있다(V8 에서 song.event_id 를
+        // NOT NULL 로 조였다). 전에는 일정 없이 곡만 만들어도 됐다.
         Member proposer = memberRepository.save(newMember("제안자"));
+        Event event = eventRepository.save(new Event(
+                "동시성 테스트 합주",
+                LocalDate.now().plusDays(30),
+                LocalDate.now().plusDays(7),
+                "홍대",
+                proposer));
 
         Song song = new Song("동시성 테스트곡", "테스터", null, null, proposer);
+        song.assignTo(event);
         song.addSlot("드럼");
         Song saved = songRepository.save(song);
 

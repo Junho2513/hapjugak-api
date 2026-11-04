@@ -38,12 +38,16 @@ class SongServiceTest {
     private Member 기타리스트;
     private Member 드러머;
 
+    /** 곡은 반드시 어느 일정 안에 있다. 그래서 먼저 열어 둔다. */
+    private Event 일정;
+
     @BeforeEach
     void setUp() {
         기타리스트 = memberRepository.save(
                 new Member("guitarist@test.com", "pw", "기타리스트", "서울", ""));
         드러머 = memberRepository.save(
                 new Member("drummer@test.com", "pw", "드러머", "경기", ""));
+        일정 = 일정만들기(LocalDate.now().plusDays(7));
     }
 
     private Event 일정만들기(LocalDate deadline) {
@@ -53,7 +57,8 @@ class SongServiceTest {
     }
 
     private SongResponse 곡만들기() {
-        return songService.create(
+        return songService.createIn(
+                일정.getId(),
                 new SongRequest("주저하는 연인들을 위해", "잔나비", null, null, List.of("보컬", "드럼")),
                 기타리스트.getId()
         );
@@ -66,7 +71,7 @@ class SongServiceTest {
 
         assertEquals(2, song.totalCount());
         assertEquals(0, song.filledCount());
-        assertTrue(song.candidate());
+        assertEquals(일정.getId(), song.eventId());
         assertEquals("기타리스트", song.proposerNickname());
     }
 
@@ -92,8 +97,9 @@ class SongServiceTest {
 
         SongResponse 배정됨 = songService.assignToEvent(song.id(), 열린일정.getId());
 
-        assertFalse(배정됨.candidate());
-        assertEquals(열린일정.getId(), 배정됨.eventId());
+        assertEquals(열린일정.getId(), 배정됨.eventId(),
+                "옮겼으면 새 일정에 가 있어야 한다");
+        assertNotEquals(일정.getId(), 배정됨.eventId());
     }
 
     @Test
@@ -130,9 +136,9 @@ class SongServiceTest {
         songService.claimSlot(song.id(), song.slots().get(0).id(), 기타리스트.getId(), false);
 
         List<SongResponse> 드럼_빈곡 = songService.search(
-                new SongSearchCondition(null, "드럼", null, null), Viewer.anonymous());
+                new SongSearchCondition(null, "드럼", null), Viewer.anonymous());
         List<SongResponse> 보컬_빈곡 = songService.search(
-                new SongSearchCondition(null, "보컬", null, null), Viewer.anonymous());
+                new SongSearchCondition(null, "보컬", null), Viewer.anonymous());
 
         assertEquals(1, 드럼_빈곡.size());
         assertEquals(0, 보컬_빈곡.size());
