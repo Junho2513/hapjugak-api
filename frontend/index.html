@@ -563,7 +563,17 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 }
 
 /* ════════ common.css ════════ */
-@font-face{font-family:Pretendard;src:url('fonts/PretendardVariable.woff2') format('woff2-variations');
+/* 폰트 주소를 두 개 적어둡니다. 앞의 것이 폰트가 아니면 브라우저가 다음 것을 씁니다.
+   상대경로 하나만 두면 안 되는 이유 —
+     로컬은 http://localhost:8080/api/ 에서 보니  fonts/... → /api/fonts/...  (맞음)
+     운영은 https://hapjugak.com/ 에서 보니       fonts/... → /fonts/...      (여기엔 앱이 없습니다)
+   같은 파일인데 찾는 곳이 달라져서, 운영에서만 글꼴이 맑은 고딕으로 떨어졌습니다.
+
+   파일은 이제 src/main/resources/static/fonts/ 에 있습니다. frontend/ 는 Dockerfile 이
+   이미지에 넣지 않아서, 거기 두면 서버까지 따라가지 않습니다. */
+@font-face{font-family:Pretendard;
+  src:url('/api/fonts/PretendardVariable.woff2') format('woff2-variations'),
+      url('fonts/PretendardVariable.woff2') format('woff2-variations');
   font-weight:45 920;font-style:normal;font-display:block}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Pretendard,system-ui,sans-serif;background:var(--bg);color:var(--ink);

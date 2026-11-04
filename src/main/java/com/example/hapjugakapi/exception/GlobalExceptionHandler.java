@@ -13,6 +13,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Objects;
@@ -159,6 +160,23 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status)
                 .body(ErrorResponse.of(status.value(),
                         detail != null ? detail : "요청을 처리할 수 없습니다."));
+    }
+
+    /**
+     * 없는 정적 파일(이미지·폰트 등).
+     *
+     * <p>따로 받아야 하는 이유가 있다. {@code NoResourceFoundException} 은 이름과 달리
+     * {@link ErrorResponseException} 의 하위가 아니다 — {@code ServletException} 을 상속하고
+     * {@code ErrorResponse} 인터페이스만 구현한다. 그래서 위의 핸들러를 비켜 가고
+     * 맨 아래 {@code Exception} 에 걸려 <b>500</b> 으로 나갔다.
+     *
+     * <p>덕분에 "폰트 파일이 서버에 없다"가 "서버가 고장났다"로 보여서 한참 헤맸다.
+     * 없는 파일은 404 다.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResource(NoResourceFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of(404, "요청하신 파일을 찾을 수 없습니다."));
     }
 
     /**
