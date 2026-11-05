@@ -24,6 +24,13 @@ x-api: &api
     JWT_SECRET: ${JWT_SECRET}
     GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
     GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+    # .env 에 값을 적어두는 것만으로는 컨테이너에 들어가지 않습니다.
+    # .env 는 이 파일 안의 ${...} 를 채울 때 쓰이고, 컨테이너가 받는 것은
+    # 여기 적힌 것뿐입니다. 한 줄 빠뜨리면 그 설정만 조용히 빈 문자열이 됩니다.
+    KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
+    KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
+    NAVER_CLIENT_ID: ${NAVER_CLIENT_ID}
+    NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET}
     JAVA_TOOL_OPTIONS: "-Xmx400m -Xms128m"
     TZ: Asia/Seoul
   # 전환하는 몇 십 초 동안 JVM 두 개가 같이 뜹니다. 이 기계는 RAM 이 909MB 라
