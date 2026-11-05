@@ -1,0 +1,36 @@
+-- 제공자 칸을 열어둔다.
+--
+-- provider 가 MySQL 의 ENUM 이었다.
+--
+--   `provider` enum('GOOGLE','LOCAL') NOT NULL
+--
+-- 이대로면 KAKAO 를 넣는 순간 DB 가 거절한다. 제공자를 하나 늘릴 때마다
+-- 테이블을 고쳐야 한다는 뜻이고, 그건 enum 컬럼의 값만큼 흔한 함정이다.
+-- 자바 쪽은 이미 @Enumerated(EnumType.STRING) 에 length = 20 이라,
+-- varchar(20) 으로 두면 양쪽이 같은 모양이 된다.
+--
+-- 어떤 값이 들어올 수 있는지는 자바 enum 이 지킨다. DB 가 한 번 더 지켜주면
+-- 좋겠지만, 그 대가가 「값을 더할 때마다 ALTER TABLE」이면 수지가 안 맞는다.
+ALTER TABLE member MODIFY COLUMN provider VARCHAR(20) NOT NULL;
+
+-- 소셜 계정을 「제공자 + 그쪽 고유번호」로 가린다.
+--
+-- 지금까지 소셜 로그인은 이메일만 보고 사람을 찾았다.
+--
+--   memberRepository.findByEmail(구글이_말한_이메일)  →  그 계정으로 로그인
+--
+-- 구글만 있을 때는 큰 문제가 아니었다. 구글은 이메일을 확인하고 준다.
+-- 카카오가 붙으면 달라진다. 카카오계정 이메일은 미인증일 수 있고, 응답에
+-- is_email_verified: false 로 온다. 그걸 그대로 믿으면 공격자가 자기 카카오
+-- 계정의 이메일을 남의 주소로 바꾸는 것만으로 그 사람 계정에 들어간다.
+--
+-- 그래서 이제 (provider, provider_id) 를 먼저 본다. 이메일로 잇는 것은
+-- 제공자가 "우리가 확인했다"고 말할 때만 한다.
+--
+-- 이 인덱스는 그 기준이 실제로 하나로 유지되게 못을 박는 것이다.
+-- 코드가 아무리 조심해도, 두 요청이 거의 동시에 들어오면 둘 다 "없다"를 보고
+-- 둘 다 회원을 만들 수 있다. 그 경우 DB 가 뒤의 하나를 거절한다.
+--
+-- provider_id 가 NULL 인 행(자체 가입, 그리고 탈퇴한 회원)은 걸리지 않는다.
+-- MySQL 의 UNIQUE 는 NULL 을 여러 개 허용한다.
+CREATE UNIQUE INDEX ux_member_provider_identity ON member (provider, provider_id);

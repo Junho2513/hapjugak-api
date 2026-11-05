@@ -1433,6 +1433,20 @@ img,svg{-webkit-user-drag:none;user-drag:none}
    ============================================================ */
 const GOOGLE_CLIENT_ID = "1012332237618-84qdq4jcvj9s7torlkqojjbss6n3j4kn.apps.googleusercontent.com";
 
+/* 카카오·네이버의 클라이언트 아이디.
+   이 둘은 공개해도 되는 값입니다 — 브라우저가 제공자에게 "이 앱이다" 하고
+   말할 때 쓰는 이름표라서, 어차피 주소창에 그대로 드러납니다.
+   비밀로 둬야 하는 것은 client_secret 쪽이고 그건 서버에만 있습니다.
+
+   카카오는 「REST API 키」입니다. JavaScript 키가 아닙니다 —
+   우리는 카카오 SDK 를 쓰지 않고 주소를 직접 만들어 띄웁니다. */
+const KAKAO_CLIENT_ID = "37be308b895b2ae6883cd9155680a6e9";   // 카카오 개발자센터 → 앱 키 → REST API 키
+const NAVER_CLIENT_ID = "tjFbLGPz0Z4gyguaLtcr";   // 네이버 개발자센터 → 애플리케이션 → Client ID
+
+/* 카카오·네이버가 로그인을 마치고 돌아올 자리.
+   개발자센터에 등록한 Redirect URI 와 글자 하나까지 같아야 합니다. */
+const OAUTH_REDIRECT = location.origin + "/oauth.html";
+
 /* 어느 버전이 떠 있는지 확인용 표시. 화면 맨 아래와 콘솔에 찍힙니다. */
 const BUILD = "1105-0230";
 console.log("합주각 빌드", BUILD);
@@ -2199,10 +2213,12 @@ function authModal(mode = "login"){
    브랜드 가이드라인상 임의로 그린 로고를 쓰면 안 되므로,
    frontend/img/ 에 내려받아 두고 참조합니다.
    파일이 없으면 아이콘 자리에 머리글자만 보입니다. */
+/* enabled 를 키 유무로 정합니다. 키를 안 넣은 채 버튼만 켜두면
+   누른 사람이 제공자의 오류 화면을 보게 됩니다. 그러느니 안 보이는 쪽이 낫습니다. */
 const SOCIAL_PROVIDERS = [
-  { id:"google", label:"구글 계정으로 로그인",   cls:"social-google", icon:"img/btn-google.svg", mark:"G", enabled:true  },
-  { id:"kakao",  label:"카카오 계정으로 로그인", cls:"social-kakao",  icon:"img/btn-kakao.svg",  mark:"K", enabled:false },
-  { id:"naver",  label:"네이버 계정으로 로그인", cls:"social-naver",  icon:"img/btn-naver.svg",  mark:"N", enabled:false }
+  { id:"google", label:"구글 계정으로 로그인",   cls:"social-google", icon:"img/btn-google.svg", mark:"G", enabled:!!GOOGLE_CLIENT_ID },
+  { id:"kakao",  label:"카카오 계정으로 로그인", cls:"social-kakao",  icon:"img/btn-kakao.svg",  mark:"K", enabled:!!KAKAO_CLIENT_ID  },
+  { id:"naver",  label:"네이버 계정으로 로그인", cls:"social-naver",  icon:"img/btn-naver.svg",  mark:"N", enabled:!!NAVER_CLIENT_ID  }
 ];
 
 function renderSocialButtons(box){
@@ -2227,7 +2243,96 @@ function renderSocialButtons(box){
 
 function startSocialLogin(id){
   if (id === "google") return startGoogleLogin();
+  if (id === "kakao")  return startPopupLogin("kakao", kakaoAuthUrl);
+  if (id === "naver")  return startPopupLogin("naver", naverAuthUrl);
   toast("아직 준비 중입니다");
+}
+
+/* ── 카카오·네이버 — 팝업 + 돌아올 자리 ──────────────────────────────
+   구글은 팝업이 코드를 부모 창에 직접 건네줍니다(ux_mode: popup).
+   카카오·네이버에는 그 방법이 없고 "이 주소로 보내주겠다"는 리다이렉트뿐입니다.
+   그래서 oauth.html 을 받을 자리로 두고, 거기서 postMessage 로 넘겨받습니다.
+
+   state 는 여기서 만들어 들고 있다가 돌아온 값과 맞춰봅니다.
+   이게 없으면 남이 만든 코드를 우리 창에 흘려넣어, 사용자가 자기도 모르게
+   공격자의 계정으로 로그인하게 만들 수 있습니다(로그인 CSRF).
+   값을 만든 쪽과 확인하는 쪽이 같은 창이라야 뜻이 있어서, 서버가 아니라
+   여기서 합니다. */
+function randomState(){
+  const a = new Uint8Array(16);
+  crypto.getRandomValues(a);
+  return Array.from(a, b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function kakaoAuthUrl(state){
+  return "https://kauth.kakao.com/oauth/authorize"
+    + "?response_type=code"
+    + "&client_id=" + encodeURIComponent(KAKAO_CLIENT_ID)
+    + "&redirect_uri=" + encodeURIComponent(OAUTH_REDIRECT)
+    + "&state=" + encodeURIComponent(state)
+    /* 매번 계정을 고르게 합니다. 없으면 한 번 로그인한 기기에서는
+       버튼만 눌러도 바로 들어가서, 계정을 바꿀 길이 없습니다. */
+    + "&prompt=login";
+}
+
+function naverAuthUrl(state){
+  return "https://nid.naver.com/oauth2.0/authorize"
+    + "?response_type=code"
+    + "&client_id=" + encodeURIComponent(NAVER_CLIENT_ID)
+    + "&redirect_uri=" + encodeURIComponent(OAUTH_REDIRECT)
+    + "&state=" + encodeURIComponent(state);
+}
+
+function startPopupLogin(provider, urlOf){
+  const state = randomState();
+  const w = 480, h = 640;
+  const left = Math.max(0, (screen.width  - w) / 2 + (screen.availLeft || 0));
+  const top  = Math.max(0, (screen.height - h) / 2);
+  const popup = window.open(urlOf(state), "hapjugak-oauth",
+    `width=${w},height=${h},left=${left},top=${top}`);
+
+  if (!popup){
+    return showAuthError("팝업이 막혀 있습니다. 주소창 오른쪽에서 허용해 주세요");
+  }
+
+  let done = false;
+
+  const finish = () => {
+    done = true;
+    window.removeEventListener("message", onMessage);
+    clearInterval(watch);
+  };
+
+  async function onMessage(ev){
+    if (ev.origin !== location.origin) return;              // 우리 oauth.html 이 보낸 것만
+    if (!ev.data || ev.data.source !== "hapjugak-oauth") return;
+    if (done) return;
+    finish();
+
+    const { code, state: back, error } = ev.data;
+    if (error) return showAuthError("로그인을 끝내지 못했습니다");
+    /* 돌아온 state 가 다르면 우리가 띄운 창에서 온 것이 아닙니다. 버립니다. */
+    if (back !== state) return showAuthError("로그인 정보가 맞지 않습니다. 다시 시도해 주세요");
+    if (!code) return;
+
+    try {
+      const issued = await call("POST", "/auth/" + provider, { code, state });
+      closeModal();
+      await afterAuth(issued.accessToken);
+      toast("로그인했습니다");
+    } catch (e) {
+      showAuthError(e.message || "로그인에 실패했습니다");
+    }
+  }
+
+  window.addEventListener("message", onMessage);
+
+  /* 사용자가 팝업을 그냥 닫으면 아무 메시지도 오지 않습니다.
+     그대로 두면 이벤트 핸들러가 영영 남으므로 창이 닫혔는지 지켜봅니다.
+     닫은 것은 실패가 아니므로 조용히 정리만 합니다. */
+  const watch = setInterval(() => {
+    if (popup.closed && !done) finish();
+  }, 500);
 }
 
 function showAuthError(message){

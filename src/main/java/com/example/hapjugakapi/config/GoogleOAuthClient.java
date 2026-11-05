@@ -1,5 +1,6 @@
 package com.example.hapjugakapi.config;
 
+import com.example.hapjugakapi.domain.AuthProvider;
 import com.example.hapjugakapi.exception.UnauthorizedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,30 +28,50 @@ import org.springframework.web.client.RestClientException;
  * 카카오와 네이버도 같은 방식이다. 주소와 키만 다르다.
  */
 @Component
-public class GoogleOAuthClient {
+public class GoogleOAuthClient implements SocialClient {
 
     private static final Logger log = LoggerFactory.getLogger(GoogleOAuthClient.class);
     private static final String TOKEN_URI = "https://oauth2.googleapis.com/token";
 
     /**
-     * 팝업(ux_mode: popup)으로 받은 코드를 교환할 때는
-     * redirect_uri 자리에 이 약속된 문자열을 넣는다. 실제 주소가 아니다.
+     * 팝업(ux_mode: popup)으로 받은 코드를 교환할 때는 redirect_uri 자리에
+     * 이 약속된 문자열을 넣는다. 실제 주소가 아니다.
      */
     private static final String POPUP_REDIRECT = "postmessage";
 
-    private final RestClient rest = RestClient.create();
+    private final RestClient rest = SocialHttp.client();
+    private final GoogleTokenVerifier verifier;
     private final String clientId;
     private final String clientSecret;
 
-    public GoogleOAuthClient(@Value("${google.client-id}") String clientId,
+    public GoogleOAuthClient(GoogleTokenVerifier verifier,
+                             @Value("${google.client-id}") String clientId,
                              @Value("${google.client-secret}") String clientSecret) {
+        this.verifier = verifier;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
     }
 
-    public String exchangeForIdToken(String code) {
+    @Override
+    public AuthProvider provider() {
+        return AuthProvider.GOOGLE;
+    }
+
+    /**
+     * 구글만 사람 정보를 따로 묻지 않는다.
+     *
+     * 돌려받은 ID 토큰 안에 이메일·이름이 이미 들어 있어서, 서명만 확인하면
+     * 요청을 한 번 덜 보내도 된다. 카카오·네이버는 ID 토큰이 없거나 쓰지 않으므로
+     * 접근 토큰을 들고 사람 정보를 묻는 길로 간다.
+     */
+    @Override
+    public SocialUser exchange(SocialCode code) {
+        return verifier.verify(exchangeForIdToken(code));
+    }
+
+    private String exchangeForIdToken(SocialCode code) {
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-        form.add("code", code);
+        form.add("code", code.code());
         form.add("client_id", clientId);
         form.add("client_secret", clientSecret);
         form.add("redirect_uri", POPUP_REDIRECT);

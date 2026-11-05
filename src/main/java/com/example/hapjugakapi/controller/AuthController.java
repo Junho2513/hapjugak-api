@@ -1,7 +1,9 @@
 package com.example.hapjugakapi.controller;
 
 import com.example.hapjugakapi.config.LoginAttemptGuard;
-import com.example.hapjugakapi.dto.GoogleLoginRequest;
+import com.example.hapjugakapi.config.SocialCode;
+import com.example.hapjugakapi.domain.AuthProvider;
+import com.example.hapjugakapi.dto.SocialLoginRequest;
 import com.example.hapjugakapi.dto.LoginRequest;
 import com.example.hapjugakapi.dto.TokenResponse;
 import com.example.hapjugakapi.exception.UnauthorizedException;
@@ -13,6 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -63,12 +66,47 @@ public class AuthController {
         }
     }
 
-    @Operation(summary = "구글 로그인",
-            description = "구글이 준 인가 코드를 보내면 서버가 구글과 교환해 ID 토큰을 받고, "
-                    + "서명을 검증한 뒤 우리 토큰을 돌려줍니다.")
-    @PostMapping("/google")
-    public TokenResponse googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
-        return authService.googleLogin(request);
+    /**
+     * 소셜 로그인 — 구글·카카오·네이버.
+     *
+     * 제공자를 경로에 둔다. 본문에 넣는 방법도 있지만, 길이 나뉘어 있는 편이
+     * 문서에서 셋이 따로 보이고 나중에 한 곳만 막기도 쉽다.
+     *
+     * enum 으로 바로 받지 않고 문자열로 받아 손으로 바꾼다.
+     * 스프링의 기본 enum 변환은 대소문자를 가려서 /auth/google 이 400 이 되고,
+     * 전역 변환기를 끼우면 이 길 말고 다른 곳의 enum 바인딩까지 같이 바뀐다.
+     *
+     * LOCAL 은 enum 에 있으므로 따로 막는다 — 자체 로그인은 /auth/login 의 일이다.
+     */
+    @Operation(summary = "소셜 로그인",
+            description = "google · kakao · naver 중 하나를 길에 넣습니다. "
+                    + "제공자가 준 인가 코드를 보내면 서버가 제공자와 교환해 누구인지 확인하고 "
+                    + "우리 토큰을 돌려줍니다. state 는 네이버만 씁니다.")
+    @ApiResponse(responseCode = "200", description = "토큰을 발급했습니다",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = TokenResponse.class)))
+    @ApiResponse(responseCode = "401",
+            description = "로그인에 실패했습니다. 같은 이메일의 계정이 이미 있는데 "
+                    + "제공자가 그 주소를 확인해 주지 않은 경우도 여기에 걸립니다")
+    @PostMapping("/{provider}")
+    public TokenResponse socialLogin(@PathVariable String provider,
+                                     @Valid @RequestBody SocialLoginRequest request) {
+        return authService.socialLogin(
+                socialProviderOf(provider),
+                new SocialCode(request.code(), request.state()));
+    }
+
+    private static AuthProvider socialProviderOf(String name) {
+        AuthProvider provider;
+        try {
+            provider = AuthProvider.valueOf(name.toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new UnauthorizedException("지원하지 않는 로그인 방법입니다.");
+        }
+        if (provider == AuthProvider.LOCAL) {
+            throw new UnauthorizedException("자체 로그인은 /auth/login 을 쓰세요.");
+        }
+        return provider;
     }
 
     /**

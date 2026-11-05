@@ -120,7 +120,7 @@ sudo systemctl reload nginx
 # ── 5. 화면을 복사한다 ───────────────────────────────────────────────
 # 일부러 여기서 합니다. 먼저 복사하면 새 화면이 옛 서버와 짝지어 2분 가까이 돕니다.
 # 여기서 하면 어긋나는 창이 1초가 됩니다.
-cp frontend/index.html frontend/privacy.html /var/www/hapjugak/
+cp frontend/index.html frontend/privacy.html frontend/oauth.html /var/www/hapjugak/
 
 # ── 6. 옛 쪽을 내린다 ────────────────────────────────────────────────
 docker compose rm -sf "api-$OLD" > /dev/null 2>&1 || true

@@ -74,11 +74,21 @@ public class Member {
         this.provider = AuthProvider.LOCAL;
     }
 
-    public static Member google(String email, String nickname, String providerId) {
+    /**
+     * 소셜로 처음 들어온 사람.
+     *
+     * 전에는 google(...) 하나였다. 카카오·네이버가 붙으면서 제공자를 받는다.
+     *
+     * 이메일이 null 일 수 있다. 카카오와 네이버는 이메일 제공이 선택 동의라
+     * 사용자가 거부하면 아예 오지 않는다. 그래도 가입은 되어야 한다 —
+     * 이메일은 나중에 프로필에서 채울 수 있다.
+     */
+    public static Member social(AuthProvider provider, String email,
+                                String nickname, String providerId) {
         Member member = new Member();
         member.email = email;
         member.nickname = trim(nickname);
-        member.provider = AuthProvider.GOOGLE;
+        member.provider = provider;
         member.providerId = providerId;
         return member;
     }
@@ -88,7 +98,15 @@ public class Member {
         return nickname.length() > 20 ? nickname.substring(0, 20) : nickname;
     }
 
-    public void linkGoogle(String providerId) {
+    /**
+     * 자체 가입했던 계정에 소셜 계정을 이어붙인다.
+     *
+     * 부르는 쪽(AuthService)이 "이어도 되는 사이인가"를 먼저 판단한다.
+     * 여기서는 묻지 않는다 — 판단 기준이 제공자마다 다르고, 그 판단은
+     * 엔티티가 아니라 서비스의 일이다.
+     */
+    public void linkSocial(AuthProvider provider, String providerId) {
+        this.provider = provider;
         this.providerId = providerId;
     }
 
@@ -96,7 +114,7 @@ public class Member {
         return password != null;
     }
 
-    public boolean isLinkedWithGoogle() {
+    public boolean isLinkedWithSocial() {
         return providerId != null;
     }
 

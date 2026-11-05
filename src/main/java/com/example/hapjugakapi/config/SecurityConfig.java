@@ -68,7 +68,11 @@ public class SecurityConfig {
                         // 그 줄이 언젠가 좁아져도 배포가 같이 멈추지 않도록,
                         // 그리고 "이건 일부러 열어둔 것"이 보이도록.
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/google", "/members").permitAll()
+                        // 로그인은 토큰이 없는 상태로 부르는 길이다.
+                        // /auth/* 로 묶는 이유: 제공자가 늘 때마다 여기를 고치는 걸 잊으면
+                        // 새 제공자만 401 이 나고, 그 원인을 찾는 데 한참 걸린다.
+                        // 이 아래에 로그인 말고 다른 것을 두지 않는 것이 조건이다.
+                        .requestMatchers(HttpMethod.POST, "/auth/*", "/members").permitAll()
                         .requestMatchers(HttpMethod.GET, "/members/me").authenticated()
                         .requestMatchers(HttpMethod.GET, "/members").hasRole("ADMIN")
                         // 남의 프로필은 로그인한 사람만. 이 줄이 없으면 아래 GET /** 에 걸려
