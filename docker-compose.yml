@@ -1,3 +1,39 @@
+# 서버 한 대 안에서 API 를 두 벌 번갈아 띄웁니다(블루-그린).
+#
+# 전에는 api 하나뿐이었고, 배포할 때 `docker compose up -d api` 가 그 컨테이너를
+# 내리고 새로 띄웠습니다. 새 JVM 이 뜨는 20여 초 동안 사이트가 끊겼습니다.
+#
+# 이제 안 쓰는 쪽에 새 것을 먼저 띄우고, 떴는지 확인한 뒤, nginx 가 보는 포트만
+# 바꿉니다. nginx 의 reload 는 이미 붙어 있는 연결을 끊지 않으므로 공백이 없습니다.
+# 떠 있는 것을 확인하고 넘기기 때문에, 새 것이 안 뜨면 옛 것이 그대로 서비스합니다.
+# 배포가 실패해도 사이트가 죽지 않는 쪽이 더 큰 소득입니다.
+#
+# blue 와 green 은 포트만 다르고 나머지는 같습니다. 아래 &api 로 한 번만 적습니다.
+
+x-api: &api
+  # 서버에서 빌드하지 않습니다. GitHub Actions가 만들어 올린 이미지를 받아 씁니다.
+  # IMAGE_TAG는 deploy.sh가 커밋 해시로 넣어줍니다. 없으면 latest를 씁니다.
+  image: ghcr.io/junho2513/hapjugak-api:${IMAGE_TAG:-latest}
+  restart: always
+  depends_on:
+    db:
+      condition: service_healthy
+  environment:
+    SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/hapjugak?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    DB_PASSWORD: ${DB_PASSWORD}
+    JWT_SECRET: ${JWT_SECRET}
+    GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+    GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+    JAVA_TOOL_OPTIONS: "-Xmx400m -Xms128m"
+    TZ: Asia/Seoul
+  # 전환하는 몇 십 초 동안 JVM 두 개가 같이 뜹니다. 이 기계는 RAM 이 909MB 라
+  # 그 사이에 스왑을 탑니다(스왑 2GB 가 잡혀 있습니다).
+  #
+  # 정말 모자라면 커널이 뭔가를 죽입니다. 그때 DB 가 죽으면 데이터가 걸려 있고,
+  # API 가 죽으면 restart: always 가 다시 띄웁니다. 그래서 API 쪽 점수를 올려
+  # 커널이 DB 보다 API 를 먼저 고르게 합니다.
+  oom_score_adj: 400
+
 services:
   db:
     image: mysql:8.0
@@ -19,26 +55,18 @@ services:
       timeout: 5s
       retries: 10
 
-  api:
-    # 서버에서 빌드하지 않습니다. GitHub Actions가 만들어 올린 이미지를 받아 씁니다.
-    # IMAGE_TAG는 deploy.sh가 커밋 해시로 넣어줍니다. 없으면 latest를 씁니다.
-    image: ghcr.io/junho2513/hapjugak-api:${IMAGE_TAG:-latest}
-    container_name: hapjugak-api
-    restart: always
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/hapjugak?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-      DB_PASSWORD: ${DB_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      JAVA_TOOL_OPTIONS: "-Xmx400m -Xms128m"
-      TZ: Asia/Seoul
+  api-blue:
+    <<: *api
+    container_name: hapjugak-api-blue
     ports:
       # 바깥에서 직접 못 들어옵니다. Nginx만 접근합니다.
       - "127.0.0.1:8080:8080"
+
+  api-green:
+    <<: *api
+    container_name: hapjugak-api-green
+    ports:
+      - "127.0.0.1:8081:8080"
 
 volumes:
   db-data:

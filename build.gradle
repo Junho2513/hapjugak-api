@@ -34,6 +34,12 @@ dependencies {
     // flyway-core 만 넣으면 라이브러리는 있어도 Boot가 켜주지 않습니다.
     implementation 'org.springframework.boot:spring-boot-starter-flyway'
 
+    // 헬스체크. 무중단 배포가 "새 컨테이너가 진짜 떴는지"를 물어볼 곳이 필요합니다.
+    // 포트가 열렸다는 것과 앱이 요청을 받을 준비가 됐다는 것은 다릅니다 —
+    // JVM 이 뜨고 Flyway 가 돌고 DB 연결이 잡히기까지 20초쯤 걸리는데,
+    // 그 사이에 트래픽을 넘기면 사용자가 503 을 봅니다.
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
     // AWS SDK는 Spring Boot가 버전을 관리해주지 않아 BOM을 직접 가져옵니다.
     implementation platform('software.amazon.awssdk:bom:2.46.7')
     implementation 'software.amazon.awssdk:s3'
