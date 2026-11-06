@@ -925,6 +925,13 @@ header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1
 /* 공식 이미지가 들어오면 그 안에 자기 바탕색이 들어 있으므로
    우리가 깔아둔 색을 지웁니다. 머리글자로 떨어진 경우에만 색이 쓰입니다. */
 img.link-mark{background:none;border:0;object-fit:contain}
+
+/* 구글만 예외입니다.
+   카카오·네이버가 주는 심볼에는 동그란 바탕이 들어 있는데, 구글이 주는 것은
+   G 글자만 있습니다. 같은 22px 로 두면 구글 것만 테두리까지 꽉 차서 혼자 커 보입니다.
+   흰 원을 둘러 안쪽에 여백을 주면 셋이 같은 크기로 보입니다. */
+img.link-mark.social-google{
+  background:#fff;border:1px solid var(--rule);padding:4px;box-sizing:border-box}
 .link-mark.social-google{background:#fff;color:#4285F4;border:1px solid var(--line)}
 .link-mark.social-kakao{background:#FEE500;color:#191600}
 .link-mark.social-naver{background:#03C75A;color:#fff}
