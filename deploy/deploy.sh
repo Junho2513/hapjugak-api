@@ -138,6 +138,10 @@ sudo systemctl reload nginx
 # 일부러 여기서 합니다. 먼저 복사하면 새 화면이 옛 서버와 짝지어 2분 가까이 돕니다.
 # 여기서 하면 어긋나는 창이 1초가 됩니다.
 cp frontend/index.html frontend/privacy.html frontend/oauth.html /var/www/hapjugak/
+# 소셜 로그인 버튼의 공식 로고들. 빠뜨리면 버튼에서 아이콘만 깨진 채 뜨고,
+# 화면 코드는 멀쩡하므로 원인을 찾는 데 한참 걸린다.
+mkdir -p /var/www/hapjugak/img
+cp -r frontend/img/. /var/www/hapjugak/img/
 
 # ── 6. 옛 쪽을 내린다 ────────────────────────────────────────────────
 docker compose rm -sf "api-$OLD" > /dev/null 2>&1 || true

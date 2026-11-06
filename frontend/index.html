@@ -922,6 +922,9 @@ header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1
   padding:9px 12px;border:1px solid var(--rule);border-radius:12px;background:var(--bg)}
 .link-mark{width:22px;height:22px;flex:0 0 22px;border-radius:50%;
   display:grid;place-items:center;font-size:11px;font-weight:800;letter-spacing:-0.03em}
+/* 공식 이미지가 들어오면 그 안에 자기 바탕색이 들어 있으므로
+   우리가 깔아둔 색을 지웁니다. 머리글자로 떨어진 경우에만 색이 쓰입니다. */
+img.link-mark{background:none;border:0;object-fit:contain}
 .link-mark.social-google{background:#fff;color:#4285F4;border:1px solid var(--line)}
 .link-mark.social-kakao{background:#FEE500;color:#191600}
 .link-mark.social-naver{background:#03C75A;color:#fff}
@@ -2243,7 +2246,11 @@ function authModal(mode = "login"){
 const SOCIAL_PROVIDERS = [
   { id:"google", label:"구글 계정으로 로그인",   cls:"social-google", icon:"img/btn-google.svg", mark:"G", enabled:!!GOOGLE_CLIENT_ID },
   { id:"kakao",  label:"카카오 계정으로 로그인", cls:"social-kakao",  icon:"img/btn-kakao.svg",  mark:"K", enabled:!!KAKAO_CLIENT_ID  },
-  { id:"naver",  label:"네이버 계정으로 로그인", cls:"social-naver",  icon:"img/btn-naver.svg",  mark:"N", enabled:!!NAVER_CLIENT_ID  }
+  /* 네이버만 파일이 둘입니다. 로그인 버튼은 초록 바탕이라 흰 심볼이 또렷하고,
+     계정 연결 칸은 밝은 바탕이라 흰 심볼이 묻혀서 초록 심볼을 씁니다.
+     iconBtn 이 없는 제공자는 두 곳에서 같은 파일을 씁니다. */
+  { id:"naver",  label:"네이버 계정으로 로그인", cls:"social-naver",  icon:"img/btn-naver.png",
+    iconBtn:"img/btn-naver-white.png", mark:"N", enabled:!!NAVER_CLIENT_ID  }
 ];
 
 function renderSocialButtons(box){
@@ -2252,7 +2259,7 @@ function renderSocialButtons(box){
     b.type = "button";
 
     const img = el("img");
-    img.src = p.icon;
+    img.src = p.iconBtn || p.icon;
     img.alt = "";
     // 공식 이미지를 아직 안 받았으면 머리글자로 대신합니다.
     img.onerror = () => {
@@ -4568,7 +4575,13 @@ function profileModal({first = false} = {}){
       SOCIAL_PROVIDERS.filter(sp => sp.enabled).forEach(sp => {
         const on = linked.includes(sp.id.toUpperCase());
         const row = el("div", "link-row");
-        row.append(el("span", "link-mark " + sp.cls, sp.mark));
+        /* 로그인 버튼과 같은 방식입니다 — 공식 이미지가 있으면 그걸,
+           아직 안 받았으면 머리글자로 떨어집니다. */
+        const mk = el("img", "link-mark " + sp.cls);
+        mk.src = sp.icon;
+        mk.alt = "";
+        mk.onerror = () => mk.replaceWith(el("span", "link-mark " + sp.cls, sp.mark));
+        row.append(mk);
         row.append(el("span", "link-name", sp.label.replace(" 계정으로 로그인", "")));
 
         const b = el("button", "btn sm " + (on ? "ghost" : ""), on ? "연결 끊기" : "연결하기");
