@@ -68,7 +68,13 @@ public class AuthService {
                 .orElseThrow(() -> new UnauthorizedException("아이디(이메일 주소)를 확인해주세요."));
 
         if (!member.hasPassword()) {
-            throw new UnauthorizedException("구글로 가입한 계정입니다. 구글 로그인을 이용해주세요.");
+            // 어느 쪽으로 가입했는지를 보고 말한다.
+            // 전에는 "구글로 가입한 계정입니다" 가 박혀 있었다. 구글만 있던 시절의
+            // 문구인데, 카카오·네이버가 붙은 뒤에도 그대로여서 카카오로 가입한
+            // 사람에게도 구글을 쓰라고 했다.
+            throw new UnauthorizedException(
+                    providerName(member.getProvider()) + "로 가입한 계정입니다. "
+                            + providerName(member.getProvider()) + " 로그인을 이용해주세요.");
         }
         if (!passwordEncoder.matches(request.password(), member.getPassword())) {
             throw new UnauthorizedException("비밀번호를 확인해주세요.");
@@ -146,7 +152,18 @@ public class AuthService {
         //    붙어 있던 것이 사라진다. 네이버로 가입한 사람이 구글로 한 번 들어오면
         //    네이버 연결이 지워지고, 그 뒤로 네이버 로그인은 ④에 걸려 영영 막힌다.
         //    자기 계정에 자기가 못 들어가게 되는 것이다.
-        if (user.hasTrustedEmail() && !existing.isLinkedWithSocial()) {
+        if (user.hasTrustedEmail()
+                && (!existing.isLinkedWithSocial() || existing.getProvider() == provider)) {
+            // 같은 제공자인데 ①에서 못 찾았다면, 저장된 고유번호가 지금 오는 것과
+            // 다르다는 뜻이다. 실제로 그런 계정이 27개 있었다.
+            //
+            // Firestore 에서 옮겨올 때 provider_id 에 넣은 것이 구글의 sub 가 아니라
+            // Firebase UID 였다. 둘은 다른 값이다. 그때는 이메일로 사람을 찾았기 때문에
+            // 아무 문제가 없었고, 찾는 기준을 고유번호로 바꾸면서 전원이 막혔다.
+            //
+            // 구글이 확인해 준 주소이고 그 계정이 구글 계정이라고 적혀 있으므로,
+            // 이 사람이 그 계정의 주인인 것은 분명하다. 낡은 값을 지금 값으로 고쳐 둔다.
+            // 한 번 고쳐지면 다음부터는 ①에서 바로 찾아진다.
             existing.linkSocial(provider, user.providerId());
             return existing;
         }
@@ -170,13 +187,21 @@ public class AuthService {
     private static String howToSignIn(Member member) {
         if (member.isLinkedWithSocial()) {
             return switch (member.getProvider()) {
-                case GOOGLE -> "구글로";
-                case KAKAO -> "카카오로";
-                case NAVER -> "네이버로";
+                case GOOGLE, KAKAO, NAVER -> providerName(member.getProvider()) + "로";
                 default -> "원래 쓰시던 방법으로";
             };
         }
         return "이메일과 비밀번호로";
+    }
+
+    /** 사람에게 보여줄 제공자 이름. */
+    private static String providerName(AuthProvider provider) {
+        return switch (provider) {
+            case GOOGLE -> "구글";
+            case KAKAO -> "카카오";
+            case NAVER -> "네이버";
+            case LOCAL -> "이메일";
+        };
     }
 
     private TokenResponse issue(Member member) {

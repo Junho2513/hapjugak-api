@@ -265,6 +265,43 @@ class SocialLoginTest {
     }
 
     @Test
+    @DisplayName("같은 제공자인데 고유번호가 낡았으면 고쳐서 들여보낸다")
+    void 낡은_고유번호를_고친다() {
+        // Firestore 에서 옮겨온 계정들이 이 모습이었다. provider 는 GOOGLE 인데
+        // provider_id 에는 구글의 sub 가 아니라 Firebase UID 가 들어 있었다.
+        // 그때는 이메일로 사람을 찾아서 아무도 몰랐고, 기준을 고유번호로 바꾸자
+        // 27명 전원이 로그인하지 못하게 됐다.
+        Member 옮겨온계정 = memberRepository.save(
+                Member.social(AuthProvider.GOOGLE, "moved@test.com", "옮겨온사람", "firebase-uid-옛것"));
+
+        제공자가답한다(AuthProvider.GOOGLE,
+                new SocialUser("google-sub-진짜", "moved@test.com", true, "옮겨온사람"));
+
+        Member 들어온사람 = 로그인(AuthProvider.GOOGLE);
+
+        assertEquals(옮겨온계정.getId(), 들어온사람.getId(), "새 계정이 생기면 안 된다");
+        assertEquals("google-sub-진짜", 들어온사람.getProviderId(), "낡은 값이 고쳐져야 한다");
+
+        // 한 번 고쳐졌으니 다음부터는 ①에서 바로 찾아진다.
+        assertEquals(옮겨온계정.getId(), 로그인(AuthProvider.GOOGLE).getId());
+    }
+
+    @Test
+    @DisplayName("제공자가 다르면 낡은 값이어도 고쳐주지 않는다")
+    void 다른_제공자는_못_고친다() {
+        // 구글 계정에 카카오가 끼어들어 자기 번호로 덮어쓰면 구글 로그인이 끊긴다.
+        memberRepository.save(
+                Member.social(AuthProvider.GOOGLE, "mine@test.com", "주인", "google-sub"));
+
+        제공자가답한다(AuthProvider.KAKAO,
+                new SocialUser("kakao-9", "mine@test.com", true, "주인"));
+
+        UnauthorizedException e = assertThrows(UnauthorizedException.class,
+                () -> authService.socialLogin(AuthProvider.KAKAO, 아무코드));
+        assertTrue(e.getMessage().contains("구글"), e.getMessage());
+    }
+
+    @Test
     @DisplayName("자체 로그인 길로는 소셜 제공자를 부를 수 없다")
     void 로컬은_소셜이_아니다() {
         assertThrows(UnauthorizedException.class,
