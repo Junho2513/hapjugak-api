@@ -66,7 +66,19 @@ TARGET=$(git rev-parse origin/master)
 # 이미지 이름은 .env 에서 읽습니다. 적혀 있지 않으면 아래 값을 씁니다.
 # 깃허브 계정 이름을 바꾸면 GHCR 네임스페이스도 따라 옮겨가므로,
 # 그때는 코드를 고치지 않고 서버의 .env 한 줄만 바꾸면 됩니다.
-IMAGE_NAME=$(grep -E '^IMAGE_NAME=' .env 2>/dev/null | cut -d= -f2- | tr -d '[:space:]')
+#
+# sed 를 쓰는 이유: grep 은 못 찾으면 1 을 돌려준다. 이 스크립트는 set -e 와
+# pipefail 로 돌아서, 그 1 이 파이프라인 전체의 종료코드가 되고 스크립트가
+# 그 자리에서 죽는다. 아무 메시지도 남기지 않는다 — log() 를 부르기 전이라
+# 로그에도 화면에도 안 찍힌다. 실제로 그렇게 한 번 멎었고,
+# 「배포를 눌렀는데 아무 일도 안 일어난다」로 보였다.
+#
+# sed -n 은 찾은 게 없어도 0 을 돌려준다. 「없을 수도 있는 것」을 찾을 때는
+# 없음을 실패로 치지 않는 도구를 써야 한다.
+IMAGE_NAME=""
+if [ -f .env ]; then
+  IMAGE_NAME=$(sed -n 's/^IMAGE_NAME=//p' .env | tr -d '[:space:]')
+fi
 IMAGE_NAME="${IMAGE_NAME:-ghcr.io/saae1101/hapjugak-api}"
 IMAGE="$IMAGE_NAME:$TARGET"
 

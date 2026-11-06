@@ -5,9 +5,12 @@ import com.example.hapjugakapi.config.SocialCode;
 import com.example.hapjugakapi.config.SocialUser;
 import com.example.hapjugakapi.domain.AuthProvider;
 import com.example.hapjugakapi.domain.Member;
+import com.example.hapjugakapi.domain.SocialAccount;
 import com.example.hapjugakapi.dto.TokenResponse;
 import com.example.hapjugakapi.exception.UnauthorizedException;
+import com.example.hapjugakapi.exception.ConflictException;
 import com.example.hapjugakapi.repository.MemberRepository;
+import com.example.hapjugakapi.repository.SocialAccountRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,8 +47,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class SocialLoginTest {
 
     @Autowired private MemberRepository memberRepository;
+    @Autowired private SocialAccountRepository socialAccountRepository;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private JwtTokenProvider jwtTokenProvider;
+    @Autowired private MemberService memberService;
 
     private static final SocialCode 아무코드 = new SocialCode("code", "state");
 
@@ -75,7 +80,8 @@ class SocialLoginTest {
         for (AuthProvider p : List.of(AuthProvider.GOOGLE, AuthProvider.KAKAO, AuthProvider.NAVER)) {
             가짜들.add(가짜(p));
         }
-        authService = new AuthService(memberRepository, passwordEncoder, jwtTokenProvider, 가짜들);
+        authService = new AuthService(memberRepository, socialAccountRepository,
+                passwordEncoder, jwtTokenProvider, 가짜들);
     }
 
     private SocialClient 가짜(AuthProvider provider) {
@@ -120,7 +126,6 @@ class SocialLoginTest {
 
         UnauthorizedException e = assertThrows(UnauthorizedException.class,
                 () -> authService.socialLogin(AuthProvider.KAKAO, 아무코드));
-        // 자체 가입한 계정이므로 "이메일과 비밀번호로" 들어오라고 해야 한다
         assertTrue(e.getMessage().contains("가입된 계정이 있습니다"), e.getMessage());
         assertTrue(e.getMessage().contains("비밀번호"), e.getMessage());
     }
@@ -136,21 +141,21 @@ class SocialLoginTest {
         assertThrows(UnauthorizedException.class,
                 () -> authService.socialLogin(AuthProvider.KAKAO, 아무코드));
 
-        Member 뒤 = memberRepository.findById(피해자.getId()).orElseThrow();
-        assertEquals(AuthProvider.LOCAL, 뒤.getProvider(), "제공자가 바뀌면 안 된다");
-        assertNull(뒤.getProviderId(), "소셜 계정이 이어붙으면 안 된다");
-        assertEquals("피해자", 뒤.getNickname());
+        assertTrue(연결(피해자).isEmpty(), "연결이 생기면 안 된다");
+        assertEquals("피해자", memberRepository.findById(피해자.getId()).orElseThrow().getNickname());
     }
 
     @Test
-    @DisplayName("네이버 이메일은 인증 여부를 알 수 없으므로 잇지 않는다")
-    void 네이버는_잇지_않는다() {
+    @DisplayName("네이버 이메일은 인증 여부를 알 수 없으므로 자동으로 잇지 않는다")
+    void 네이버는_자동으로_잇지_않는다() {
         memberRepository.save(new Member("both@test.com", "{noop}pw", "먼저온사람", "서울", ""));
         제공자가답한다(AuthProvider.NAVER,
                 new SocialUser("naver-1", "both@test.com", false, "같은사람일수도"));
 
-        assertThrows(UnauthorizedException.class,
+        UnauthorizedException e = assertThrows(UnauthorizedException.class,
                 () -> authService.socialLogin(AuthProvider.NAVER, 아무코드));
+        // 막기만 하면 길이 없다. 어떻게 하면 되는지 알려줘야 한다.
+        assertTrue(e.getMessage().contains("연결"), e.getMessage());
     }
 
     // ── 되어야 하는 것 ──────────────────────────────────────────────
@@ -166,8 +171,7 @@ class SocialLoginTest {
         Member 들어온사람 = 로그인(AuthProvider.GOOGLE);
 
         assertEquals(본인.getId(), 들어온사람.getId(), "새 계정이 생기면 안 된다");
-        assertEquals(AuthProvider.GOOGLE, 들어온사람.getProvider());
-        assertEquals("google-1", 들어온사람.getProviderId());
+        assertEquals(List.of(AuthProvider.GOOGLE), 연결(본인));
     }
 
     @Test
@@ -178,10 +182,9 @@ class SocialLoginTest {
 
         Member 만들어진사람 = 로그인(AuthProvider.KAKAO);
 
-        assertEquals(AuthProvider.KAKAO, 만들어진사람.getProvider());
-        assertEquals("kakao-new", 만들어진사람.getProviderId());
         assertEquals("new@test.com", 만들어진사람.getEmail());
         assertEquals("새사람", 만들어진사람.getNickname());
+        assertEquals(List.of(AuthProvider.KAKAO), 연결(만들어진사람));
     }
 
     @Test
@@ -193,7 +196,7 @@ class SocialLoginTest {
         Member 만들어진사람 = 로그인(AuthProvider.KAKAO);
 
         assertNull(만들어진사람.getEmail());
-        assertEquals("kakao-noemail", 만들어진사람.getProviderId());
+        assertEquals(List.of(AuthProvider.KAKAO), 연결(만들어진사람));
     }
 
     @Test
@@ -224,55 +227,16 @@ class SocialLoginTest {
     }
 
     @Test
-    @DisplayName("탈퇴한 사람이 같은 소셜 계정으로 돌아오면 새 회원이 된다")
-    void 탈퇴한_뒤_다시_오면() {
-        제공자가답한다(AuthProvider.GOOGLE,
-                new SocialUser("google-back", "back@test.com", true, "돌아올사람"));
-        Long 옛id = 로그인(AuthProvider.GOOGLE).getId();
-
-        memberRepository.findById(옛id).orElseThrow().withdraw(java.time.LocalDateTime.now());
-
-        Long 새id = 로그인(AuthProvider.GOOGLE).getId();
-
-        assertNotEquals(옛id, 새id, "탈퇴한 행을 되살리면 안 된다");
-    }
-
-    @Test
-    @DisplayName("이미 다른 소셜이 붙어 있으면 덮어쓰지 않는다")
-    void 먼저_붙은_연결을_지키다() {
-        // 네이버로 가입했다. 이메일도 같이 왔다.
-        제공자가답한다(AuthProvider.NAVER,
-                new SocialUser("naver-9", "dual@test.com", false, "두계정쓰는사람"));
-        Long id = 로그인(AuthProvider.NAVER).getId();
-
-        // 같은 주소의 구글로 들어온다. 구글은 주소를 확인해 준다.
-        제공자가답한다(AuthProvider.GOOGLE,
-                new SocialUser("google-9", "dual@test.com", true, "두계정쓰는사람"));
-
-        UnauthorizedException e = assertThrows(UnauthorizedException.class,
-                () -> authService.socialLogin(AuthProvider.GOOGLE, 아무코드));
-        assertTrue(e.getMessage().contains("네이버"), "어느 쪽으로 들어오라는지 알려줘야 한다");
-
-        // 덮어썼다면 네이버 연결이 끊겨 자기 계정에 못 들어가게 된다.
-        Member 그대로 = memberRepository.findById(id).orElseThrow();
-        assertEquals(AuthProvider.NAVER, 그대로.getProvider());
-        assertEquals("naver-9", 그대로.getProviderId());
-
-        // 네이버로는 여전히 들어가진다.
-        제공자가답한다(AuthProvider.NAVER,
-                new SocialUser("naver-9", "dual@test.com", false, "두계정쓰는사람"));
-        assertEquals(id, 로그인(AuthProvider.NAVER).getId());
-    }
-
-    @Test
     @DisplayName("같은 제공자인데 고유번호가 낡았으면 고쳐서 들여보낸다")
     void 낡은_고유번호를_고친다() {
         // Firestore 에서 옮겨온 계정들이 이 모습이었다. provider 는 GOOGLE 인데
-        // provider_id 에는 구글의 sub 가 아니라 Firebase UID 가 들어 있었다.
+        // 연결에 들어 있던 것이 구글의 sub 가 아니라 Firebase UID 였다.
         // 그때는 이메일로 사람을 찾아서 아무도 몰랐고, 기준을 고유번호로 바꾸자
         // 27명 전원이 로그인하지 못하게 됐다.
         Member 옮겨온계정 = memberRepository.save(
                 Member.social(AuthProvider.GOOGLE, "moved@test.com", "옮겨온사람", "firebase-uid-옛것"));
+        socialAccountRepository.save(
+                new SocialAccount(옮겨온계정, AuthProvider.GOOGLE, "firebase-uid-옛것"));
 
         제공자가답한다(AuthProvider.GOOGLE,
                 new SocialUser("google-sub-진짜", "moved@test.com", true, "옮겨온사람"));
@@ -280,25 +244,129 @@ class SocialLoginTest {
         Member 들어온사람 = 로그인(AuthProvider.GOOGLE);
 
         assertEquals(옮겨온계정.getId(), 들어온사람.getId(), "새 계정이 생기면 안 된다");
-        assertEquals("google-sub-진짜", 들어온사람.getProviderId(), "낡은 값이 고쳐져야 한다");
+        assertEquals(1, 연결(옮겨온계정).size(), "연결이 늘어나면 안 된다 — 고쳐져야 한다");
+        assertEquals("google-sub-진짜",
+                socialAccountRepository
+                        .findByMemberIdAndProvider(옮겨온계정.getId(), AuthProvider.GOOGLE)
+                        .orElseThrow().getProviderId());
 
         // 한 번 고쳐졌으니 다음부터는 ①에서 바로 찾아진다.
         assertEquals(옮겨온계정.getId(), 로그인(AuthProvider.GOOGLE).getId());
     }
 
+    // ── 한 사람이 여러 제공자를 쓴다 ────────────────────────────────
+
     @Test
-    @DisplayName("제공자가 다르면 낡은 값이어도 고쳐주지 않는다")
-    void 다른_제공자는_못_고친다() {
-        // 구글 계정에 카카오가 끼어들어 자기 번호로 덮어쓰면 구글 로그인이 끊긴다.
-        memberRepository.save(
-                Member.social(AuthProvider.GOOGLE, "mine@test.com", "주인", "google-sub"));
-
+    @DisplayName("확인된 이메일이 같으면 제공자가 달라도 한 계정으로 모인다")
+    void 두_제공자가_한_계정으로() {
+        // 카카오에 네이버 주소를 적어두는 사람이 많다. 실제로 겪은 경우다.
         제공자가답한다(AuthProvider.KAKAO,
-                new SocialUser("kakao-9", "mine@test.com", true, "주인"));
+                new SocialUser("kakao-9", "same@test.com", true, "한사람"));
+        Member 처음 = 로그인(AuthProvider.KAKAO);
 
-        UnauthorizedException e = assertThrows(UnauthorizedException.class,
-                () -> authService.socialLogin(AuthProvider.KAKAO, 아무코드));
-        assertTrue(e.getMessage().contains("구글"), e.getMessage());
+        제공자가답한다(AuthProvider.GOOGLE,
+                new SocialUser("google-9", "same@test.com", true, "한사람"));
+        Member 두번째 = 로그인(AuthProvider.GOOGLE);
+
+        assertEquals(처음.getId(), 두번째.getId(), "계정이 둘로 갈라지면 안 된다");
+        assertEquals(List.of(AuthProvider.GOOGLE, AuthProvider.KAKAO), 연결(처음),
+                "둘 다 들고 있어야 한다");
+
+        // 먼저 쓰던 카카오도 그대로 통해야 한다. 덮어쓰면 여기서 걸린다.
+        제공자가답한다(AuthProvider.KAKAO,
+                new SocialUser("kakao-9", "same@test.com", true, "한사람"));
+        assertEquals(처음.getId(), 로그인(AuthProvider.KAKAO).getId());
+    }
+
+    @Test
+    @DisplayName("로그인한 상태에서는 네이버도 직접 이을 수 있다")
+    void 로그인한_뒤_네이버를_잇는다() {
+        // 네이버는 이메일 인증 여부를 알려주지 않아 자동으로는 못 잇는다.
+        // 그런데 이미 로그인한 사람이라면 본인임이 증명돼 있다.
+        제공자가답한다(AuthProvider.KAKAO,
+                new SocialUser("kakao-me", "me2@test.com", true, "나"));
+        Member 나 = 로그인(AuthProvider.KAKAO);
+
+        제공자가답한다(AuthProvider.NAVER,
+                new SocialUser("naver-me", "me2@test.com", false, "나"));
+        authService.linkTo(나.getId(), AuthProvider.NAVER, 아무코드);
+
+        assertEquals(List.of(AuthProvider.KAKAO, AuthProvider.NAVER), 연결(나));
+
+        // 이제 네이버로도 들어와진다.
+        assertEquals(나.getId(), 로그인(AuthProvider.NAVER).getId());
+    }
+
+    @Test
+    @DisplayName("남의 계정에 붙어 있는 소셜 계정은 가져올 수 없다")
+    void 남의_연결은_못_가져온다() {
+        제공자가답한다(AuthProvider.KAKAO, new SocialUser("kakao-a", null, false, "먼저"));
+        Member 먼저 = 로그인(AuthProvider.KAKAO);
+
+        제공자가답한다(AuthProvider.GOOGLE, new SocialUser("google-b", null, false, "나중"));
+        Member 나중 = 로그인(AuthProvider.GOOGLE);
+
+        // 나중이 먼저의 카카오 계정을 자기 것으로 붙이려 한다.
+        assertThrows(ConflictException.class,
+                () -> authService.linkTo(나중.getId(), AuthProvider.KAKAO, 아무코드));
+
+        assertEquals(List.of(AuthProvider.KAKAO), 연결(먼저), "먼저의 연결이 끊기면 안 된다");
+    }
+
+    @Test
+    @DisplayName("마지막 로그인 방법은 끊을 수 없다")
+    void 마지막_길은_못_끊는다() {
+        제공자가답한다(AuthProvider.GOOGLE, new SocialUser("google-only", null, false, "하나뿐"));
+        Member 나 = 로그인(AuthProvider.GOOGLE);
+
+        ConflictException e = assertThrows(ConflictException.class,
+                () -> authService.unlink(나.getId(), AuthProvider.GOOGLE));
+        assertTrue(e.getMessage().contains("마지막"), e.getMessage());
+        assertEquals(List.of(AuthProvider.GOOGLE), 연결(나), "끊기면 안 된다");
+    }
+
+    @Test
+    @DisplayName("둘 이상이면 하나는 끊을 수 있다")
+    void 둘이면_하나는_끊는다() {
+        제공자가답한다(AuthProvider.KAKAO, new SocialUser("k", "two@test.com", true, "둘가진사람"));
+        Member 나 = 로그인(AuthProvider.KAKAO);
+        제공자가답한다(AuthProvider.NAVER, new SocialUser("n", null, false, "둘가진사람"));
+        authService.linkTo(나.getId(), AuthProvider.NAVER, 아무코드);
+
+        authService.unlink(나.getId(), AuthProvider.NAVER);
+
+        assertEquals(List.of(AuthProvider.KAKAO), 연결(나));
+    }
+
+    @Test
+    @DisplayName("비밀번호가 있으면 하나뿐인 소셜도 끊을 수 있다")
+    void 비번이_있으면_끊는다() {
+        Member 나 = memberRepository.save(
+                new Member("pw@test.com", "{noop}pw", "비번있는사람", "서울", ""));
+        제공자가답한다(AuthProvider.GOOGLE, new SocialUser("g", "pw@test.com", true, "비번있는사람"));
+        로그인(AuthProvider.GOOGLE);
+
+        authService.unlink(나.getId(), AuthProvider.GOOGLE);
+
+        assertTrue(연결(나).isEmpty());
+    }
+
+    // ── 탈퇴 ────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("탈퇴하면 연결도 지워져 같은 소셜 계정으로 다시 가입된다")
+    void 탈퇴하면_연결도_지운다() {
+        제공자가답한다(AuthProvider.GOOGLE,
+                new SocialUser("google-back", "back@test.com", true, "돌아올사람"));
+        Long 옛id = 로그인(AuthProvider.GOOGLE).getId();
+
+        memberService.withdraw(옛id, 옛id);
+
+        Long 새id = 로그인(AuthProvider.GOOGLE).getId();
+
+        assertNotEquals(옛id, 새id, "탈퇴한 행을 되살리면 안 된다");
+        assertTrue(socialAccountRepository.findByMemberIdOrderByProviderAsc(옛id).isEmpty(),
+                "연결이 남으면 (provider, provider_id) 유니크에 걸려 재가입이 막힌다");
     }
 
     @Test
@@ -306,5 +374,13 @@ class SocialLoginTest {
     void 로컬은_소셜이_아니다() {
         assertThrows(UnauthorizedException.class,
                 () -> authService.socialLogin(AuthProvider.LOCAL, 아무코드));
+    }
+
+    // ── 거들기 ──────────────────────────────────────────────────────
+
+    private List<AuthProvider> 연결(Member member) {
+        return socialAccountRepository.findByMemberIdOrderByProviderAsc(member.getId()).stream()
+                .map(com.example.hapjugakapi.domain.SocialAccount::getProvider)
+                .toList();
     }
 }

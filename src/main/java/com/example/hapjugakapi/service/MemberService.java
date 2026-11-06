@@ -15,6 +15,7 @@ import com.example.hapjugakapi.exception.NotFoundException;
 import com.example.hapjugakapi.repository.ActivityLogRepository;
 import com.example.hapjugakapi.repository.MemberRepository;
 import com.example.hapjugakapi.repository.SlotRepository;
+import com.example.hapjugakapi.repository.SocialAccountRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,17 +32,20 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final SlotRepository slotRepository;
     private final ActivityLogRepository activityLogRepository;
+    private final SocialAccountRepository socialAccountRepository;
     private final PasswordEncoder passwordEncoder;
     private final StorageService storageService;
 
     public MemberService(MemberRepository memberRepository,
                          SlotRepository slotRepository,
                          ActivityLogRepository activityLogRepository,
+                         SocialAccountRepository socialAccountRepository,
                          PasswordEncoder passwordEncoder,
                          StorageService storageService) {
         this.memberRepository = memberRepository;
         this.slotRepository = slotRepository;
         this.activityLogRepository = activityLogRepository;
+        this.socialAccountRepository = socialAccountRepository;
         this.passwordEncoder = passwordEncoder;
         this.storageService = storageService;
     }
@@ -137,6 +141,11 @@ public class MemberService {
 
         releaseSlotsOf(target);
         scrubNameFromLogs(target.getId(), target.getNickname());
+
+        // 소셜 연결도 지운다. 남겨두면 (provider, provider_id) 유니크에 걸려
+        // 그 소셜 계정으로는 다시 가입할 수 없다. 나간 사람이 돌아올 길을
+        // 막아두는 셈이 된다.
+        socialAccountRepository.deleteByMemberId(target.getId());
 
         /*
          * 여기서 회원을 다시 읽는 이유.

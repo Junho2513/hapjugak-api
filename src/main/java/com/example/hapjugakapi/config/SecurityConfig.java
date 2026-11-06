@@ -73,6 +73,11 @@ public class SecurityConfig {
                         // 새 제공자만 401 이 나고, 그 원인을 찾는 데 한참 걸린다.
                         // 이 아래에 로그인 말고 다른 것을 두지 않는 것이 조건이다.
                         .requestMatchers(HttpMethod.POST, "/auth/*", "/members").permitAll()
+                        // 내 연결 목록은 「나」가 있어야 뜻이 있다.
+                        // 아래 GET /** 가 전부 열어두므로 그 앞에서 따로 막는다.
+                        // 안 막으면 토큰 없이 불러서 빈 목록을 받는데, 새는 것은 없어도
+                        // "로그인 안 해도 되는 길"처럼 보이게 된다.
+                        .requestMatchers(HttpMethod.GET, "/auth/links").authenticated()
                         .requestMatchers(HttpMethod.GET, "/members/me").authenticated()
                         .requestMatchers(HttpMethod.GET, "/members").hasRole("ADMIN")
                         // 남의 프로필은 로그인한 사람만. 이 줄이 없으면 아래 GET /** 에 걸려

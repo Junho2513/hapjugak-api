@@ -15,11 +15,18 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @Tag(name = "인증", description = "로그인해서 토큰을 받습니다")
 @RestController
@@ -94,6 +101,49 @@ public class AuthController {
         return authService.socialLogin(
                 socialProviderOf(provider),
                 new SocialCode(request.code(), request.state()));
+    }
+
+    /**
+     * 로그인한 사람이 자기 계정에 소셜 계정을 잇는다.
+     *
+     * 로그인과 길을 나눈 이유 — 하는 일이 다르다. 로그인은 "누구인지 알아내서
+     * 토큰을 준다"이고, 이쪽은 "이미 누구인지 아는 사람에게 들어오는 길을
+     * 하나 더 준다"이다. 토큰을 돌려주지 않는 것도 그래서다.
+     *
+     * 네이버 때문에 필요한 길이다. 네이버는 이메일이 본인 확인을 거친 것인지
+     * 알려주지 않아서 이메일만으로는 자동 연결을 할 수 없다. 그런데 이미
+     * 로그인한 사람이라면 본인임이 증명돼 있으므로 안전하게 붙일 수 있다.
+     */
+    @Operation(summary = "소셜 계정 연결",
+            description = "로그인한 상태에서 google · kakao · naver 계정을 내 계정에 잇습니다. "
+                    + "같은 이메일을 쓰는 다른 제공자를 한 계정으로 모을 때 씁니다.")
+    @ApiResponse(responseCode = "204", description = "연결했습니다")
+    @ApiResponse(responseCode = "409", description = "그 계정이 이미 다른 회원에게 연결돼 있습니다")
+    @PostMapping("/link/{provider}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void link(@PathVariable String provider,
+                     @Valid @RequestBody SocialLoginRequest request,
+                     @AuthenticationPrincipal Long memberId) {
+        authService.linkTo(memberId, socialProviderOf(provider),
+                new SocialCode(request.code(), request.state()));
+    }
+
+    @Operation(summary = "소셜 계정 연결 끊기",
+            description = "마지막 로그인 방법은 끊을 수 없습니다. 끊고 나면 들어올 길이 없어집니다.")
+    @ApiResponse(responseCode = "204", description = "끊었습니다")
+    @ApiResponse(responseCode = "409", description = "마지막 로그인 방법입니다")
+    @DeleteMapping("/link/{provider}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void unlink(@PathVariable String provider,
+                       @AuthenticationPrincipal Long memberId) {
+        authService.unlink(memberId, socialProviderOf(provider));
+    }
+
+    @Operation(summary = "내 소셜 연결 목록",
+            description = "회원 정보 화면에서 어느 계정이 연결돼 있는지 보여줄 때 씁니다.")
+    @GetMapping("/links")
+    public List<AuthProvider> links(@AuthenticationPrincipal Long memberId) {
+        return authService.linkedProviders(memberId);
     }
 
     private static AuthProvider socialProviderOf(String name) {
