@@ -63,7 +63,12 @@ fi
 
 git fetch origin --quiet
 TARGET=$(git rev-parse origin/master)
-IMAGE="ghcr.io/junho2513/hapjugak-api:$TARGET"
+# 이미지 이름은 .env 에서 읽습니다. 적혀 있지 않으면 아래 값을 씁니다.
+# 깃허브 계정 이름을 바꾸면 GHCR 네임스페이스도 따라 옮겨가므로,
+# 그때는 코드를 고치지 않고 서버의 .env 한 줄만 바꾸면 됩니다.
+IMAGE_NAME=$(grep -E '^IMAGE_NAME=' .env 2>/dev/null | cut -d= -f2- | tr -d '[:space:]')
+IMAGE_NAME="${IMAGE_NAME:-ghcr.io/saae1101/hapjugak-api}"
+IMAGE="$IMAGE_NAME:$TARGET"
 
 log "배포 시작 ${TARGET:0:7} ($OLD:$CUR_PORT → $NEW:$NEW_PORT)"
 

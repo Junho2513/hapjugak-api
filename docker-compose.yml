@@ -13,7 +13,10 @@
 x-api: &api
   # 서버에서 빌드하지 않습니다. GitHub Actions가 만들어 올린 이미지를 받아 씁니다.
   # IMAGE_TAG는 deploy.sh가 커밋 해시로 넣어줍니다. 없으면 latest를 씁니다.
-  image: ghcr.io/junho2513/hapjugak-api:${IMAGE_TAG:-latest}
+  # 이름을 .env 로 뺍니다. 깃허브 계정 이름을 바꾸면 GHCR 네임스페이스도 같이
+  # 옮겨가는데, 파일에 박아두면 그때마다 코드를 고쳐 배포해야 합니다.
+  # 실제로 Junho2513 → SaAe1101 로 바뀌면서 "owner not found" 로 멎은 적이 있습니다.
+  image: ${IMAGE_NAME:-ghcr.io/saae1101/hapjugak-api}:${IMAGE_TAG:-latest}
   restart: always
   depends_on:
     db:
