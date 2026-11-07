@@ -13,9 +13,8 @@
 <!-- 본문 글꼴입니다. CSS 를 다 읽은 뒤에야 받으러 가면 그만큼 늦게 적용됩니다.
      여기서 미리 보내두면 HTML 을 읽는 동안 같이 받아옵니다. -->
 <link rel="preload" as="font" type="font/woff2" href="/api/fonts/PretendardVariable.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="/api/fonts/BMJUA.woff2" crossorigin>
 <!-- 소개 화면 글꼴은 구글에서 받습니다. 연결을 미리 터두면 그만큼 빨라집니다. -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
 <!-- ════════════════════════════════════════════════════════════
      그리기 전에 두 가지를 먼저 정합니다.
@@ -63,15 +62,8 @@
 
   window.__lpWant = want;
   if (want){
-    /* 소개 화면을 띄울 것이 확실해진 시점입니다. 글꼴을 지금 보내둡니다.
-       아래 모듈 스크립트는 HTML 을 다 읽은 뒤에 도는데, 거기서 보내면
-       그만큼 늦게 도착해서 대체 글꼴로 먼저 보입니다. */
-    var lf = document.createElement("link");
-    lf.rel = "stylesheet";
-    lf.href = "https://fonts.googleapis.com/css2?family=Black+Han+Sans" +
-              "&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap";
-    document.head.appendChild(lf);
-
+    /* 글꼴은 이제 우리 서버에서 받습니다. <head> 의 preload 가 이미
+       보내고 있어서, 여기서 따로 요청할 것이 없습니다. */
     r.classList.add("lp-pending");
     /* 스크립트가 어떤 이유로든 멎어도 빈 화면으로 남지 않게 합니다. */
     setTimeout(function(){ r.classList.remove("lp-pending"); }, 4000);
@@ -217,14 +209,39 @@ h2{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
 }
 
 /* 파트 칸과 상태 꼬리표의 기본 모양 (목업의 common.css) */
-.chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;
-  font-size:12.5px;font-weight:600;background:var(--surface-2);color:var(--ink-2);
-  border:1px solid transparent;white-space:nowrap}
-.chip.open{background:transparent;border:1.5px dashed var(--rule-2);color:var(--ph);font-weight:500}
-.chip.open:hover{border-color:var(--accent);color:var(--accent)}
-.chip em{font-style:normal;color:var(--muted);font-weight:500}
-.chip.on em{color:inherit;opacity:.72}
-.chip.managing{outline:1.5px dashed var(--accent);outline-offset:1px}
+/* 곡의 자리 판. 이 줄이 답하는 것은 하나입니다 — 「어느 자리가 비었나」.
+   그런데 전에는 빈 자리가 이 줄에서 가장 흐린 색(--ph)에 점선이었습니다.
+   눌러야 할 것이 가장 안 보였습니다. 세기를 뒤집습니다.
+
+     내 자리   주황을 채운 칸     — 가장 셉니다. 내가 이미 잡은 자리.
+     빈 자리   주황 테두리 + ＋   — 누를 수 있는 자리.
+     찬 자리   무채색             — 이미 정해진 정보. 조용해야 합니다.
+     잠긴 자리 가장 흐리게        — 누를 수 없습니다.
+
+   모양은 그대로 알약입니다. 이 화면의 다른 칸들과 같은 말을 쓰고,
+   구별은 굵기와 색으로만 냅니다. */
+.chip{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;
+  border-radius:999px;font-size:13px;white-space:nowrap;
+  background:var(--surface-2);color:var(--ink-2);border:1.5px solid transparent}
+.chip .pt{font-weight:700;letter-spacing:-.01em}
+.chip .nm,.chip .st{font-style:normal;font-weight:500;color:var(--muted)}
+.chip.on .nm{color:var(--ink);opacity:.78}
+
+/* 빈 자리 — 눌러서 들어가는 곳입니다 */
+.chip.open{background:rgba(247,130,46,.09);border-color:rgba(247,130,46,.55);
+  color:var(--accent);cursor:pointer}
+.chip.open .pt{color:var(--accent)}
+.chip.open .st{color:var(--accent);opacity:.72}
+.chip.open::before{content:"＋";font-size:13px;line-height:1;opacity:.85;margin-right:-1px}
+.chip.open:hover{background:rgba(247,130,46,.16);border-color:var(--accent)}
+
+.chip.managing{outline:1.5px dashed var(--accent);outline-offset:2px}
+@media (min-width:760px){
+  /* PC 에서 보는 사람이 대부분입니다. 30px 짜리 칸은 넓은 화면에서 띠처럼 보입니다. */
+  .chip{height:42px;padding:0 17px;font-size:14.5px;gap:9px}
+  .chip .nm,.chip .st{font-size:13.5px}
+  .chip.open::before{font-size:15px}
+}
 
 .tag{display:inline-flex;align-items:center;height:23px;padding:0 9px;border-radius:7px;flex:none;
   font-size:11.5px;font-weight:700;background:var(--surface-2);color:var(--muted)}
@@ -824,6 +841,17 @@ footer{border-top:1px solid var(--rule);margin-top:56px;padding:46px 0 28px;
   src:url('/api/fonts/PretendardVariable.woff2') format('woff2-variations'),
       url('fonts/PretendardVariable.woff2') format('woff2-variations');
   font-weight:45 920;font-style:normal;font-display:swap}
+/* 제목용 글꼴 — 배달의민족 주아체. 로고와 같은 둥근 결이고, 속공간이 넓어
+   작은 크기에서도 글자가 서로 붙어 보이지 않습니다.
+   구글 폰트에서 받아 쓰던 Black Han Sans 와 IBM Plex Sans KR 을 걷어내고
+   이 한 벌로 대신합니다. 바깥 서버에 묻는 왕복이 사라져서, 「새로고침하면
+   2~3초 동안 글꼴이 안 먹는」 증상도 같이 없어집니다.
+   한글 11,172자를 전부 담아 191KB 입니다 — 나중에 문구를 어떻게 고쳐도
+   글자가 빠질 일이 없습니다. 저작권 고지는 fonts/FONT-LICENSE.txt 에 있습니다. */
+@font-face{font-family:"BM JUA";
+  src:url('/api/fonts/BMJUA.woff2') format('woff2'),
+      url('fonts/BMJUA.woff2') format('woff2');
+  font-weight:400;font-style:normal;font-display:swap}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Pretendard,system-ui,sans-serif;background:var(--bg);color:var(--ink);
   -webkit-font-smoothing:antialiased;letter-spacing:-0.015em}
@@ -875,12 +903,9 @@ header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1
 .bar.full i{background:var(--ok)}
 .pad{padding:20px 22px 22px}
 
-.chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;
-  font-size:12.5px;font-weight:600;background:var(--surface-2);color:var(--ink-2);border:1px solid transparent}
-.chip.open{background:transparent;border:1.5px dashed var(--rule-2);color:var(--ph);font-weight:500}
-.chip.open:hover{border-color:var(--accent);color:var(--accent);cursor:pointer}
-.chip em{font-style:normal;color:var(--muted);font-weight:500}
-.chips{display:flex;flex-wrap:wrap;gap:7px}
+/* .chip 규칙이 위(목업 common.css 자리)와 여기 두 벌 있었습니다.
+   뒤에 오는 이쪽이 이겨서, 위에서 무엇을 고쳐도 화면은 그대로였습니다.
+   한 벌만 남깁니다. .chips 는 쓰는 곳이 없어서 같이 지웁니다. */
 
 .tag{display:inline-flex;align-items:center;height:23px;padding:0 9px;border-radius:7px;
   font-size:11.5px;font-weight:700;background:var(--accent-soft);color:var(--accent)}
@@ -1119,9 +1144,11 @@ header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1
 .s1{display:flex;align-items:flex-start;gap:12px;margin-bottom:3px}
 .s1 .t{flex:1}.s1 h3{font-size:16.5px;font-weight:700;letter-spacing:-0.03em;line-height:1.4}
 .s1 .by{font-size:13px;color:var(--muted);margin-top:2px}
-.slots{display:flex;flex-wrap:wrap;gap:7px;margin:13px 0 0 0}
-.chip.on{background:var(--surface-2);color:var(--ink)}
-.chip .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none}
+.slots{display:flex;flex-wrap:wrap;gap:8px;margin:15px 0 0 0}
+@media (min-width:760px){.slots{gap:10px;margin-top:17px}}
+/* 찬 자리는 조용하게. 왼쪽 점 하나로 「찼다」를 말합니다. */
+.chip.on{background:var(--surface-2);color:var(--ink);border-color:var(--rule)}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none;opacity:.75}
 
 /* 물드는 경계 — 글자를 가리지 않게 아주 옅게 */
 .edge{position:absolute;top:0;bottom:0;width:140px;z-index:3;pointer-events:none;opacity:0;
@@ -1348,11 +1375,22 @@ body{overflow-x:hidden}
 .song .acts{display:flex;gap:6px;flex:none}
 .song .acts .btn{height:30px;padding:0 11px;border-radius:8px;font-size:12.5px;font-weight:600}
 /* 목업에서 「내 것」은 주황입니다 (list.css 의 .op.mine 과 같은 말) */
-.chip.mine{background:var(--accent-soft);color:var(--accent)}
-.chip.mine .dot{background:var(--accent)}
-.chip.locked{background:transparent;border:1.5px dashed var(--rule);color:var(--ph);cursor:not-allowed}
+/* 내 자리 — 이 줄에서 가장 센 칸입니다. 주황을 꽉 채웁니다. */
+.chip.mine{background:var(--accent);border-color:var(--accent);color:var(--cta-ink)}
+.chip.mine .pt{color:var(--cta-ink)}
+.chip.mine .nm{color:var(--cta-ink);opacity:.76}
+.chip.mine .dot{background:var(--cta-ink);opacity:.6}
+/* 다른 악기를 이미 맡아서 못 들어가는 자리. 가장 흐리게, 누를 수 없게. */
+.chip.locked{background:transparent;border:1.5px dashed var(--rule);color:var(--ph);
+  cursor:not-allowed}
+.chip.locked .pt,.chip.locked .st{color:var(--ph);font-weight:600}
 .chip.managing{outline:1.5px dashed var(--accent);outline-offset:1px}
-.chip .yield-mark{font-style:normal;margin-left:3px;opacity:.75}
+/* 양도 가능 표시. 전에는 이름 뒤에 작은 글리프 하나라 무슨 뜻인지 알 수 없었습니다.
+   작은 알약으로 만들어 「넘겨받을 수 있다」가 읽히게 합니다. */
+.chip .yield-mark{font-style:normal;margin-left:6px;display:inline-flex;align-items:center;
+  height:19px;padding:0 7px;border-radius:999px;font-size:11px;font-weight:700;
+  background:rgba(247,130,46,.17);color:var(--accent);opacity:1;line-height:1}
+.chip.mine .yield-mark{background:rgba(0,0,0,.17);color:var(--cta-ink);opacity:.8}
 #songs-note{font-size:13px;color:var(--muted);margin:-4px 0 12px}
 #songs-note.note-closed{color:var(--accent)}
 .ev-done{margin-top:10px;display:inline-flex;align-items:center;height:26px;padding:0 11px;
@@ -1946,8 +1984,8 @@ html.lp-on body{overflow:hidden}
   /* 카드를 바닥에서 띄우는 그림자. 위쪽 1px 하이라이트가 두께를 만든다. */
   --lift:inset 0 1px 0 rgba(255,255,255,.07), 0 16px 38px rgba(0,0,0,.45);
 
-  --display:"Black Han Sans","Pretendard",system-ui,sans-serif;
-  --body:"IBM Plex Sans KR","Pretendard",system-ui,sans-serif;
+  --display:"BM JUA","Pretendard",system-ui,sans-serif;
+  --body:"Pretendard",system-ui,sans-serif;
 
   /* 모션 토큰 ─ 직접 조작 피드백은 200ms 아래, 기능성 전환은 500ms를 넘기지 않는다. */
   --t-fast:110ms; --t-norm:220ms; --t-slow:320ms; --t-cele:460ms;
@@ -1971,7 +2009,7 @@ html.lp-on body{overflow:hidden}
 #landing *{box-sizing:border-box}
 #landing{
   margin:0;background:var(--stage);color:var(--chalk);
-  font-family:var(--body);font-size:16px;line-height:1.7;
+  font-family:var(--body);font-size:16px;line-height:1.78;
   -webkit-font-smoothing:antialiased;
   /* 한글은 단어 중간에서 끊으면 읽는 속도가 눈에 띄게 떨어진다. */
   word-break:keep-all;overflow-wrap:break-word;
@@ -1980,7 +2018,12 @@ html.lp-on body{overflow:hidden}
   padding-left:max(20px,env(safe-area-inset-left,0px));
   padding-right:max(20px,env(safe-area-inset-right,0px));
 }
-#landing h1,#landing h2,#landing h3{font-family:var(--display);font-weight:400;margin:0;text-wrap:balance;letter-spacing:-.01em}
+/* 제목용 글꼴은 큰 글자에만 씁니다. h3 처럼 17px 안팎으로 들어가는 자리에
+   쓰면 글자 사이가 메워져서 「떡져」 보입니다. h3 는 Pretendard 굵은 쪽으로. */
+#landing h1,#landing h2{font-family:var(--display);font-weight:400;margin:0;
+  text-wrap:balance;letter-spacing:-.005em}
+#landing h3{font-family:var(--body);font-weight:700;margin:0;
+  text-wrap:balance;letter-spacing:-.012em}
 #landing p{margin:0;text-wrap:pretty}
 /* 손으로 넣은 줄바꿈은 넓은 화면의 리듬용이다. 폭이 좁아지면 접어서
    브라우저가 알아서 끊게 둔다. 안 그러면 한 줄 건너 한 줄이 토막난다. */
@@ -2062,14 +2105,15 @@ html.lp-on body{overflow:hidden}
   box-shadow:0 0 0 0 rgba(255,122,26,.7);animation:lp-pulse 2.4s var(--e-std) infinite}
 @keyframes lp-pulse{0%{box-shadow:0 0 0 0 rgba(255,122,26,.55)}70%,100%{box-shadow:0 0 0 9px rgba(255,122,26,0)}}
 
-#landing h1{font-size:clamp(38px,6.2vw,66px);line-height:1.13}
+#landing h1{font-size:clamp(36px,5.9vw,62px);line-height:1.2}
 #landing h1 .ln{display:block;overflow:hidden}
 #landing h1 .ln i{display:block;font-style:normal}
 #landing h1 .ln i{transform:translateY(105%)}
 #landing.js.ready h1 .ln i{transform:none;transition:transform 620ms var(--e-in)}
 #landing.js.ready h1 .ln:nth-child(2) i{transition-delay:85ms}
 #landing.js.ready h1 .ln:nth-child(3) i{transition-delay:170ms}
-#landing .lede{margin-top:19px;color:var(--dust);font-size:clamp(16px,1.5vw,18px);max-width:35ch}
+#landing .lede{margin-top:20px;color:var(--dust);font-size:clamp(16px,1.5vw,18px);
+  max-width:38ch;line-height:1.8;letter-spacing:-.004em}
 #landing .lede em{font-style:normal;color:var(--chalk)}
 
 #landing .cue{margin-top:40px;display:flex;align-items:center;gap:9px;font-size:12px;color:var(--dust)}
@@ -2208,7 +2252,8 @@ html.lp-on body{overflow:hidden}
 
 /* ── 본문 ─────────────────────────────────────────── */
 #landing section h2{font-size:clamp(27px,3.7vw,40px);line-height:1.26}
-#landing .s-lede{margin-top:15px;color:var(--dust);max-width:52ch}
+#landing .s-lede{margin-top:16px;color:var(--dust);max-width:52ch;
+  font-size:16.5px;line-height:1.82;letter-spacing:-.004em}
 
 /* ── 한 줄 소개 ───────────────────────────────────── */
 #landing .define{position:relative;margin-top:36px;padding:30px 30px 30px 34px;
@@ -2230,17 +2275,31 @@ html.lp-on body{overflow:hidden}
 #landing .define .hl{color:var(--chalk)}
 
 /* ── 묻고 답하기 ──────────────────────────────────── */
-#landing .qa{margin-top:28px;border-top:1px solid var(--rule)}
-#landing .qa > div{display:grid;grid-template-columns:255px 1fr;gap:20px 30px;
-  padding:22px 4px;border-bottom:1px solid var(--rule);align-items:start}
-#landing .qa h3{font-family:var(--display);font-size:clamp(16px,1.8vw,19px);color:var(--glow);
-  display:flex;align-items:baseline;gap:11px}
-#landing .qa h3 i{font-style:normal;font-family:var(--body);font-size:12px;font-weight:600;
-  color:var(--amp);opacity:.5;font-variant-numeric:tabular-nums}
-#landing .qa p{color:var(--dust);line-height:1.78;max-width:56ch}
-#landing .qa p em{font-style:normal;color:var(--chalk)}
-@media (max-width:760px){
-  #landing .qa > div{grid-template-columns:1fr;gap:9px;padding:19px 2px}
+/* 전에는 답 본문이 「A1아닙니다. 합주각은…」 으로 시작했습니다.
+   라벨을 글 안에 넣어 둬서, 읽는 사람에게는 그냥 오타로 보입니다.
+   질문에는 동그란 Q 표식을 붙이고, 답에는 아무 것도 붙이지 않습니다 —
+   질문 아래 붙어 있는 글이 답이라는 건 따로 알려줄 필요가 없습니다.
+
+   제목에 제목용 글꼴을 쓰지 않습니다. 주아체는 큰 글자에서 좋지만
+   17~19px 에서는 글자끼리 붙어 보여서, 읽어야 하는 질문문에는 맞지 않습니다. */
+#landing .qa{margin-top:30px;display:grid;gap:14px}
+#landing .qa > div{display:grid;grid-template-columns:clamp(240px,27vw,320px) 1fr;
+  gap:18px 34px;align-items:start;
+  padding:24px 26px;border-radius:16px;
+  background:rgba(255,255,255,.026);border:1px solid var(--rule)}
+#landing .qa h3{font-family:var(--body);font-weight:700;
+  font-size:clamp(16px,1.7vw,18px);line-height:1.52;letter-spacing:-.012em;
+  color:var(--chalk);display:grid;grid-template-columns:auto 1fr;gap:11px;align-items:start}
+#landing .qa h3 i{font-style:normal;font-family:var(--display);font-size:13px;font-weight:400;
+  width:25px;height:25px;border-radius:50%;flex:none;margin-top:1px;
+  display:grid;place-items:center;line-height:1;
+  color:#2A0F00;background:var(--glow)}
+#landing .qa p{color:var(--dust);font-size:15.5px;line-height:1.85;
+  letter-spacing:-.004em;max-width:46ch}
+#landing .qa p em{font-style:normal;color:var(--chalk);font-weight:600}
+@media (max-width:860px){
+  #landing .qa > div{grid-template-columns:1fr;gap:12px;padding:21px 20px}
+  #landing .qa p{max-width:none}
   #landing .define{padding:24px 22px 24px 26px}
 }
 
@@ -2257,7 +2316,8 @@ html.lp-on body{overflow:hidden}
 #landing .lp-mini .lp-bar i{height:6px;flex:1;border-radius:3px;background:var(--rule);transition:background var(--t-slow) var(--e-std)}
 #landing .lp-mini .lp-bar i.lp-cur{background:var(--amp)}
 #landing .lp-mini .lp-n{font-size:12px;color:var(--dust)}
-#landing .verdict{margin-top:26px;font-family:var(--display);font-size:clamp(18px,2.3vw,24px);color:var(--amp)}
+#landing .verdict{margin-top:28px;font-family:var(--display);
+  font-size:clamp(19px,2.2vw,25px);line-height:1.6;color:var(--amp)}
 
 /* ── 절정: 스크롤로 자리가 찬다 ───────────────────── */
 #landing .scene{position:relative}
@@ -2288,7 +2348,8 @@ html.lp-on body{overflow:hidden}
 #landing .scene .roster-head .lp-song{font-size:21px}
 #landing .scene .slot{padding:14px 16px}
 #landing .beat{min-height:150px}
-#landing .beat p{color:var(--dust);margin-top:15px;max-width:40ch;font-size:16.5px}
+#landing .beat p{color:var(--dust);margin-top:16px;max-width:40ch;font-size:16.5px;
+  line-height:1.82;letter-spacing:-.004em}
 /* 12px 주황 글씨라 배경에 묻혔습니다. 테두리를 두르고 현재 단계를 밝혀서
    지금 몇 번째인지 멀리서도 보이게 합니다. */
 #landing .beat .lp-step{display:inline-flex;align-items:center;gap:7px;
@@ -2340,8 +2401,13 @@ html.lp-on body{overflow:hidden}
 #landing .how>div:hover::before{opacity:1;transform:scale(1.25)}
 #landing .how .ico,#landing .how h3,#landing .how p{position:relative}
 #landing .how .ico{width:32px;height:32px;color:var(--glow);margin-bottom:13px}
-#landing .how h3{font-size:17px;margin-bottom:7px}
-#landing .how p{color:var(--dust);font-size:15px}
+/* 사진4 — 제목은 제목용 글꼴로 17px 이라 글자가 붙어 있었고, 본문은
+   행간이 좁아 덩어리로 보였습니다. 제목을 Pretendard 로 내리고
+   크기·행간·아래 여백을 늘립니다. */
+#landing .how h3{font-size:17.5px;font-weight:800;line-height:1.5;
+  margin-bottom:11px;color:var(--chalk)}
+#landing .how p{color:var(--dust);font-size:15px;line-height:1.82;
+  letter-spacing:-.004em}
 
 
 /* ── 결말 ─────────────────────────────────────────── */
@@ -2393,7 +2459,8 @@ html.lp-on body{overflow:hidden}
         <span class="eyebrow"><span class="lp-dot"></span>오프라인 합주 파트 매칭 서비스</span>
         <h1><span class="ln"><i>하고 싶은 곡 올리고,</i></span><span class="ln"><i>내 파트만 찜하면</i></span><span class="ln"><i>셋리스트 완성!</i></span></h1>
         <p class="lede">합주 날짜는 다가오는데 아직도 정해진 곡이 없다면?<br class="lp-lb">
-        <em>어수선한 곡 선정과 파트 조율은 합주각에 맡기고, 즐겁게 연주할 준비만 하세요.</em></p>
+        <em>어수선한 곡 선정과 파트 조율은 합주각에 맡기고,<br class="lp-lb">
+        즐겁게 연주할 준비만 하세요.</em></p>
         <div class="cta">
           <a class="lp-btn btn-main" href="#/" data-enter="#/">합주 둘러보기</a>
           <a class="lp-btn btn-ghost" href="#lp-about">무슨 사이트인가요?</a>
@@ -2409,7 +2476,7 @@ html.lp-on body{overflow:hidden}
         </div>
         <ol class="lp-slots" id="lp-slots">
           <li class="slot" data-who="지우"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg><span class="part">보컬</span><span class="who">비어 있음</span><span class="take">자리 잡기</span></li>
-          <li class="slot" data-who="태윤"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="15" r="6"/><circle cx="9" cy="15" r="1.8"/><path d="M13.5 10.5 20 4M17.5 2.5 21.5 6.5"/></svg><span class="part">기타</span><span class="who">비어 있음</span><span class="take">자리 잡기</span></li>
+          <li class="slot" data-who="준호"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="15" r="6"/><circle cx="9" cy="15" r="1.8"/><path d="M13.5 10.5 20 4M17.5 2.5 21.5 6.5"/></svg><span class="part">기타</span><span class="who">비어 있음</span><span class="take">자리 잡기</span></li>
           <li class="slot" data-who="하람"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><ellipse cx="9" cy="15.5" rx="6" ry="5.5"/><path d="M13.8 11.5 20 3.5M4 15.5h10"/></svg><span class="part">베이스</span><span class="who">비어 있음</span><span class="take">자리 잡기</span></li>
           <li class="slot" data-who="민석"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 13h16l-1.5 7h-13z"/><ellipse cx="12" cy="13" rx="8" ry="3"/><path d="M6 4.5 10 11M18 4.5 14 11"/></svg><span class="part">드럼</span><span class="who">비어 있음</span><span class="take">자리 잡기</span></li>
           <li class="slot" data-who="소연"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M7 6v7M11 6v7M15 6v7M19 6v7M2.5 13h19"/></svg><span class="part">키보드</span><span class="who">비어 있음</span><span class="take">자리 잡기</span></li>
@@ -2441,20 +2508,20 @@ html.lp-on body{overflow:hidden}
 
   <div class="qa">
     <div class="rise">
-      <h3><i>Q1</i>모르는 사람과 밴드를 매칭해 주는 서비스인가요?</h3>
-      <p><i>A1</i>아닙니다. 합주각은 <em>이미 함께 활동 중인 밴드</em>(동아리, 직장인 밴드 등)를 위한 서비스입니다. 멤버는 정해져 있는데, 매번 합주 곡과 파트를 정하는 과정이 번거로우셨던 팀에게 강력히 추천합니다.</p>
+      <h3><i aria-hidden="true">Q</i>모르는 사람과 밴드를 매칭해 주는 서비스인가요?</h3>
+      <p>아닙니다. 합주각은 <em>이미 함께 활동 중인 밴드</em>(동아리, 직장인 밴드 등)를 위한 서비스입니다. 멤버는 정해져 있는데, 매번 합주 곡과 파트를 정하는 과정이 번거로우셨던 팀에게 강력히 추천합니다.</p>
     </div>
     <div class="rise">
-      <h3><i>Q2</i>그냥 단톡방 투표나 게시판을 쓰면 안 되나요?</h3>
-      <p><i>A2</i>단톡방에서는 대화가 금방 지나가 버립니다. “어제 그 곡, 누가 베이스 하기로 했더라?” 하며 스크롤을 한참 올릴 필요가 없습니다. <em>여기서는 어떤 곡에 어떤 파트가 비어있는지 화면에 그대로 남아있어 한눈에 파악할 수 있습니다.</em></p>
+      <h3><i aria-hidden="true">Q</i>그냥 단톡방 투표나 게시판을 쓰면 안 되나요?</h3>
+      <p>단톡방에서는 대화가 금방 지나가 버립니다. “어제 그 곡, 누가 베이스 하기로 했더라?” 하며 스크롤을 한참 올릴 필요가 없습니다. <em>여기서는 어떤 곡에 어떤 파트가 비어있는지 화면에 그대로 남아있어 한눈에 파악할 수 있습니다.</em></p>
     </div>
     <div class="rise">
-      <h3><i>Q3</i>가입이나 이용이 복잡하진 않나요?</h3>
-      <p><i>A3</i>구글, 카카오, 네이버 계정으로 1초 만에 간편하게 로그인하고 바로 시작할 수 있습니다. 귀찮게 입력하실 정보는 없습니다. <em>서비스가 어떻게 굴러가는지 궁금하시다면, 로그인 없이 구경만 하셔도 좋습니다.</em></p>
+      <h3><i aria-hidden="true">Q</i>가입이나 이용이 복잡하진 않나요?</h3>
+      <p>구글, 카카오, 네이버 계정으로 1초 만에 간편하게 로그인하고 바로 시작할 수 있습니다. 귀찮게 입력하실 정보는 없습니다. <em>서비스가 어떻게 굴러가는지 궁금하시다면, 로그인 없이 구경만 하셔도 좋습니다.</em></p>
     </div>
     <div class="rise">
-      <h3><i>Q4</i>이 서비스를 왜 만들었나요?</h3>
-      <p><i>A4</i>밴드 활동이나 합주를 하다 보면 정작 악기를 연주하는 시간보다, 단톡방에서 눈치 보며 곡을 제안하고 누가 어느 파트를 칠지 정리하는 데 에너지를 더 쓰게 됩니다. 엑셀이나 메모장으로 매번 정리하는 것도 일이죠. <em>합주 멤버들이 합주 준비 과정의 번거로움에서 벗어나 오직 ‘즐겁게 연주하는 것’에만 집중할 수 있는 경험을 제공하고 싶었습니다!</em></p>
+      <h3><i aria-hidden="true">Q</i>이 서비스를 왜 만들었나요?</h3>
+      <p>밴드 활동이나 합주를 하다 보면 정작 악기를 연주하는 시간보다, 단톡방에서 눈치 보며 곡을 제안하고 누가 어느 파트를 칠지 정리하는 데 에너지를 더 쓰게 됩니다. 엑셀이나 메모장으로 매번 정리하는 것도 일이죠. <em>합주 멤버들이 합주 준비 과정의 번거로움에서 벗어나 오직 ‘즐겁게 연주하는 것’에만 집중할 수 있는 경험을 제공하고 싶었습니다!</em></p>
     </div>
   </div>
 </section>
@@ -2464,8 +2531,9 @@ html.lp-on body{overflow:hidden}
 <section class="lp-wrap" id="lp-why">
   <h2 class="rise">합주할 사람은 모았는데,<br>무슨 곡을 할지 정하기가 어려우신가요?</h2>
   <p class="s-lede rise">단톡방에 유튜브 링크만 둥둥 떠다니고, 눈치 보느라 파트 조율은 안 되고.<br class="lp-lb">
-  “그래서 이 곡 베이스는 누가 치기로 했지?” 매번 카톡 스크롤 올리며 확인하다가,<br class="lp-lb">
-  결국 이도 저도 안 돼서 합주 전날 대충 타협해 본 적, 다들 있으시죠?</p>
+  “그래서 이 곡 베이스는 누가 치기로 했지?”<br class="lp-lb">
+  매번 카톡 스크롤 올리며 확인하다가, 결국 이도 저도 안 돼서<br class="lp-lb">
+  합주 전날 대충 타협해 본 적, 다들 있으시죠?</p>
   <div class="scatter">
     <div class="lp-mini rise"><div class="lp-t">벚꽃 엔딩</div><div class="lp-bar"><i class="lp-cur"></i><i></i><i></i><i></i><i></i></div><div class="lp-n">보컬만 1명 · 4자리 비어 있음</div></div>
     <div class="lp-mini rise"><div class="lp-t">위잉위잉</div><div class="lp-bar"><i></i><i class="lp-cur"></i><i></i><i></i></div><div class="lp-n">기타만 1명 · 3자리 비어 있음</div></div>
@@ -2489,7 +2557,7 @@ html.lp-on body{overflow:hidden}
             <div class="lp-step" id="lp-stepno">01 / 04</div>
             <div class="line lp-cur" data-i="0"><h2>“이 곡 칠 사람?”<br>하고 싶은 곡과 필요한 파트만 쓱 올려주세요</h2><p>투 보컬 체제? 키보드 없는 곡? 괜찮습니다. 곡에 딱 맞는 파트 구성만 골라서 세팅해 두면, 그만큼 빈자리가 열리며 멤버들을 기다리게 됩니다.</p></div>
             <div class="line" data-i="1"><h2>“내 자리는 내가 찜!”<br>원하는 파트를 빠르게 낚아채세요</h2><p>맘에 드는 곡의 빈 파트를 누르면 즉시 내 이름이 박힙니다. 실시간으로 다른 멤버들의 화면에도 자리가 찬 것으로 업데이트되니, 같은 자리를 노리다가 한발 늦어 헛걸음할 일은 없겠죠?</p></div>
-            <div class="line" data-i="2"><h2>“오, 이 곡은 베이스만 오면 출발!”<br>실시간 눈치싸움의 묘미</h2><p>한 자리만 남은 곡, 반쯤 찬 곡이 화면에 나란히 보이기 시작합니다. 무조건 내가 치고 싶은 곡을 고르는 것도 좋지만, 당장 출발 직전인 곡에 잽싸게 탑승해 곡을 완성시키는 재미도 쏠쏠합니다.</p></div>
+            <div class="line" data-i="2"><h2>“오, 이 곡은 키보드만 오면 출발!”<br>실시간 눈치싸움의 묘미</h2><p>한 자리만 남은 곡, 반쯤 찬 곡이 화면에 나란히 보이기 시작합니다. 무조건 내가 치고 싶은 곡을 고르는 것도 좋지만, 당장 출발 직전인 곡에 잽싸게 탑승해 곡을 완성시키는 재미도 쏠쏠합니다.</p></div>
             <div class="line" data-i="3"><h2>모든 자리가 채워지면,<br>비로소 완벽한 ‘합주<span class="gak">각</span>’ 완성!</h2><p>비싼 돈 주고 빌린 합주실에서 “오늘 뭐부터 칠까?” 하며 금쪽같은 대관 시간 날리지 마세요. 이미 모든 세팅은 끝났습니다. 앰프에 기타 잭 꽂고 신디사이저 라인 연결하고, 모이자마자 바로 카운트 들어갑니다!</p></div>
             <div class="track"><i class="lp-cur"></i><i></i><i></i><i></i></div>
           </div>
@@ -2502,7 +2570,7 @@ html.lp-on body{overflow:hidden}
             </div>
             <ol class="lp-slots" id="lp-sslots">
               <li class="slot" data-who="지우"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg><span class="part">보컬</span><span class="who">비어 있음</span><span class="take">자리 잡기</span></li>
-              <li class="slot" data-who="태윤"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="15" r="6"/><circle cx="9" cy="15" r="1.8"/><path d="M13.5 10.5 20 4M17.5 2.5 21.5 6.5"/></svg><span class="part">기타</span><span class="who">비어 있음</span><span class="take">자리 잡기</span></li>
+              <li class="slot" data-who="준호"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="15" r="6"/><circle cx="9" cy="15" r="1.8"/><path d="M13.5 10.5 20 4M17.5 2.5 21.5 6.5"/></svg><span class="part">기타</span><span class="who">비어 있음</span><span class="take">자리 잡기</span></li>
               <li class="slot" data-who="하람"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><ellipse cx="9" cy="15.5" rx="6" ry="5.5"/><path d="M13.8 11.5 20 3.5M4 15.5h10"/></svg><span class="part">베이스</span><span class="who">비어 있음</span><span class="take">자리 잡기</span></li>
               <li class="slot" data-who="민석"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 13h16l-1.5 7h-13z"/><ellipse cx="12" cy="13" rx="8" ry="3"/><path d="M6 4.5 10 11M18 4.5 14 11"/></svg><span class="part">드럼</span><span class="who">비어 있음</span><span class="take">자리 잡기</span></li>
               <li class="slot" data-who="소연"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M7 6v7M11 6v7M15 6v7M19 6v7M2.5 13h19"/></svg><span class="part">키보드</span><span class="who">비어 있음</span><span class="take">자리 잡기</span></li>
@@ -2587,8 +2655,8 @@ html.lp-on body{overflow:hidden}
       <div class="lp-foot-col">
         <h4>사용법</h4>
         <ul>
-          <li><a href="#/guide/host" data-enter="#/guide/host">합주를 여는 분께</a></li>
-          <li><a href="#/guide/join" data-enter="#/guide/join">합주에 참가하는 분께</a></li>
+          <li><a href="#/guide/host" data-enter="#/guide/host">호스트 안내</a></li>
+          <li><a href="#/guide/join" data-enter="#/guide/join">참가자 안내</a></li>
         </ul>
       </div>
       <div class="lp-foot-col">
@@ -4752,14 +4820,15 @@ function songSlots(song){
     const cls = mine ? "chip on mine" : taken ? "chip on" : held ? "chip locked" : "chip open";
     const c = el("span", cls);
     if (taken) c.append(el("span","dot"));
-    c.append(document.createTextNode(p));
+    /* 파트 이름과 사람 이름을 각각 감쌉니다. 전에는 둘이 맨 글자로 이어 붙어서
+       「보컬 령이아빠」가 한 덩어리로 읽혔습니다. */
+    c.append(el("b","pt", p));
     if (taken){
-      const em = el("em","", taken.name);
-      if (yieldable) em.append(el("span","yield-mark","⇄"));
-      c.append(document.createTextNode(" "));
+      const em = el("em","nm", taken.name);
+      if (yieldable) em.append(el("span","yield-mark","⇄ 양도"));
       c.append(em);
     } else {
-      c.append(document.createTextNode(held ? " 들어갈 수 없음" : " 비어 있음"));
+      c.append(el("span","st", held ? "들어갈 수 없음" : "비어 있음"));
     }
 
     const managing = manageMode && canManageSlots();
@@ -4919,11 +4988,11 @@ function partPicker(initial){
 }
 
 /* ── 사용법 ─────────────────────────────────────────────────────
-   합주를 「여는 사람」과 「참가하는 사람」이 할 일이 다릅니다.
+   「호스트」와 「참가자」가 할 일이 다릅니다.
    한 화면에 다 적으면 자기와 상관없는 절반을 읽게 되므로 먼저 갈래를 고르게 합니다. */
 const HOWTO = {
   host: {
-    title: "합주를 여는 사람",
+    title: "호스트",
     lead: "날짜와 합주실을 잡고, 할 곡을 올리고, 사람을 모읍니다.",
     steps: [
       ["합주를 엽니다",
@@ -4937,7 +5006,7 @@ const HOWTO = {
     ]
   },
   join: {
-    title: "합주에 참가하는 사람",
+    title: "참가자",
     lead: "들어갈 합주를 고르고, 하고 싶은 자리를 잡습니다.",
     steps: [
       ["합주를 고릅니다",
@@ -4960,12 +5029,12 @@ function howtoModal(which){
       <div class="enter-pick">
         <button class="enter-opt eo-fixed" id="ht-host" type="button">
           <span class="eo-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V9l9-5 9 5v11"/><path d="M9 20v-6h6v6"/></svg></span>
-          <b>합주를 여는 사람</b>
+          <b>호스트</b>
           <span class="eo-d">${esc(HOWTO.host.lead)}</span>
         </button>
         <button class="enter-opt eo-free" id="ht-join" type="button">
           <span class="eo-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 20v-1.6a3.4 3.4 0 0 0-3.4-3.4H6.4A3.4 3.4 0 0 0 3 18.4V20"/><circle cx="9.5" cy="8" r="3.4"/><path d="M18 8.5v5M20.5 11h-5"/></svg></span>
-          <b>합주에 참가하는 사람</b>
+          <b>참가자</b>
           <span class="eo-d">${esc(HOWTO.join.lead)}</span>
         </button>
       </div>
@@ -7019,8 +7088,8 @@ const GUIDES = {
     title: "호스트",
     lead: "합주를 열고, 그 안에 곡과 파트를 모아 그날의 세트리스트를 만듭니다.",
     steps: [
-      ["구글로 로그인하고 프로필 만들기",
-       "오른쪽 위 '구글로 시작하기'를 누르면 계정 선택 창이 뜹니다. 처음이라면 프로필 창이 이어서 열립니다. 닉네임과 연주 파트, 활동 지역을 채우면 준비 끝입니다. 파트는 여러 개 골라도 됩니다."],
+      ["로그인하고 프로필 만들기",
+       "오른쪽 위 '로그인'을 누르면 구글·카카오·네이버 중에 고를 수 있습니다. 처음이라면 프로필 창이 이어서 열립니다. 닉네임과 연주 파트, 활동 지역을 채우면 준비 끝입니다. 파트는 여러 개 골라도 되고, 목록에 없으면 직접 적어도 됩니다."],
       ["합주 일정 열기",
        "'합주 만들기'로 합주를 만듭니다. 합주 이름만 있으면 열 수 있습니다. 날짜나 장소가 아직이면 그 칸을 비워두세요. 비워둔 칸은 미정으로 저장되고, 정해지는 대로 '합주 편집'에서 채우면 됩니다. 날짜 미정인 합주는 목록 맨 위에 뜹니다."],
       ["곡은 합주 안에 쌓입니다",
@@ -7036,11 +7105,11 @@ const GUIDES = {
     ]
   },
   join: {
-    title: "합주에 참가하는 분께",
+    title: "참가자",
     lead: "가고 싶은 합주에 들어가서, 치고 싶은 곡의 빈 자리를 누르면 됩니다.",
     steps: [
-      ["구글로 로그인하고 프로필 만들기",
-       "오른쪽 위 '구글로 시작하기'를 누르세요. 프로필에서 연주 파트는 여러 개 고를 수 있습니다. 기타도 치고 베이스도 친다면 둘 다 켜두세요."],
+      ["로그인하고 프로필 만들기",
+       "오른쪽 위 '로그인'을 누르고 구글·카카오·네이버 중 편한 것을 고르세요. 프로필에서 연주 파트는 여러 개 고를 수 있습니다. 기타도 치고 베이스도 친다면 둘 다 켜두세요."],
       ["합주 고르기",
        "첫 화면에 예정된 합주가 날짜순으로 뜹니다. 날짜가 아직 안 잡힌 합주는 맨 위에 '날짜 미정'으로 표시됩니다. 지역으로 거르거나 달력에서 날짜를 눌러 찾을 수도 있습니다."],
       ["빈 자리 눌러서 들어가기",
@@ -7076,12 +7145,12 @@ function showGuideMenu(){
     <div class="guide-pick">
       <a class="guide-card" href="#/guide/host">
         <span class="guide-ico">▶</span>
-        <b>합주 여는 사람</b>
+        <b>호스트</b>
         <span>곡을 정하고 사람을 모읍니다</span>
       </a>
       <a class="guide-card" href="#/guide/join">
         <span class="guide-ico">▶</span>
-        <b>합주 참가하는 사람</b>
+        <b>참가자</b>
         <span>치고 싶은 곡의 자리를 잡습니다</span>
       </a>
     </div>`;
