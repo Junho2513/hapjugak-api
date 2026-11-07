@@ -1,6 +1,5 @@
 package com.example.hapjugakapi.dto;
 
-import com.example.hapjugakapi.domain.Instrument;
 import com.example.hapjugakapi.domain.Member;
 
 import java.time.LocalDateTime;
@@ -25,7 +24,7 @@ public record MemberPublicResponse(
         String area,
         String bio,
         String photoUrl,
-        List<Instrument> instruments,
+        List<String> instruments,
         LocalDateTime createdAt
 ) {
     public static MemberPublicResponse from(Member member) {

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
@@ -46,12 +47,13 @@ public class Member {
     @Column(length = 500)
     private String photoUrl;
 
+    /* 전에는 여섯 가지 enum 이었다. 색소폰·트럼펫 같은 파트를 적을 수 없어서
+       자유 문자열로 풀었다. 다듬는 규칙은 Instrument 에 모여 있다. */
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "member_instrument",
             joinColumns = @JoinColumn(name = "member_id"))
-    @Enumerated(EnumType.STRING)
-    @Column(name = "instrument", length = 20)
-    private Set<Instrument> instruments = new HashSet<>();
+    @Column(name = "instrument", length = 30, nullable = false)
+    private Set<String> instruments = new LinkedHashSet<>();
 
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -118,8 +120,10 @@ public class Member {
         return providerId != null;
     }
 
-    public void addInstrument(Instrument instrument) {
-        this.instruments.add(instrument);
+    /** 다듬어서 넣는다. 빈 값과 너무 긴 값은 버린다. */
+    public void addInstrument(String instrument) {
+        String v = Instrument.normalize(instrument);
+        if (v != null) this.instruments.add(v);
     }
 
     /** Firestore 이관 전용. 원래 가입일을 살리기 위해서만 사용한다. */
@@ -211,7 +215,7 @@ public class Member {
         return photoUrl;
     }
 
-    public Set<Instrument> getInstruments() {
+    public Set<String> getInstruments() {
         return instruments;
     }
 

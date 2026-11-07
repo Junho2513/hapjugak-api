@@ -498,6 +498,24 @@ h2{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
 .partpick button:hover{border-color:var(--rule-2);background:var(--surface-2)}
 .partpick button.on{background:var(--ok-soft);border-color:var(--ok);color:var(--ok);
   box-shadow:inset 0 0 0 1px var(--ok)}
+/* 직접 적은 파트 — 기본 목록과 구분되게 점선으로 두고, 지우는 ✕ 를 답니다. */
+.partpick button.custom{border-style:dashed}
+.partpick button.custom.on{border-style:solid}
+.partpick button .rm{margin-left:2px;font-size:11px;opacity:.5}
+.partpick button:hover .rm{opacity:1}
+.partpick button.add{border-style:dashed;color:var(--muted);font-weight:600}
+.partpick button.add:hover{border-color:var(--accent);color:var(--accent)}
+/* 「직접 적기」를 누르면 열리는 칸.
+   높이가 한 줄로 정해져 있어서 max-height 로 접습니다. */
+.part-add{display:flex;gap:8px;align-items:center;overflow:hidden;
+  max-height:0;opacity:0;margin-top:0;
+  transition:max-height .26s cubic-bezier(0,0,.2,1),opacity .2s,margin-top .26s}
+.part-add.on{max-height:56px;opacity:1;margin-top:9px}
+.part-add .btn.sm{height:42px;flex:none}
+.part-add input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--rule);color:var(--ink);
+  border-radius:9px;padding:0 15px;height:42px;font-family:inherit;font-size:14px}
+.part-add input:focus{outline:none;border-color:var(--ok)}
+.err.sm{font-size:12.5px;min-height:0;margin-top:6px}
 @media (max-width:620px){.partpick button{min-height:38px;padding:0 14px;font-size:13px}}
 /* 높이는 둘 다 40px 인데 폭이 달라서 취소 쪽이 작아 보였습니다.
    최소 폭을 같이 줘서 한 쌍으로 보이게 합니다. */
@@ -601,6 +619,23 @@ h2{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
 #admin-fab:hover{background:var(--accent);border-color:var(--accent);color:var(--cta-ink)}
 .modal:has(.admin-wide){max-width:680px}
 .modal:has(.form-wide){max-width:620px}
+/* ⑯ 한 칸씩 채우면 다음 구역이 아래로 펴집니다.
+   전에는 입력 칸 스무 개가 한 번에 펼쳐져 있어서, 이름 하나 적으려고 들어온
+   사람에게도 전부를 들이밀었습니다. 적은 만큼만 보여줍니다.
+   높이를 모르는 내용이라 grid 0fr→1fr 로 접습니다. max-height 는 긴 구역에서 잘립니다. */
+.fstep{display:grid;grid-template-rows:0fr;opacity:0;
+  transition:grid-template-rows .34s cubic-bezier(0,0,.2,1),opacity .26s cubic-bezier(0,0,.2,1)}
+.fstep > .fstep-in{overflow:hidden;min-height:0}
+.fstep.on{grid-template-rows:1fr;opacity:1}
+/* 펴지는 동안 안쪽 칸을 못 누르게 막습니다. 반쯤 열린 칸을 누르면 화면이 튑니다. */
+.fstep:not(.on) :is(input,select,textarea,button){visibility:hidden}
+.fstep-all{display:flex;justify-content:center;margin:18px 0 2px}
+.fstep-all button{border:1px dashed var(--rule-2);background:none;border-radius:999px;
+  padding:9px 18px;font-family:inherit;font-size:13px;font-weight:600;color:var(--muted);
+  cursor:pointer;transition:.15s}
+.fstep-all button:hover{border-color:var(--accent);color:var(--accent)}
+@media (prefers-reduced-motion:reduce){.fstep{transition:none}}
+
 .form-sec{
   font-family:inherit;font-size:11px;letter-spacing:.12em;
   color:var(--accent);text-transform:uppercase;
@@ -2984,7 +3019,9 @@ store = {
       area: data.region,
       bio: data.bio,
       photoUrl: data.photo || "",
-      instruments: (data.parts || []).map(p => INST_TO_API[p]).filter(Boolean)
+      /* 기본 여섯 가지는 서버 코드로, 직접 적은 파트는 적은 그대로 보냅니다.
+         서버가 자유 문자열을 받게 바뀌어서 거르지 않습니다. */
+      instruments: (data.parts || []).map(p => INST_TO_API[p] || p).filter(Boolean)
     });
     if (auth.user){
       auth.user.name = m.nickname || auth.user.name;
@@ -5556,7 +5593,7 @@ function playSongMotion(card, song, mode, moves, onEnd){
 }
 
 /* ============================================================
-   8. 모달 — 합주 열기 / 곡 올리기
+   8. 모달 — 합주 만들기 / 곡 올리기
    ============================================================ */
 function modal(html, onMount, locked){
   const root = $("#modal-root");
@@ -5652,7 +5689,12 @@ function profileModal({first = false} = {}){
 
     <div class="field"><label>연주 파트 <b class="req">필수</b></label>
       <div class="partpick" id="p-parts"></div>
-      <p class="ava-note">할 수 있는 파트를 모두 골라주세요. 여러 개 선택할 수 있습니다.</p></div>
+      <div class="part-add" id="p-part-add">
+        <input id="p-part-new" maxlength="30" placeholder="예: 색소폰, 카혼, 트럼펫" autocomplete="off">
+        <button class="btn sm" id="p-part-ok" type="button">추가</button>
+      </div>
+      <p class="err sm" id="p-part-err"></p>
+      <p class="ava-note">할 수 있는 파트를 모두 골라주세요. 목록에 없으면 직접 적어도 됩니다.</p></div>
 
     <div class="field"><label>활동 지역 <b class="req">필수</b></label>
       <select id="p-region">
@@ -5700,16 +5742,68 @@ function profileModal({first = false} = {}){
     };
     root.querySelector("#p-clear").onclick = () => { photo = ""; paint(); };
 
+    /* 기본 목록에 없는 파트 — 색소폰, 트럼펫, 카혼 같은 것들.
+       전에는 적을 방법이 아예 없어서 가장 비슷한 것을 고르거나 비워 뒀습니다. */
     const pbox = root.querySelector("#p-parts");
-    MY_PARTS.forEach(x => {
-      const b = el("button","" + (parts.has(x) ? "on" : ""), x);
-      b.type = "button";
-      b.onclick = () => {
-        parts.has(x) ? parts.delete(x) : parts.add(x);
-        b.classList.toggle("on");
+    const pErr = root.querySelector("#p-part-err");
+
+    function paintParts(){
+      pbox.innerHTML = "";
+      /* 기본 여섯 가지 + 직접 적어서 이미 고른 것들 */
+      const extras = [...parts].filter(x => !MY_PARTS.includes(x));
+      [...MY_PARTS, ...extras].forEach(x => {
+        const on = parts.has(x), custom = !MY_PARTS.includes(x);
+        const b = el("button", (on ? "on" : "") + (custom ? " custom" : ""), x);
+        b.type = "button";
+        b.onclick = () => {
+          if (parts.has(x)) parts.delete(x); else parts.add(x);
+          /* 직접 적은 파트는 끄는 순간 목록에서도 빠집니다.
+             꺼진 채로 남아 있으면 지울 방법이 없습니다. */
+          paintParts();
+        };
+        if (custom){
+          const x2 = el("span","rm","✕");
+          x2.title = "지우기";
+          b.append(x2);
+        }
+        pbox.append(b);
+      });
+      const add = el("button","add","+ 직접 적기");
+      add.type = "button";
+      add.onclick = () => {
+        addWrap.classList.add("on");
+        addInput.focus();
       };
-      pbox.append(b);
+      pbox.append(add);
+    }
+
+    const addWrap = root.querySelector("#p-part-add");
+    const addInput = root.querySelector("#p-part-new");
+    function commitPart(){
+      const raw = addInput.value.trim().replace(/\s+/g, " ");
+      pErr.textContent = "";
+      if (!raw){ addWrap.classList.remove("on"); return; }
+      if (raw.length > 30) return pErr.textContent = "파트 이름은 30자까지 쓸 수 있습니다.";
+      /* 공백과 대소문자만 다른 값은 같은 것으로 봅니다 — 「기타」와 「기 타」가
+         따로 저장되면 목록에 같은 파트가 두 번 뜹니다. */
+      const key = s => s.toLowerCase().replace(/\s/g, "");
+      const dup = [...parts, ...MY_PARTS].find(x => key(x) === key(raw));
+      if (dup){
+        parts.add(dup); addInput.value = ""; addWrap.classList.remove("on");
+        paintParts(); return pErr.textContent = `「${dup}」는 이미 있습니다.`;
+      }
+      if (parts.size >= 12) return pErr.textContent = "파트는 12개까지 고를 수 있습니다.";
+      parts.add(raw);
+      addInput.value = "";
+      addWrap.classList.remove("on");
+      paintParts();
+    }
+    addInput.addEventListener("keydown", ev => {
+      if (ev.key === "Enter"){ ev.preventDefault(); commitPart(); }
+      if (ev.key === "Escape"){ addInput.value = ""; addWrap.classList.remove("on"); }
     });
+    root.querySelector("#p-part-ok").onclick = commitPart;
+    paintParts();
 
     root.querySelector("#p-out").onclick = () => { closeModal(); auth.signOut(); };
     root.querySelector("#p-cancel")?.addEventListener("click", closeModal);
@@ -5809,7 +5903,9 @@ function profileModal({first = false} = {}){
       err.textContent = "";
       root.querySelector("#p-save").textContent = "저장 중";
       try {
-        const data = {name, email, parts: MY_PARTS.filter(x => parts.has(x)), region, bio, photo};
+        /* 전에는 MY_PARTS 로 걸러서 보냈습니다. 직접 적은 파트가 저장 직전에
+           조용히 사라지던 자리입니다. 고른 것을 그대로 보냅니다. */
+        const data = {name, email, parts: [...parts], region, bio, photo};
         if (first) data.joinedAt = Date.now();
         await store.saveProfile(auth.user.uid, data);
         myProfile = data;
@@ -6043,7 +6139,7 @@ function adminEditUser(u){
       const patch = {
         name,
         email: root.querySelector("#au-email").value.trim(),
-        parts: MY_PARTS.filter(x => parts.has(x)),
+        parts: [...parts],
         region: root.querySelector("#au-region").value,
         bio: root.querySelector("#au-bio").value.trim(),
         photo
@@ -6302,7 +6398,7 @@ function adminToolsTab(box){
   if (emptySongs.length){
     const b2 = document.createElement("a");
     b2.className = "btn sm"; b2.href = "#/e/" + emptySongs[0][0].id;
-    b2.textContent = "첫 곡이 있는 합주 열기";
+    b2.textContent = "그 합주로 가기";
     c2.append(b2);
   }
   clean.append(c2);
@@ -6348,6 +6444,8 @@ function eventModal(ev){
         ? "고친 내용은 저장하는 즉시 참가자 화면에 반영됩니다."
         : "합주 이름만 있으면 열 수 있습니다. 날짜와 장소가 아직이면 비워두셔도 됩니다. 정해지는 대로 채우면 됩니다."}</p>
 
+      <div class="fstep on" data-step="1">
+      <div class="fstep-in">
       <div class="form-sec">기본 정보</div>
       <div class="field"><label>합주 이름 <b class="req">필수</b></label>
         <input id="f-title" placeholder="예: 3번째 홍대 합주" maxlength="60" value="${esc(ev?.title || "")}"></div>
@@ -6355,7 +6453,10 @@ function eventModal(ev){
         <select id="f-genre">${GENRES.map(g => `<option${ev?.genre === g ? " selected" : ""}>${g}</option>`).join("")}</select></div>
       <div class="field"><label>소개</label>
         <textarea id="f-desc" placeholder="어떤 합주인지, 어떤 분들이 오면 좋을지 적어주세요">${esc(ev?.description || "")}</textarea></div>
-
+      </div>
+      </div>
+      <div class="fstep" data-step="2">
+      <div class="fstep-in">
       <div class="form-sec">일정과 장소</div>
       <div class="row3">
         <div class="field"><label>합주일</label>
@@ -6376,7 +6477,10 @@ function eventModal(ev){
       </div>
       <div class="reveal" id="f-room-wrap"><div class="field"><label>방 이름</label>
         <input id="f-room" placeholder="예: 3번 스튜디오" maxlength="40" value="${esc(ev?.room || "")}"></div></div>
-
+      </div>
+      </div>
+      <div class="fstep" data-step="3">
+      <div class="fstep-in">
       <div class="form-sec">참가 조건</div>
       <div class="row2">
         <div class="field"><label>연습실 수용 인원</label>
@@ -6408,13 +6512,19 @@ function eventModal(ev){
           <option value="private"${ev?.visibility === "private" ? " selected" : ""}>비공개 — 링크로만 참가</option>
         </select></div>
       </div>
-
+      </div>
+      </div>
+      <div class="fstep" data-step="4">
+      <div class="fstep-in">
       <div class="form-sec">모집 파트 기본값</div>
       <div class="field">
         <div class="partpick" id="f-parts"></div>
         <p class="ava-note">곡을 새로 올릴 때 여기서 켜둔 파트가 미리 선택됩니다. 곡마다 따로 바꿀 수 있습니다.</p>
       </div>
-
+      </div>
+      </div>
+      <div class="fstep" data-step="5">
+      <div class="fstep-in">
       <div class="form-sec">대표 이미지와 태그</div>
       <div class="field">
         <div class="cover-pick">
@@ -6432,11 +6542,13 @@ function eventModal(ev){
       <div class="field"><label>태그</label>
         <input id="f-tags" placeholder="쉼표로 구분 · 예: 초보환영, 합주경험무관, 원곡그대로" maxlength="80"
                value="${esc((ev?.tags || []).join(", "))}"></div>
-
+      </div>
+      </div>
+      <div class="fstep-all" id="f-all"><button type="button">아래 항목 모두 펼치기</button></div>
       <div class="err" id="f-err"></div>
       <div class="modal-actions">
         <button class="btn ghost" id="f-cancel">취소</button>
-        <button class="btn primary" id="f-save">${editing ? "저장하기" : "합주 열기"}</button>
+        <button class="btn primary" id="f-save">${editing ? "저장하기" : "합주 만들기"}</button>
       </div>
     </div>`, root => {
 
@@ -6469,6 +6581,40 @@ function eventModal(ev){
     };
     root.querySelector("#f-clear").onclick = () => { cover = ""; paintCover(); };
 
+    /* ⑯ 적은 만큼만 보여줍니다.
+       구역 1은 처음부터 열려 있고, 앞 구역에 뭔가 적히면 다음이 아래로 펴집니다.
+       채울 생각이 없는 사람을 위해 「모두 펼치기」를 아래에 둡니다.
+       편집할 때는 이미 적힌 내용이 있으니 처음부터 전부 엽니다. */
+    const steps = [...root.querySelectorAll(".fstep")];
+    const allBtn = root.querySelector("#f-all");
+    let level = 1;
+    function openTo(n){
+      n = Math.min(n, steps.length);
+      if (n <= level) return;
+      for (let i = level; i < n; i++){
+        /* 한 칸씩 시차를 둡니다. 한꺼번에 펴지면 어디가 새로 생겼는지 안 보입니다. */
+        setTimeout(() => steps[i].classList.add("on"), (i - level) * 110);
+      }
+      level = n;
+      allBtn.classList.toggle("hide", level >= steps.length);
+    }
+    allBtn.querySelector("button").onclick = () => openTo(steps.length);
+    const bump = n => () => openTo(n);
+
+    if (editing){ steps.forEach(s2 => s2.classList.add("on")); level = steps.length;
+                  allBtn.classList.add("hide"); }
+    else {
+      /* 합주 이름을 적으면 일정과 장소가 열립니다. */
+      root.querySelector("#f-title").addEventListener("input", ev => {
+        if (ev.target.value.trim()) openTo(2);
+      });
+      /* 일정·장소를 하나라도 건드리면 참가 조건이, 거기서 또 건드리면 나머지가 열립니다. */
+      ["#f-date","#f-start","#f-end","#f-region","#f-studio"]
+        .forEach(sel => root.querySelector(sel)?.addEventListener("change", bump(3)));
+      ["#f-cap","#f-fee-amount","#f-fee-note","#f-deadline","#f-maxsongs","#f-after","#f-vis"]
+        .forEach(sel => root.querySelector(sel)?.addEventListener("change", bump(5)));
+    }
+
     /* 전에는 칸마다 「미정」 체크박스가 붙어 있었습니다. 비워두는 것과 미정을
        누르는 것이 같은 뜻인데 두 번 시키는 꼴이라, 「비어 있으면 미정」으로 바꿨습니다. */
 
@@ -6495,6 +6641,9 @@ function eventModal(ev){
       const deadline = root.querySelector("#f-deadline").value;
 
       if (!title) return err.textContent = "합주 이름을 채워주세요.";
+      /* 파트는 4번째 구역에 있습니다. 거기까지 안 열어 본 사람에게
+         「모집 파트를 켜주세요」라고만 하면 어디를 켜라는 건지 알 수 없습니다. */
+      if (!defaults.size) openTo(steps.length);
       if (start && end && end <= start) return err.textContent = "종료 시간이 시작 시간보다 빠릅니다.";
       if (deadline && date && deadline > date) return err.textContent = "곡 신청 마감은 합주일보다 늦을 수 없습니다.";
       if (!defaults.size) return err.textContent = "모집 파트를 하나 이상 켜주세요.";
@@ -6525,7 +6674,7 @@ function eventModal(ev){
           closeModal(); toast("합주 정보를 저장했습니다");
         } else {
           const id = await store.createEvent({...base, hostUid: auth.user.uid, hostName: me().name});
-          closeModal(); toast("합주를 열었습니다"); location.hash = "#/e/"+id;
+          closeModal(); toast("합주를 만들었습니다"); location.hash = "#/e/"+id;
         }
       } catch(e){ console.error(e); err.textContent = errText(e); }
     };
@@ -6837,7 +6986,7 @@ function showGuideMenu(){
     <h1 class="guide-h1">합주각 사용법</h1>
     <p class="guide-lead">합주를 열고, 그 안에 곡을 올리고, 파트 자리를 채웁니다. 다 차면 성립입니다.</p>
     <div class="flow">
-      <span class="flow-step">합주 열기</span>
+      <span class="flow-step">합주 만들기</span>
       <span class="flow-arrow">→</span>
       <span class="flow-step">그 합주에 곡 올리기</span>
       <span class="flow-arrow">→</span>

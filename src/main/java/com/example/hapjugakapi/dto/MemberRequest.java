@@ -1,6 +1,5 @@
 package com.example.hapjugakapi.dto;
 
-import com.example.hapjugakapi.domain.Instrument;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -37,6 +36,8 @@ public record MemberRequest(
         @Size(max = 500, message = "이미지 주소가 너무 깁니다.")
         String photoUrl,
 
-        List<Instrument> instruments
+        /* 자유 문자열이다. 길이와 개수는 서비스에서 다듬으며 거른다 —
+           여기서 @Size 로 막으면 공백만 다른 값이 그대로 통과한다. */
+        List<String> instruments
 ) {
 }

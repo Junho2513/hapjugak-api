@@ -1,7 +1,6 @@
 package com.example.hapjugakapi.dto;
 
 import com.example.hapjugakapi.domain.AuthProvider;
-import com.example.hapjugakapi.domain.Instrument;
 import com.example.hapjugakapi.domain.Member;
 import com.example.hapjugakapi.domain.Role;
 
@@ -17,7 +16,7 @@ public record MemberResponse(
         String area,
         String bio,
         String photoUrl,
-        List<Instrument> instruments,
+        List<String> instruments,
         LocalDateTime createdAt
 ) {
     public static MemberResponse from(Member member) {

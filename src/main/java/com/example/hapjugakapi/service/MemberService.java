@@ -190,10 +190,19 @@ public class MemberService {
     private void applyProfile(Member member, MemberRequest request) {
         applyPhoto(member, request.photoUrl());
         if (request.instruments() != null) {
-            member.getInstruments().clear();
-            for (Instrument instrument : request.instruments()) {
-                member.addInstrument(instrument);
+            /* 같은 파트를 공백·대소문자만 바꿔 여러 번 보내는 경우가 있다.
+               그대로 저장하면 목록에 같은 이름이 두 번 뜨고, 왜 그런지 아무도 모른다.
+               다듬은 값으로 중복을 걸러 내고, 처음 적은 표기를 남긴다. */
+            java.util.Set<String> seen = new java.util.LinkedHashSet<>();
+            java.util.List<String> kept = new java.util.ArrayList<>();
+            for (String raw : request.instruments()) {
+                String v = Instrument.normalize(raw);
+                if (v == null || !seen.add(Instrument.key(v))) continue;
+                kept.add(v);
+                if (kept.size() >= Instrument.MAX_COUNT) break;
             }
+            member.getInstruments().clear();
+            kept.forEach(member::addInstrument);
         }
     }
 
