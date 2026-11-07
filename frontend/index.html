@@ -940,7 +940,42 @@ header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1
 
 /* ════════ tools.css ════════ */
 /* 조작 줄 — 세 덩어리의 높이를 50px 로 맞춘다 */
-.tools{display:flex;align-items:center;gap:10px;margin:0 0 20px}
+/* ㉑ 목록을 내려도 탭·검색·필터·만들기는 계속 손 닿는 곳에 둡니다.
+   머리말(sticky, z-index 5) 바로 아래에 붙입니다. 머리말 높이가 60px 이라
+   그만큼 내려서 둘이 겹치지 않게 합니다. */
+.tools{display:flex;align-items:center;gap:10px;margin:0 0 20px;
+  position:sticky;top:60px;z-index:4;
+  padding:12px 0;background:var(--bg);
+  transition:box-shadow .18s,border-color .18s}
+/* 붙어 있는 동안에만 아래에 경계가 생깁니다. 늘 그어두면 그냥 줄 하나일 뿐입니다. */
+.tools::after{content:"";position:absolute;left:-20px;right:-20px;bottom:0;height:1px;
+  background:var(--rule);opacity:0;transition:opacity .18s}
+.tools.stuck::after{opacity:1}
+.tools.stuck{box-shadow:0 10px 20px -16px rgba(0,0,0,.6)}
+@media (max-width:760px){.tools{top:56px;flex-wrap:wrap}}
+
+/* ── 필터 · 메뉴 ── */
+.filt,.navmenu{position:relative;flex:none}
+.filt .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);display:block}
+.menu{position:absolute;right:0;top:calc(100% + 8px);z-index:40;min-width:232px;
+  background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:7px;
+  box-shadow:0 10px 24px -10px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.18);
+  animation:menuIn 160ms cubic-bezier(0,0,.2,1)}
+@keyframes menuIn{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
+.menu .mt{font-size:11px;letter-spacing:.09em;color:var(--ph);padding:9px 11px 5px}
+.menu button,.menu a{display:flex;align-items:center;gap:9px;width:100%;
+  padding:10px 11px;border:0;border-radius:9px;background:none;cursor:pointer;
+  font-family:inherit;font-size:14px;font-weight:600;color:var(--ink);text-align:left;
+  text-decoration:none;transition:background .12s}
+.menu button:hover,.menu a:hover{background:var(--surface-2)}
+.menu button[aria-checked="true"]{color:var(--accent)}
+.menu button .ck{margin-left:auto;opacity:0;color:var(--accent);font-size:13px}
+.menu button[aria-checked="true"] .ck{opacity:1}
+.menu hr{border:0;border-top:1px solid var(--rule);margin:6px 4px}
+.navmenu .icon{position:relative}
+.navmenu .me-dot{position:absolute;right:-3px;bottom:-3px;width:16px;height:16px;border-radius:50%;
+  background:var(--surface-2);border:2px solid var(--surface);object-fit:cover;display:block}
+
 
 .seg{display:flex;gap:2px;background:var(--surface-2);border-radius:15px;padding:4px;flex:none}
 .seg button{height:42px;padding:0 15px;border:0;border-radius:11px;background:none;cursor:pointer;
@@ -960,6 +995,13 @@ header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1
 .search input:focus{outline:none;border-color:var(--accent);
   box-shadow:0 0 0 3px rgba(232,112,26,.14)}
 .search svg{position:absolute;left:16px;top:16px;width:18px;height:18px;color:var(--ph)}
+
+/* 목록 카드 오른쪽 — 숫자 대신 상태 한 마디 */
+.count.status{display:flex;align-items:center;justify-content:flex-end;min-width:76px}
+.count.status b{font-size:13px;font-weight:700;letter-spacing:-.02em;color:var(--ok);
+  padding:6px 11px;border-radius:999px;border:1px solid var(--ok);background:var(--ok-soft);
+  white-space:nowrap}
+.count.status.done b{color:var(--ph);border-color:var(--rule-2);background:var(--surface-2)}
 
 .tools .btn{height:50px;padding:0 20px 0 17px;border-radius:15px;font-size:15px;font-weight:700;
   display:inline-flex;align-items:center;gap:7px;flex:none;
@@ -1586,6 +1628,12 @@ html.lp-on body{overflow:hidden}
   <div class="sp"></div>
   <button class="icon" id="theme-toggle" type="button" aria-label="화면 밝기 바꾸기"></button>
   <div id="auth-slot"></div>
+  <div class="navmenu">
+    <button class="icon" id="btn-nav" type="button" aria-label="메뉴 열기" aria-expanded="false" aria-haspopup="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <div class="menu hide" id="nav-menu" role="menu"></div>
+  </div>
 </div></header>
 
 <main>
@@ -1619,6 +1667,12 @@ html.lp-on body{overflow:hidden}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
             <input id="list-q" placeholder="합주 이름, 지역, 합주실로 찾기" autocomplete="off">
           </div>
+          <div class="filt">
+            <button class="btn ghost" id="btn-filter" type="button" aria-expanded="false" aria-haspopup="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+              <span>필터</span><b class="dot hide" id="filter-dot"></b></button>
+            <div class="menu hide" id="filter-menu" role="menu"></div>
+          </div>
           <button class="btn" id="btn-new-hero">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>합주 만들기</button>
         </div>
@@ -1627,13 +1681,6 @@ html.lp-on body{overflow:hidden}
         <div class="cal-slot cal-main"></div>
         <div id="event-sheets"></div>
 
-        <div class="past-wrap hide" id="past-wrap">
-          <div class="sec2" style="margin:30px 0 13px">
-            <h2 style="font-size:17px">지난 합주</h2>
-            <span id="past-n"></span>
-          </div>
-          <div class="past" id="past-list"></div>
-        </div>
       </div>
 
       <aside class="side">
@@ -3604,36 +3651,39 @@ function renderAdminFab(){
   $("#admin-fab").classList.toggle("hide", !isAdmin());
 }
 
+/* 머리말에는 「로그인했는지」만 남깁니다.
+   회원 정보·추억 보관소·사용법은 옆의 삼선 메뉴가 맡습니다.
+   큰 버튼 두 개가 늘 떠 있을 자리가 아니었습니다. */
 function renderAuth(u){
   const slot = $("#auth-slot"); slot.innerHTML = "";
+  const nav = $("#btn-nav");
+  nav?.querySelector(".me-dot")?.remove();
+
   if (!u){
-    const b = el("button","btn","로그인");
+    const b = el("button","btn sm","로그인");
     b.onclick = () => auth.signIn();
     slot.append(b);
     return;
   }
   if (!myProfile){
-    const b = el("button","btn","프로필 만들기");
+    const b = el("button","btn sm","프로필 만들기");
     b.onclick = () => profileModal({first:true});
     slot.append(b);
     return;
   }
-  /* 목업의 .me 모양. 사진이 있으면 사진을, 없으면 이름 첫 글자를 넣습니다. */
-  const b = el("button","me");
-  b.setAttribute("aria-label","회원 정보 보기");
-  const mark = el("i","");
-  if (myProfile.photo){
-    const img = document.createElement("img");
-    img.src = myProfile.photo; img.alt = "";
-    img.style.cssText = "width:100%;height:100%;border-radius:50%;object-fit:cover";
-    mark.append(img);
-    mark.style.background = "transparent";
-  } else {
-    mark.textContent = (myProfile.name || "?").trim().charAt(0) || "?";
+  /* 삼선 단추 모서리에 작은 사진을 붙입니다. 로그인됐다는 표시입니다. */
+  if (nav){
+    const mark = myProfile.photo ? document.createElement("img") : el("i","me-dot");
+    if (myProfile.photo){
+      mark.className = "me-dot"; mark.src = myProfile.photo; mark.alt = "";
+    } else {
+      mark.textContent = (myProfile.name || "?").trim().charAt(0) || "?";
+      mark.style.cssText = "display:grid;place-items:center;font-size:9px;font-weight:800;" +
+                           "font-style:normal;color:var(--cta-ink);background:var(--accent)";
+    }
+    nav.append(mark);
+    nav.setAttribute("aria-label", myProfile.name + " · 메뉴 열기");
   }
-  b.append(mark, el("span","",myProfile.name));
-  b.onclick = () => profileModal();
-  slot.append(b);
 }
 
 function blankAvatar(name){
@@ -3931,12 +3981,27 @@ function canSeeInList(e){
    내가 하는 파트를 앞으로 당겨 주던 함수입니다. 그 칩을 걷어냈으므로 함수도 지웁니다.
    (줄 오른쪽의 「N자리 남음」 은 그대로 둡니다 — 세는 쪽은 renderCards 안에 있습니다) */
 
+/* 지난 합주는 목록 탭에서 뺐습니다. 메인에서 매번 지나칠 이유가 없어서,
+   오른쪽 위 메뉴의 「추억 보관소」로 옮겼습니다. 필터에서 켜면 다시 보입니다. */
 const SEGS = [
   { key:"open",  label:"모집 중" },
-  { key:"host",  label:"내 합주" },
-  { key:"past",  label:"지난 합주" }
+  { key:"host",  label:"내 합주" }
 ];
 let segKey = "open", listQuery = "";
+/* 목록 보기 설정 — 필터 단추로 바꿉니다. */
+const listView = { sort:"date-asc", includePast:false, openOnly:false };
+
+/* 그 합주에 아직 비어 있는 파트 자리가 몇 개인지.
+   카드의 모집중/마감 표시와 필터가 같은 기준을 쓰도록 한 군데에 둡니다. */
+function seatsLeft(e){
+  let seats = 0, taken = 0;
+  songsOf(e.id).forEach(sg => {
+    const parts = sg.requiredParts || [];
+    seats += parts.length;
+    taken += parts.filter(pt => (sg.slots || {})[pt]).length;
+  });
+  return seats - taken;          // 곡이 없으면 0
+}
 
 function isPastEvent(e){
   /* 날짜 미정은 지난 합주가 아닙니다. 아직 잡는 중이니 모집 중에 둡니다. */
@@ -3972,27 +4037,30 @@ function renderCards(){
   box.innerHTML = "";
 
   const q = listQuery.trim().toLowerCase();
-  const list = allEvents.filter(canSeeInList).filter(e => segFilter(segKey, e)).filter(e => matchesQuery(e, q));
+  let list = allEvents.filter(canSeeInList).filter(e => segFilter(segKey, e)).filter(e => matchesQuery(e, q));
 
-  /* 모집 중은 가까운 날짜가 위로, 지난 합주는 최근이 위로.
-     날짜 미정은 어느 쪽이든 맨 위입니다 — 아직 잡는 중이라 눈이 가야 하는 쪽입니다. */
-  const past = segKey === "past";
+  /* 필터 단추에서 켠 조건 */
+  if (!listView.includePast) list = list.filter(e => !isPastEvent(e));
+  if (listView.openOnly)     list = list.filter(e => seatsLeft(e) > 0);
+
+  /* 날짜 미정은 어느 정렬에서든 맨 위입니다 — 아직 잡는 중이라 눈이 가야 하는 쪽입니다.
+     이미 지난 합주는 반대로 늘 아래입니다. */
   list.sort((a, b) => {
-    /* 어느 칸에서든 이미 지난 합주는 아래로 내립니다.
-       「내 합주」에 9월이 11월보다 위에 오던 이유입니다. */
     const ap = isPastEvent(a), bp = isPastEvent(b);
-    if (!past && ap !== bp) return ap ? 1 : -1;
+    if (ap !== bp) return ap ? 1 : -1;
+    if (listView.sort === "new") return (b.createdAt || 0) - (a.createdAt || 0);
     if (!a.date && !b.date) return 0;
     if (!a.date) return -1;
     if (!b.date) return 1;
-    // 지난 것끼리는 최근이 위, 앞으로의 것끼리는 가까운 날이 위
-    return (past || ap) ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date);
+    if (ap) return b.date.localeCompare(a.date);          // 지난 것끼리는 최근이 위
+    return listView.sort === "date-desc"
+      ? b.date.localeCompare(a.date)
+      : a.date.localeCompare(b.date);
   });
 
   if (!list.length){
     box.append(el("div","empty-note", q
       ? `«${listQuery.trim()}»(으)로 찾은 합주가 없습니다.`
-      : segKey === "past" ? "지난 합주 기록이 아직 없습니다."
       : segKey === "host" ? "아직 연 합주가 없습니다. 오른쪽 위에서 만들어보세요."
       : segKey === "mine" ? "자리를 잡아둔 합주가 없습니다."
       : "열린 합주가 아직 없습니다. 직접 열어보세요."));
@@ -4008,7 +4076,6 @@ function renderCards(){
     cur.items.push(e);
   });
 
-  renderPast();
 
   groups.forEach(g => {
     const head = el("div","month");
@@ -4060,11 +4127,13 @@ function eventRow(e){
     seats += parts.length;
     taken += parts.filter(pt => (sg.slots || {})[pt]).length;
   });
+  /* 자리 수를 세어 보여주던 자리입니다. 목록에서는 「들어갈 수 있나」만
+     알면 되는데 18/30 같은 숫자는 그걸 한 번 더 계산하게 만들었습니다.
+     자리가 다 차면 모집마감, 아니면 모집중입니다. */
   const left = seats - taken;
-  const count = el("div","count" + (seats && !left ? " done" : ""));
-  count.append(document.createTextNode(seats ? `${taken}/${seats}` : "—"));
-  if (!seats) count.append(el("small","", "아직 없음"));
-  else if (left) count.append(el("small","", `${left}자리 남음`));
+  const full = seats > 0 && left === 0;
+  const count = el("div","count status" + (full ? " done" : ""));
+  count.append(el("b","", full ? "모집마감" : "모집중"));
   a.append(count);
 
   const chev = document.createElementNS("http://www.w3.org/2000/svg","svg");
@@ -4080,30 +4149,7 @@ function eventRow(e){
 
 /* 목록 아래의 「지난 합주」 — 끝난 합주를 카드로 몇 개만.
    본문이 이미 지난 합주일 때는 같은 것을 두 번 보여줄 이유가 없어 숨깁니다. */
-function renderPast(){
-  const wrap = $("#past-wrap");
-  const box = $("#past-list");
-  const list = allEvents.filter(canSeeInList).filter(eventDone)
-    .sort((a,b) => (b.date||"").localeCompare(a.date||""))
-    .slice(0, 6);
-
-  if (segKey === "past" || !list.length){ wrap.classList.add("hide"); return; }
-  wrap.classList.remove("hide");
-  $("#past-n").textContent = allEvents.filter(canSeeInList).filter(eventDone).length;
-  box.innerHTML = "";
-  list.forEach(e => {
-    const songs = songsOf(e.id);
-    const a = document.createElement("a");
-    a.href = "#/e/" + e.id + (e.visibility === "private" && e.inviteKey ? "/" + e.inviteKey : "");
-    a.append(el("h4","", e.title));
-    const d = e.date ? `${Number(e.date.slice(5,7))}월 ${Number(e.date.slice(8,10))}일` : "날짜 미정";
-    const pEl = el("p","");
-    pEl.innerHTML = `${esc(d)} · ${esc(e.region || "지역 미정")}<br>곡 ${songs.length} · 참가 ${playerCount(songs)}명`;
-    a.append(pEl);
-    box.append(a);
-  });
-}
-
+/* renderPast() 는 지웠습니다. 지난 합주는 「추억 보관소」가 맡습니다. */
 function renderSeg(){
   const box = $("#list-seg");
   box.innerHTML = "";
@@ -6898,6 +6944,112 @@ $("#btn-song-add").onclick = () => songModal();
 /* 검색은 이미 받아둔 목록에서 거릅니다. 서버를 다시 부르지 않습니다.
    일정은 많아야 수십 건이고, 글자를 칠 때마다 요청을 보내면 느려지기만 합니다. */
 $("#list-q").addEventListener("input", ev => { listQuery = ev.target.value; renderCards(); });
+
+/* ============================================================
+   목록 필터 · 머리말 메뉴
+   두 개가 같은 모양의 작은 메뉴라 여는 방법을 한 곳에 모읍니다.
+   ============================================================ */
+let openMenu = null;
+function closeMenu(){
+  if (!openMenu) return;
+  openMenu.box.classList.add("hide");
+  openMenu.btn.setAttribute("aria-expanded","false");
+  openMenu = null;
+}
+function toggleMenu(btn, box, build){
+  if (openMenu && openMenu.box === box) return closeMenu();
+  closeMenu();
+  build(box);
+  box.classList.remove("hide");
+  btn.setAttribute("aria-expanded","true");
+  openMenu = { btn, box };
+}
+/* 바깥을 누르거나 ESC 면 닫습니다. 메뉴 안은 그대로 둡니다. */
+document.addEventListener("pointerdown", ev => {
+  if (!openMenu) return;
+  if (openMenu.box.contains(ev.target) || openMenu.btn.contains(ev.target)) return;
+  closeMenu();
+});
+document.addEventListener("keydown", ev => { if (ev.key === "Escape") closeMenu(); });
+
+function menuItem(box, label, {checked, onclick, href} = {}){
+  const b = href ? document.createElement("a") : document.createElement("button");
+  if (href) b.href = href; else b.type = "button";
+  b.append(document.createTextNode(label));
+  if (checked !== undefined){
+    b.setAttribute("role","menuitemradio");
+    b.setAttribute("aria-checked", String(!!checked));
+    b.append(el("span","ck","✓"));
+  }
+  b.onclick = () => { onclick?.(); };
+  box.append(b);
+  return b;
+}
+
+/* ③ 필터 — 정렬과 보기 조건 */
+function buildFilterMenu(box){
+  box.innerHTML = "";
+  box.append(el("div","mt","정렬"));
+  [["date-asc","합주일 빠른 순"],["date-desc","합주일 늦은 순"],["new","최근 만든 순"]]
+    .forEach(([k, label]) => menuItem(box, label, {
+      checked: listView.sort === k,
+      onclick: () => { listView.sort = k; afterFilterChange(); }
+    }));
+  box.append(document.createElement("hr"));
+  box.append(el("div","mt","보기"));
+  menuItem(box, "지난 합주도 보기", {
+    checked: listView.includePast,
+    onclick: () => { listView.includePast = !listView.includePast; afterFilterChange(); }
+  });
+  menuItem(box, "자리 남은 합주만", {
+    checked: listView.openOnly,
+    onclick: () => { listView.openOnly = !listView.openOnly; afterFilterChange(); }
+  });
+  box.append(document.createElement("hr"));
+  menuItem(box, "기본값으로", { onclick: () => {
+    listView.sort = "date-asc"; listView.includePast = false; listView.openOnly = false;
+    afterFilterChange();
+  }});
+}
+function afterFilterChange(){
+  /* 기본값과 다를 때만 단추에 점을 찍습니다. 뭔가 걸려 있다는 표시입니다. */
+  const on = listView.sort !== "date-asc" || listView.includePast || listView.openOnly;
+  $("#filter-dot").classList.toggle("hide", !on);
+  buildFilterMenu($("#filter-menu"));
+  renderCards();
+}
+$("#btn-filter").onclick = () =>
+  toggleMenu($("#btn-filter"), $("#filter-menu"), buildFilterMenu);
+
+/* ㉒ 머리말 메뉴 — 프로필과 추억 보관소 */
+function buildNavMenu(box){
+  box.innerHTML = "";
+  if (auth.user && myProfile){
+    menuItem(box, "회원 정보", { onclick: () => { closeMenu(); profileModal(); } });
+  } else if (auth.user){
+    menuItem(box, "프로필 만들기", { onclick: () => { closeMenu(); profileModal({first:true}); } });
+  }
+  menuItem(box, "추억 보관소", { href:"#/memories", onclick: closeMenu });
+  menuItem(box, "사용법", { href:"#/guide", onclick: closeMenu });
+  if (!auth.user){
+    box.append(document.createElement("hr"));
+    menuItem(box, "로그인", { onclick: () => { closeMenu(); auth.signIn(); } });
+  }
+}
+$("#btn-nav").onclick = () => toggleMenu($("#btn-nav"), $("#nav-menu"), buildNavMenu);
+
+/* ㉑ 도구 줄이 머리말에 닿으면 경계를 긋습니다. */
+(() => {
+  const tools = document.querySelector(".tools");
+  if (!tools) return;
+  const sentinel = document.createElement("div");
+  sentinel.style.cssText = "position:absolute;height:1px;width:1px";
+  tools.parentNode.insertBefore(sentinel, tools);
+  new IntersectionObserver(
+    ([e]) => tools.classList.toggle("stuck", !e.isIntersecting),
+    { rootMargin: "-61px 0px 0px 0px", threshold: 0 }
+  ).observe(sentinel);
+})();
 $("#btn-manage").onclick = () => {
   manageMode = !manageMode;
   renderMatrix();
