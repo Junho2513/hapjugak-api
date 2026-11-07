@@ -10,6 +10,59 @@
 <!-- 로고는 머리말에 바로 보이는 그림입니다. HTML 을 다 읽은 뒤에 받으러
      가면 그만큼 늦게 뜨므로, 여기서 미리 받아두라고 알려줍니다. -->
 <link rel="preload" as="image" href="img/logo.png">
+
+<!-- ════════════════════════════════════════════════════════════
+     그리기 전에 두 가지를 먼저 정합니다.
+
+     아래 본문 스크립트는 type="module" 이라 HTML 을 다 읽은 뒤에 돕니다.
+     거기서 테마를 바꾸거나 소개 화면을 얹으면, 그 전에 본문이 한 번
+     밝은 채로 그려졌다가 바뀝니다. 그게 「메인이 잠깐 보였다가 소개가
+     뒤늦게 뜨는」 증상이었습니다.
+
+     그래서 동기 스크립트로 여기서 결정만 해 둡니다. 아래 CSS 가 그 결과를
+     보고 첫 그림부터 맞는 모습으로 그립니다.
+     ════════════════════════════════════════════════════════════ -->
+<script>
+(function(){
+  var r = document.documentElement;
+
+  /* 화면 밝기 — 고른 적이 없으면 어두운 화면으로 시작합니다. */
+  var th = "dark";
+  try { th = localStorage.getItem("hapjugak.theme") || "dark"; } catch(e){}
+  r.setAttribute("data-theme", th);
+
+  /* 소개 화면 — 창을 열 때마다 한 번. 새로고침으로는 다시 뜨지 않고,
+     창을 닫았다 켜야 다시 뜹니다. 그래서 sessionStorage 를 씁니다.
+     localStorage 면 한 번 보고 영영 안 뜨고, 아무 데도 안 적으면
+     새로고침마다 뜹니다. 둘 다 아닙니다. */
+  var want = false;
+  try {
+    var h = location.hash;
+    if (h === "#/intro") want = true;
+    else if (h && h !== "#/" && h !== "#") {
+      /* 초대 링크를 타고 온 사람은 그 일정으로 바로 보냅니다.
+         이 창에서는 소개를 건너뛴 것으로 칩니다. */
+      sessionStorage.setItem("hapjugak.landing", "1");
+    } else {
+      want = !sessionStorage.getItem("hapjugak.landing");
+    }
+  } catch(e){ want = false; }
+
+  window.__lpWant = want;
+  if (want){
+    r.classList.add("lp-pending");
+    /* 스크립트가 어떤 이유로든 멎어도 빈 화면으로 남지 않게 합니다. */
+    setTimeout(function(){ r.classList.remove("lp-pending"); }, 4000);
+  }
+})();
+</script>
+<style>
+/* 소개 화면을 얹기 전까지 본문을 감춥니다. visibility 는 자식에서 되돌릴 수
+   있어서, 본문만 가리고 소개는 보이게 할 수 있습니다. */
+html.lp-pending{background:#140C15}
+html.lp-pending body{visibility:hidden;background:#140C15}
+html.lp-pending #landing{visibility:visible}
+</style>
 <style>
 /* 헤더·로고·사용자 버튼은 목업 common.css 가 전부 맡습니다.
    여기에 따로 적을 것이 없습니다. (아래 ════ common.css ════ 참고) */
@@ -1723,8 +1776,14 @@ html.lp-on body{overflow:hidden}
   border-bottom:1px solid transparent;transition:border-color var(--t-norm) var(--e-std)}
 #landing .top.stuck{border-bottom-color:var(--rule)}
 #landing .top .wrap{display:flex;align-items:center;justify-content:space-between;padding-block:13px;gap:16px}
-#landing .mark{font-family:var(--display);font-size:21px}
+#landing .mark{display:flex;align-items:center;gap:11px;
+  font-family:var(--display);font-size:29px;line-height:1}
+#landing .mark img{width:40px;height:40px;border-radius:10px;display:block;flex:none}
 #landing .mark b{color:var(--amp);font-weight:400}
+@media (max-width:560px){
+  #landing .mark{font-size:23px;gap:9px}
+  #landing .mark img{width:32px;height:32px;border-radius:8px}
+}
 #landing .top nav{display:flex;align-items:center;gap:18px;font-size:14px;color:var(--dust)}
 #landing .top nav a{text-decoration:none;transition:color var(--t-fast) var(--e-std)}
 #landing .top nav a:hover{color:var(--chalk)}
@@ -1875,10 +1934,17 @@ html.lp-on body{overflow:hidden}
 #landing .belt{border-block:1px solid var(--rule);overflow:hidden;padding-block:13px;
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
           mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
-#landing .belt-run{display:flex;gap:34px;width:max-content;animation:lp-run 34s linear infinite}
-#landing .belt-run span{font-family:var(--display);font-size:14px;color:var(--dust);
+/* 똑같은 묶음 두 벌을 이어 붙이고 정확히 한 벌만큼 밀어냅니다.
+   전에는 낱개 span 에 gap 을 줘서, 두 벌 사이에만 간격이 하나 더 끼었습니다.
+   그래서 -50% 지점에서 이음매가 한 칸 튀며 끝이 보였습니다.
+   바깥에는 간격을 두지 않고 묶음 양끝에 절반씩 넣으면 이음매가 사라집니다. */
+#landing .belt-run{display:flex;width:max-content;animation:lp-run 52s linear infinite}
+#landing .belt-set{display:flex;align-items:center;gap:34px;
+  margin:0;padding:0 17px;list-style:none}
+#landing .belt-set li{font-family:var(--display);font-size:14px;color:var(--dust);
   display:flex;align-items:center;gap:34px;white-space:nowrap}
-#landing .belt-run span::after{content:"";width:5px;height:5px;border-radius:50%;background:var(--amp);opacity:.55}
+#landing .belt-set li::after{content:"";width:5px;height:5px;border-radius:50%;
+  background:var(--amp);opacity:.55}
 @keyframes lp-run{to{transform:translateX(-50%)}}
 
 /* ── 본문 ─────────────────────────────────────────── */
@@ -2056,7 +2122,7 @@ html.lp-on body{overflow:hidden}
 
 <header class="top" id="lp-top">
   <div class="wrap">
-    <div class="mark">합주<b>각</b></div>
+    <div class="mark"><img src="img/logo.png" alt="" width="40" height="40"><span>합주<b>각</b></span></div>
     <nav>
       <a href="#lp-about" class="hide-sm">무슨 사이트인가요?</a>
       <a href="#lp-how" class="hide-sm">뭐가 편해지나요?</a>
@@ -2103,8 +2169,8 @@ html.lp-on body{overflow:hidden}
 
 <div class="belt" aria-hidden="true">
   <div class="belt-run">
-    <span>보컬</span><span>일렉기타</span><span>통기타</span><span>베이스</span><span>드럼</span><span>키보드</span><span>신디사이저</span><span>색소폰</span><span>코러스</span>
-    <span>보컬</span><span>일렉기타</span><span>통기타</span><span>베이스</span><span>드럼</span><span>키보드</span><span>신디사이저</span><span>색소폰</span><span>코러스</span>
+    <ul class="belt-set"><li>보컬</li><li>세컨보컬</li><li>코러스</li><li>일렉기타</li><li>통기타</li><li>세컨기타</li><li>베이스</li><li>드럼</li><li>퍼커션</li><li>카혼</li><li>키보드</li><li>신디사이저</li><li>피아노</li><li>색소폰</li><li>트럼펫</li><li>트롬본</li><li>바이올린</li><li>첼로</li><li>플루트</li><li>하모니카</li><li>우쿨렐레</li></ul>
+    <ul class="belt-set"><li>보컬</li><li>세컨보컬</li><li>코러스</li><li>일렉기타</li><li>통기타</li><li>세컨기타</li><li>베이스</li><li>드럼</li><li>퍼커션</li><li>카혼</li><li>키보드</li><li>신디사이저</li><li>피아노</li><li>색소폰</li><li>트럼펫</li><li>트롬본</li><li>바이올린</li><li>첼로</li><li>플루트</li><li>하모니카</li><li>우쿨렐레</li></ul>
   </div>
 </div>
 
@@ -6756,10 +6822,12 @@ function applyTheme(mode){
     b.title = dark ? "밝은 화면으로" : "어두운 화면으로";
   }
 }
-/* 고른 적이 없으면 밝은 화면으로 시작합니다. 기기 설정을 따라가지 않습니다. */
-applyTheme(readTheme() || "light");
+/* 고른 적이 없으면 어두운 화면으로 시작합니다. 기기 설정을 따라가지 않습니다.
+   첫 그림은 <head> 의 동기 스크립트가 이미 맞춰 놓았고, 여기서는 토글 아이콘까지
+   같은 값으로 맞춥니다. */
+applyTheme(readTheme() || "dark");
 $("#theme-toggle").onclick = () => {
-  const now = readTheme() || "light";
+  const now = readTheme() || "dark";
   const next = now === "dark" ? "light" : "dark";
   try { localStorage.setItem(THEME_KEY, next); } catch(e){ /* 저장이 막혀도 이번 세션에는 적용됩니다 */ }
   applyTheme(next);
@@ -6802,15 +6870,11 @@ route();
    내용을 <template> 에 넣어둔 이유: template 안은 그려지지도, 이미지가
    받아지지도 않습니다. 돌아온 사람에게는 비용이 0입니다.
    ============================================================ */
-const LANDING_KEY = "hapjugak.landing.v1";
+const LANDING_KEY = "hapjugak.landing";
 
-function landingWanted(){
-  const h = location.hash;
-  if (h === "#/intro") return true;                    // 다시 보고 싶을 때
-  if (h && h !== "#/" && h !== "#") return false;      // 링크를 타고 온 사람은 본문으로
-  if (token) return false;                             // 이미 로그인한 사람
-  try { return !localStorage.getItem(LANDING_KEY); } catch(e){ return true; }
-}
+/* 보여줄지는 <head> 의 동기 스크립트가 이미 정해 뒀습니다.
+   여기서 다시 따지면 두 곳의 조건이 어긋나는 순간 증상이 생깁니다. */
+function landingWanted(){ return !!window.__lpWant; }
 
 function bootLanding(){
   const tpl = $("#landing-tpl");
@@ -7042,10 +7106,12 @@ function bootLanding(){
 
 function enterApp(hash){
   const lp = $("#landing"); if (!lp) return;
-  try { localStorage.setItem(LANDING_KEY, "1"); } catch(e){}
+  try { sessionStorage.setItem(LANDING_KEY, "1"); } catch(e){}
 
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  document.documentElement.classList.remove("lp-on");
+  /* 가림막을 여기서 걷습니다. 본문이 보이기 시작하지만 아직 덮개 뒤라
+     사람 눈에는 소개 화면만 보입니다. */
+  document.documentElement.classList.remove("lp-on", "lp-pending");
   window.scrollTo(0, 0);
 
   /* 주소를 먼저 맞춰둡니다. 덮개가 걷히는 동안 본문은 이미 제 모습입니다. */
@@ -7063,6 +7129,8 @@ function enterApp(hash){
 }
 
 if (landingWanted()) bootLanding();
+/* 소개를 띄우지 못했으면 가림막을 걷습니다. 안 그러면 빈 화면이 남습니다. */
+if (!$("#landing")) document.documentElement.classList.remove("lp-pending");
 
 </script>
 </body>
