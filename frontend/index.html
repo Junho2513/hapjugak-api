@@ -34,7 +34,14 @@
 
   /* 화면 밝기 — 고른 적이 없으면 어두운 화면으로 시작합니다. */
   var th = "dark";
-  try { th = localStorage.getItem("hapjugak.theme") || "dark"; } catch(e){}
+  /* 테마를 창 세션에 담습니다 — 소개 화면과 같은 수명입니다.
+     전에는 localStorage 라 한 번 밝은 화면을 고르면 그 뒤로 영영 밝게 열렸고,
+     소개 화면을 거쳐 처음 들어온 것처럼 보이는 순간에도 흰 화면이 떴습니다.
+     보던 중 새로고침은 그대로 유지되고, 창을 닫았다 열면 다시 어둡게 시작합니다. */
+  try {
+    th = sessionStorage.getItem("hapjugak.theme") || "dark";
+    localStorage.removeItem("hapjugak.theme");   // 예전에 저장해 둔 값을 치웁니다
+  } catch(e){}
   r.setAttribute("data-theme", th);
 
   /* 소개 화면 — 창을 열 때마다 한 번. 새로고침으로는 다시 뜨지 않고,
@@ -131,6 +138,14 @@ html.lp-pending #landing{visibility:visible}
    둘 다 같은 높이로 못 박고 가운데에 둡니다. */
 .ava-acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .ava-acts > .btn.sm{height:36px;align-self:center}
+/* 「이미지 올리기」는 숨은 file 칸을 누르려고 <label> 로 만들었습니다.
+   그런데 이 칸이 .field 안에 있어서, 칸 위 작은 설명 글용 규칙
+   (.field label{margin-bottom:6px}) 이 거기까지 닿았습니다.
+   아래 여백 6px 때문에 줄 높이가 42px 이 되고, 가운데 정렬이 그 42px 를
+   기준으로 잡히면서 옆의 <button>「지우기」와 3px 어긋나 보였습니다.
+   테두리도 같은 경로로 지워져 있었습니다. */
+.field label.btn{margin-bottom:0;border:1px solid var(--rule)}
+.field label.btn.sm:not(.ghost){border-color:var(--accent)}
 .req{color:var(--danger);font-weight:400;font-size:10px;letter-spacing:.06em;margin-left:5px}
 /* 「미정」 — 아직 안 정해진 항목을 비워둔 채로 합주를 열 수 있게 합니다.
    날짜부터 요구하면 아무 날짜나 적어 넣게 되고, 그 가짜 날짜가 목록에 그대로 뜹니다. */
@@ -442,8 +457,14 @@ h2{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
 }
 .modal{
   background:var(--surface);border:1px solid var(--rule);border-radius:14px;
-  width:100%;max-width:520px;max-height:86vh;overflow-y:auto;padding:26px;
+  width:100%;max-width:520px;max-height:86vh;overflow-y:auto;padding:26px 26px 0;
 }
+/* 항목이 펴지면서 창이 길어지면 오른쪽에 스크롤 막대가 나타나, 그 몇 픽셀 때문에
+   안쪽 내용이 밀리고 모서리 곡률 위에 회색 띠가 겹쳤습니다. 막대를 숨깁니다.
+   숨기기만 하면 아래에 뭐가 더 있는지 알 길이 없어서, 아래 버튼줄을 바닥에
+   붙여두고 그 위에 흐려지는 띠를 둡니다 — 긴 창에서도 버튼이 늘 손에 닿습니다. */
+.modal{scrollbar-width:none;-ms-overflow-style:none}
+.modal::-webkit-scrollbar{width:0;height:0;display:none}
 .modal h3{margin:0 0 4px;font-size:19px;font-weight:700}
 .modal .hint{font-size:13px;color:var(--muted);margin:0 0 20px}
 /* 안쪽 여백(12px)이 모서리 곡률(8px)보다 겨우 커서, 둥근 구간에서 글자가
@@ -519,7 +540,11 @@ h2{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
 @media (max-width:620px){.partpick button{min-height:38px;padding:0 14px;font-size:13px}}
 /* 높이는 둘 다 40px 인데 폭이 달라서 취소 쪽이 작아 보였습니다.
    최소 폭을 같이 줘서 한 쌍으로 보이게 합니다. */
-.modal-actions{display:flex;gap:9px;justify-content:flex-end;margin-top:22px}
+.modal-actions{display:flex;gap:9px;justify-content:flex-end;
+  position:sticky;bottom:0;z-index:2;
+  margin:22px -26px 0;padding:14px 26px 22px;background:var(--surface)}
+.modal-actions::before{content:"";position:absolute;left:0;right:0;top:-26px;height:26px;
+  background:linear-gradient(to top,var(--surface),transparent);pointer-events:none}
 .modal-actions .btn{min-width:104px}
 .err{color:var(--danger);font-size:13px;margin-top:10px;min-height:18px}
 /* ── 로그인 · 회원가입 ────────────────────────────────── */
@@ -806,17 +831,34 @@ body{font-family:Pretendard,system-ui,sans-serif;background:var(--bg);color:var(
 
 header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--rule)}
 .hd{max-width:860px;margin:0 auto;padding:15px 20px;display:flex;align-items:center;gap:11px}
-.hd img{width:30px;height:30px;border-radius:8px;display:block}
-.hd b{font-size:17px;font-weight:700;letter-spacing:-0.035em}
+.hd .mk-ico{width:30px;height:30px;border-radius:8px;display:block}
 .hd .sp{flex:1}
-.icon{width:36px;height:36px;border-radius:50%;border:1px solid var(--rule);background:var(--surface);
-  display:grid;place-items:center;cursor:pointer;color:var(--ink-2)}
-.icon svg{width:17px;height:17px}
-.me{display:flex;align-items:center;gap:8px;padding:5px 12px 5px 5px;border-radius:999px;
-  border:1px solid var(--rule);background:var(--surface);cursor:pointer}
-.me i{width:26px;height:26px;border-radius:50%;background:var(--accent);display:grid;place-items:center;
-  color:#fff;font-size:12px;font-weight:700;font-style:normal}
-.me span{font-size:13.5px;font-weight:600;color:var(--ink-2)}
+/* 36px 에 --rule 테두리(머리말 바탕과 거의 같은 색)라 단추가 있는 줄도 몰랐습니다.
+   조금 키우고, 한 단계 밝은 테두리와 바탕을 줘서 눌리는 것처럼 보이게 합니다. */
+.icon{width:42px;height:42px;border-radius:50%;
+  border:1px solid var(--rule-2);background:var(--surface-2);
+  display:grid;place-items:center;cursor:pointer;color:var(--ink);
+  transition:border-color .15s,background .15s,color .15s,transform .1s}
+.icon svg{width:20px;height:20px}
+.icon:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.icon:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ⑨ 로그인했는지 한눈에 — 삼선 옆에 사진을 주황 테두리로 두릅니다.
+   전에는 삼선 단추 모서리에 16px 짜리 점으로 붙어 있어서, 로그인한 줄 모르고
+   다시 로그인을 누르는 일이 있었습니다. */
+.me{display:flex;align-items:center;gap:9px;padding:3px 14px 3px 3px;border-radius:999px;
+  border:1px solid var(--rule-2);background:var(--surface-2);cursor:pointer;
+  transition:border-color .15s,background .15s}
+.me:hover{border-color:var(--accent)}
+.me:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.me .face{width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;
+  object-fit:cover;background:var(--accent);color:var(--cta-ink);
+  font-size:14px;font-weight:800;font-style:normal;
+  box-shadow:0 0 0 2px var(--accent),0 0 0 4px var(--surface-2)}
+.me .nm{font-size:14px;font-weight:600;color:var(--ink);max-width:9em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 좁은 화면에서는 이름을 빼고 사진만 남깁니다. */
+@media (max-width:620px){.me .nm{display:none}.me{padding:3px}}
 
 .sec{display:flex;align-items:baseline;gap:12px;margin:34px 0 16px}
 .sec h2{font-size:20px;font-weight:700;letter-spacing:-0.035em}
@@ -846,10 +888,15 @@ header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1
 .meta{font-size:13.5px;color:var(--muted);line-height:1.65}
 
 /* 로고 + 워드마크 묶음 */
-.lock{display:inline-flex;align-items:center;gap:13px;flex:none}
-.lock img{width:42px;height:42px;border-radius:10px;display:block}
-.lock b{font-size:28px;font-weight:900;letter-spacing:0.03em;line-height:1}
-.lock i{font-style:normal;color:var(--accent)}
+/* 「합주각」을 글자 대신 로고타이프 그림으로 씁니다.
+   그림 안에서 글자가 차지하는 띠는 높이의 82% 이고, 위 18% 는 「각」 위의 반짝임입니다.
+   그림 상자를 그대로 가운데 맞추면 반짝임까지 셈에 들어가서, 글자가 아이콘보다
+   그림 높이의 8.7% 만큼 내려앉아 보입니다. 그만큼 끌어올립니다.
+   높이만 주고 너비는 auto 로 둡니다 — 비율(2.24:1)이 어긋나면 글자가 눌립니다. */
+.lock{display:inline-flex;align-items:center;gap:11px;flex:none}
+.lock .mk-ico{width:42px;height:42px;border-radius:10px;display:block}
+.mk-word{display:block;width:auto;height:29px;border-radius:0;flex:none;
+  transform:translateY(-8.7%)}
 
 /* ════════ list.css ════════ */
 .tools{display:flex;align-items:center;gap:8px;margin:26px 0 14px}
@@ -918,16 +965,24 @@ header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1
 .band h1 .gak{font-style:normal;color:var(--accent);
   text-shadow:0 0 26px rgba(247,130,46,.45)}
 .band p{margin-top:12px;font-size:14.5px;color:#9E98A6;line-height:1.6;font-weight:500}
-.next{flex:none;width:272px;background:#1E1B23;border:1px solid #2C2832;border-radius:14px;padding:16px 18px}
-.next .lb{font-size:11.5px;font-weight:700;color:#8C8694;letter-spacing:.02em}
-.next .dd{display:flex;align-items:baseline;gap:9px;margin:7px 0 3px}
-.next .dd b{font-size:26px;font-weight:800;color:var(--accent);letter-spacing:-0.04em}
-.next .dd span{font-size:13px;color:#B9B2BF;font-weight:600}
-.next h4{font-size:15px;font-weight:700;letter-spacing:-0.03em;margin-bottom:9px}
-.next .row2{display:flex;gap:6px}
-.next .mini{height:25px;padding:0 9px;border-radius:999px;font-size:11.5px;font-weight:600;
+/* ⑪ 제 날짜를 코앞에 둔 사람에게 가장 중요한 칸인데, 밴드 판 구석에 작게
+   붙어 있어서 눈에 들어오지 않았습니다. 폭과 글자를 키우고, 주황 테두리로
+   한 칸 띄웁니다. D-day 는 이 화면에서 가장 큰 숫자가 되어야 합니다. */
+.next{flex:none;width:326px;background:#211C26;border:1px solid #4A3322;border-radius:16px;
+  padding:19px 22px 20px;box-shadow:0 0 0 1px rgba(247,130,46,.10),0 14px 34px rgba(0,0,0,.34);
+  transition:border-color .16s,transform .16s,box-shadow .16s}
+.next:hover{border-color:var(--accent);transform:translateY(-2px);
+  box-shadow:0 0 0 1px rgba(247,130,46,.22),0 18px 42px rgba(0,0,0,.42)}
+.next .lb{font-size:12px;font-weight:700;color:#A79FB0;letter-spacing:.06em}
+.next .dd{display:flex;align-items:baseline;gap:11px;margin:9px 0 6px}
+.next .dd b{font-size:40px;font-weight:800;color:var(--accent);letter-spacing:-0.05em;line-height:1}
+.next .dd span{font-size:14.5px;color:#CFC8D6;font-weight:600}
+.next h4{font-size:17.5px;font-weight:700;letter-spacing:-0.03em;margin-bottom:12px;
+  line-height:1.35;word-break:keep-all;color:#F2EEE8}
+.next .row2{display:flex;gap:7px;flex-wrap:wrap}
+.next .mini{height:29px;padding:0 12px;border-radius:999px;font-size:12.5px;font-weight:600;
   display:inline-flex;align-items:center;background:#2A2630;color:#CFC8D6}
-.next .mini.on{background:rgba(247,130,46,.16);color:var(--accent)}
+.next .mini.on{background:rgba(247,130,46,.18);color:var(--accent)}
 
 /* ── ② 사이드바 ──────────────────────────────── */
 .cols{display:grid;grid-template-columns:1fr 272px;gap:22px;align-items:start}
@@ -1008,8 +1063,6 @@ header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1
 .menu button[aria-checked="true"] .ck{opacity:1}
 .menu hr{border:0;border-top:1px solid var(--rule);margin:6px 4px}
 .navmenu .icon{position:relative}
-.navmenu .me-dot{position:absolute;right:-3px;bottom:-3px;width:16px;height:16px;border-radius:50%;
-  background:var(--surface-2);border:2px solid var(--surface);object-fit:cover;display:block}
 
 
 .seg{display:flex;gap:2px;background:var(--surface-2);border-radius:15px;padding:4px;flex:none}
@@ -1259,8 +1312,8 @@ img.link-mark.social-google{
      밴드 오른쪽 절반이 통째로 비어 있었습니다. */
   .band.panel > .in{justify-content:space-between}
 }
-@media (min-width:1700px){ .band .next{width:296px} }
-@media (min-width:2300px){ .band .next{width:320px} }
+@media (min-width:1700px){ .band .next{width:352px} }
+@media (min-width:2300px){ .band .next{width:380px} }
 
 /* ════════ 목업 detail-v3.html 의 인라인 조정 ════════ */
 .songs{display:grid;gap:12px}
@@ -1482,8 +1535,8 @@ img,svg{-webkit-user-drag:none;user-drag:none}
 /* ══ 모바일 ═══════════════════════════════════════════════ */
 @media (max-width:640px){
   .wrap,.hd{padding-left:16px;padding-right:16px}
-  .lock img{width:34px;height:34px}
-  .lock b{font-size:22px}
+  .lock .mk-ico{width:34px;height:34px}
+  .mk-word{height:24px}
   .me span{display:none}
   .me{padding:5px}
 
@@ -1659,7 +1712,7 @@ html.lp-on body{overflow:hidden}
 <body>
 
 <header><div class="hd">
-  <a class="lock" href="#/"><img src="img/logo.png" alt=""><b>합주<i>각</i></b></a>
+  <a class="lock" href="#/"><img class="mk-ico" src="img/logo.png" alt=""><img class="mk-word" src="img/wordmark.png" alt="합주각" width="336" height="150"></a>
   <div class="sp"></div>
   <button class="icon" id="theme-toggle" type="button" aria-label="화면 밝기 바꾸기"></button>
   <div id="auth-slot"></div>
@@ -1953,13 +2006,11 @@ html.lp-on body{overflow:hidden}
   border-bottom:1px solid transparent;transition:border-color var(--t-norm) var(--e-std)}
 #landing .top.stuck{border-bottom-color:var(--rule)}
 #landing .top .lp-wrap{display:flex;align-items:center;justify-content:space-between;padding-block:13px;gap:16px}
-#landing .lp-mark{display:flex;align-items:center;gap:12px;
-  font-family:var(--display);font-size:34px;line-height:1}
-#landing .lp-mark img{width:48px;height:48px;border-radius:12px;display:block;flex:none}
-/* 이 글꼴은 글자가 em 상자 위쪽에 치우쳐 있습니다. 상자를 가운데 맞추면
-   눈에는 로고보다 글자가 떠 보입니다. 재보니 0.065em 만큼이라 그만큼 내립니다. */
-#landing .lp-mark span{display:block;position:relative;top:.088em}
-#landing .lp-mark b{color:var(--amp);font-weight:400}
+#landing .lp-mark{display:flex;align-items:center;gap:13px;line-height:1}
+#landing .lp-mark .mk-ico{width:48px;height:48px;border-radius:12px;display:block;flex:none}
+/* 본문 머리말과 같은 그림, 같은 보정입니다. 높이만 이 화면에 맞춰 키웁니다. */
+#landing .lp-mark .mk-word{display:block;width:auto;height:34px;flex:none;
+  transform:translateY(-8.7%)}
 @media (max-width:560px){
   #landing .lp-mark{font-size:27px;gap:10px}
   #landing .lp-mark img{width:38px;height:38px;border-radius:10px}
@@ -1991,19 +2042,13 @@ html.lp-on body{overflow:hidden}
     radial-gradient(680px circle at 88% 2%, rgba(255,61,119,.30), transparent 58%),
     radial-gradient(720px circle at 4% 86%, rgba(139,92,255,.26), transparent 60%),
     radial-gradient(820px circle at 30% 104%, rgba(255,196,107,.16), transparent 58%)}
-/* 커서를 따라오는 조명.
-   전에는 background 의 그라디언트 위치를 바꾸고 transition 까지 걸어서,
-   커서가 움직이는 내내 큰 그라디언트 넉 장을 매 프레임 다시 칠했습니다.
-   그게 「뒤늦게 버벅거리며 따라오는」 느낌의 정체였습니다.
-   지금은 원 하나를 transform 으로 옮깁니다. 다시 칠하지 않고 합성만 합니다. */
-#landing .spot .beam{position:absolute;left:0;top:0;width:1120px;height:1120px;
-  margin:-560px 0 0 -560px;border-radius:50%;
-  background:radial-gradient(closest-side circle, rgba(255,122,26,.44), rgba(255,122,26,.12) 55%, transparent 72%);
-  transform:translate3d(50vw,22vh,0);
-  transition:transform 200ms cubic-bezier(.2,0,0,1);
-  will-change:transform}
-/* 손가락으로 쓰는 기기에는 커서가 없습니다. 따라올 것이 없으니 전환도 끕니다. */
-@media (hover:none){#landing .spot .beam{transition:none}}
+/* ⑬ 커서를 따라오던 지름 1120px 짜리 주황 조명은 걷어냈습니다.
+   두 가지가 잘못돼 있었습니다. 하나 — .spot 이 inset:-20% 라 원의 기준점이
+   히어로보다 위·왼쪽으로 20% 밀려 있는데, 좌표는 히어로 기준으로 넣었습니다.
+   조명이 커서에서 한참 떨어진 곳에 가 있던 이유입니다.
+   둘 — transition 200ms 가 걸려 있어 늘 한 박자 늦게 끌려왔습니다.
+   지금은 커서 뒤로 작은 불씨가 흩어지며 사라집니다. 먼지와 같은 캔버스에
+   같은 프레임으로 그려서, 겹치는 레이어도 따로 도는 루프도 없습니다. */
 #landing .lp-hero .lp-wrap{padding-block:56px 28px;position:relative}
 #landing .hero-grid{display:grid;grid-template-columns:1.04fr 1fr;gap:52px;align-items:center}
 @media (max-width:920px){#landing .hero-grid{grid-template-columns:1fr;gap:38px}}
@@ -2335,24 +2380,20 @@ html.lp-on body{overflow:hidden}
 
 <header class="top" id="lp-top">
   <div class="lp-wrap">
-    <div class="lp-mark"><img src="img/logo.png" alt="" width="40" height="40"><span>합주<b>각</b></span></div>
-    <nav>
-      <a href="#lp-about" class="hide-sm">소개</a>
-      <a href="#lp-how" class="hide-sm">달라지는 점</a>
-      <a href="#/" data-enter="#/">둘러보기</a>
-    </nav>
+    <div class="lp-mark"><img class="mk-ico" src="img/logo.png" alt="" width="40" height="40"><img class="mk-word" src="img/wordmark.png" alt="합주각" width="336" height="150"></div>
   </div>
 </header>
 
 <section class="lp-hero">
   <canvas id="lp-dust" aria-hidden="true"></canvas>
-  <div class="spot" id="lp-spot" aria-hidden="true"><i class="beam"></i></div>
+  <div class="spot" id="lp-spot" aria-hidden="true"></div>
   <div class="lp-wrap">
     <div class="hero-grid">
       <div>
         <span class="eyebrow"><span class="lp-dot"></span>오프라인 합주 파트 매칭 서비스</span>
-        <h1><span class="ln"><i>합주 날 전에</i></span><span class="ln"><i>곡과 파트를</i></span><span class="ln"><i>다 정해두세요</i></span></h1>
-        <p class="lede">합주 날짜는 잡았는데 무슨 곡을 할지, 누가 뭘 칠지는 아직인 날이 있습니다. <em>그 얘기를 모이기 전에 끝내두는 곳입니다.</em></p>
+        <h1><span class="ln"><i>하고 싶은 곡 올리고,</i></span><span class="ln"><i>내 파트만 찜하면</i></span><span class="ln"><i>셋리스트 완성!</i></span></h1>
+        <p class="lede">합주 날짜는 다가오는데 아직도 정해진 곡이 없다면?<br class="lp-lb">
+        <em>어수선한 곡 선정과 파트 조율은 합주각에 맡기고, 즐겁게 연주할 준비만 하세요.</em></p>
         <div class="cta">
           <a class="lp-btn btn-main" href="#/" data-enter="#/">합주 둘러보기</a>
           <a class="lp-btn btn-ghost" href="#lp-about">무슨 사이트인가요?</a>
@@ -2391,32 +2432,29 @@ html.lp-on body{overflow:hidden}
 
 <section class="lp-wrap" id="lp-about">
   <h2 class="rise">그래서, 무슨 사이트인가요?</h2>
+  <p class="s-lede rise">오프라인 합주 파트매칭 서비스, <span class="hl">합주각</span>입니다!</p>
 
   <div class="define rise">
-    <p><span class="hl">곡을 올리는 사람</span>이 필요한 파트를 적어두고,<br class="lp-lb"><span class="hl">치고 싶은 사람</span>이 그 자리를 가져갑니다.</p>
-    <p>곡 하나에 보컬·기타·베이스처럼 그 곡에 필요한 자리가 붙어 있습니다. 자리가 다 차면 합주 날 연주할 곡으로 확정되고, 아직 비어 있으면 누가 들어와 주기를 기다리는 곡으로 남습니다.</p>
+    <p>하고 싶은 곡 올리고,<br class="lp-lb"><span class="hl">내 파트 찜하면 끝!</span></p>
+    <p>밴드 합주 준비할 때마다 곡 정하고 파트 나누느라 단톡방에서 헤매셨나요? 합주각에서는 원하는 곡을 올리고 필요한 파트를 직관적으로 모집할 수 있습니다. 모든 파트가 채워지면 셋리스트로 확정!</p>
   </div>
 
   <div class="qa">
     <div class="rise">
-      <h3><i>01</i>누가 쓰는 곳인가요?</h3>
-      <p>이미 같이 합주하는 모임이 씁니다. 학교 밴드 동아리, 직장인 밴드, 아는 사람끼리 모인 팀. <em>모르는 사람을 새로 붙여주지는 않습니다.</em> 멤버는 있는데 곡과 파트에서 매번 발이 묶인다면 그 대목을 맡습니다.</p>
+      <h3><i>Q1</i>모르는 사람과 밴드를 매칭해 주는 서비스인가요?</h3>
+      <p><i>A1</i>아닙니다. 합주각은 <em>이미 함께 활동 중인 밴드</em>(동아리, 직장인 밴드 등)를 위한 서비스입니다. 멤버는 정해져 있는데, 매번 합주 곡과 파트를 정하는 과정이 번거로우셨던 팀에게 강력히 추천합니다.</p>
     </div>
     <div class="rise">
-      <h3><i>02</i>단톡방이랑 뭐가 다른가요?</h3>
-      <p>단톡방은 말이 흘러갑니다. 어제 올라온 곡은 오늘 스크롤 한참 위에 있고, 누가 베이스를 하기로 했는지는 아무도 기억하지 못합니다. <em>여기서는 곡도 자리도 화면에 그대로 남아 있습니다.</em></p>
+      <h3><i>Q2</i>그냥 단톡방 투표나 게시판을 쓰면 안 되나요?</h3>
+      <p><i>A2</i>단톡방에서는 대화가 금방 지나가 버립니다. “어제 그 곡, 누가 베이스 하기로 했더라?” 하며 스크롤을 한참 올릴 필요가 없습니다. <em>여기서는 어떤 곡에 어떤 파트가 비어있는지 화면에 그대로 남아있어 한눈에 파악할 수 있습니다.</em></p>
     </div>
     <div class="rise">
-      <h3><i>03</i>어떤 곡이든 올려도 되나요?</h3>
-      <p>장르나 난이도에 제한을 두지 않았습니다. 하고 싶은 곡을 일단 올려두면 됩니다. <em>사람이 붙는 곡이 합주 날로 올라갑니다.</em> 아무도 들어오지 않은 곡은 남아 있다가 다음에 다시 후보가 됩니다.</p>
+      <h3><i>Q3</i>가입이나 이용이 복잡하진 않나요?</h3>
+      <p><i>A3</i>구글, 카카오, 네이버 계정으로 1초 만에 간편하게 로그인하고 바로 시작할 수 있습니다. 귀찮게 입력하실 정보는 없습니다. <em>서비스가 어떻게 굴러가는지 궁금하시다면, 로그인 없이 구경만 하셔도 좋습니다.</em></p>
     </div>
     <div class="rise">
-      <h3><i>04</i>바로 시작할 수 있나요?</h3>
-      <p>구글, 카카오, 네이버 중에 쓰시던 걸로 누르면 바로 들어옵니다. 따로 적어 넣을 것이 없습니다. <em>구경만 하실 거라면 로그인하지 않으셔도 됩니다.</em></p>
-    </div>
-    <div class="rise">
-      <h3><i>05</i>누가 만들었나요?</h3>
-      <p>밴드 합주를 하면서 매번 같은 지점에서 막히던 사람이 만들었습니다. 단톡방에 스무 곡이 올라왔는데 한 곡도 성사되지 않는 걸 몇 달 보고 나서요. <em>지금도 그 모임이 이 사이트로 합주를 잡습니다.</em></p>
+      <h3><i>Q4</i>이 서비스를 왜 만들었나요?</h3>
+      <p><i>A4</i>밴드 활동이나 합주를 하다 보면 정작 악기를 연주하는 시간보다, 단톡방에서 눈치 보며 곡을 제안하고 누가 어느 파트를 칠지 정리하는 데 에너지를 더 쓰게 됩니다. 엑셀이나 메모장으로 매번 정리하는 것도 일이죠. <em>합주 멤버들이 합주 준비 과정의 번거로움에서 벗어나 오직 ‘즐겁게 연주하는 것’에만 집중할 수 있는 경험을 제공하고 싶었습니다!</em></p>
     </div>
   </div>
 </section>
@@ -2425,9 +2463,9 @@ html.lp-on body{overflow:hidden}
 
 <section class="lp-wrap" id="lp-why">
   <h2 class="rise">합주할 사람은 모았는데,<br>무슨 곡을 할지 정하기가 어려우신가요?</h2>
-  <p class="s-lede rise">단톡방에 곡을 던지면 다들 1픽에만 손을 듭니다.<br class="lp-lb">
-  누가 뭘 하기로 했는지는 스크롤을 한참 올려야 나오고,<br class="lp-lb">
-  그러다 정하지도 못한 채 합주 날이 와버립니다.</p>
+  <p class="s-lede rise">단톡방에 유튜브 링크만 둥둥 떠다니고, 눈치 보느라 파트 조율은 안 되고.<br class="lp-lb">
+  “그래서 이 곡 베이스는 누가 치기로 했지?” 매번 카톡 스크롤 올리며 확인하다가,<br class="lp-lb">
+  결국 이도 저도 안 돼서 합주 전날 대충 타협해 본 적, 다들 있으시죠?</p>
   <div class="scatter">
     <div class="lp-mini rise"><div class="lp-t">벚꽃 엔딩</div><div class="lp-bar"><i class="lp-cur"></i><i></i><i></i><i></i><i></i></div><div class="lp-n">보컬만 1명 · 4자리 비어 있음</div></div>
     <div class="lp-mini rise"><div class="lp-t">위잉위잉</div><div class="lp-bar"><i></i><i class="lp-cur"></i><i></i><i></i></div><div class="lp-n">기타만 1명 · 3자리 비어 있음</div></div>
@@ -2436,7 +2474,8 @@ html.lp-on body{overflow:hidden}
     <div class="lp-mini rise"><div class="lp-t">좋니</div><div class="lp-bar"><i class="lp-cur"></i><i class="lp-cur"></i><i></i><i></i><i></i></div><div class="lp-n">보컬 · 기타 2명 · 3자리 비어 있음</div></div>
     <div class="lp-mini rise"><div class="lp-t">아마추어</div><div class="lp-bar"><i></i><i></i><i class="lp-cur"></i><i></i></div><div class="lp-n">베이스만 1명 · 3자리 비어 있음</div></div>
   </div>
-  <p class="verdict rise">여섯 곡에 여덟 명이 흩어져 있는데, 성립된 곡은 하나도 없습니다.</p>
+  <p class="verdict rise">“후보 곡은 6개나 되는데, 정작 합주 가능한 곡은 0개?”<br class="lp-lb">
+  이런 답답한 상황, 이제 <span class="hl">합주각</span>에서 한눈에 정리하세요.</p>
 </section>
 
 <div class="barline"><b></b><b></b><b></b></div>
@@ -2448,10 +2487,10 @@ html.lp-on body{overflow:hidden}
         <div class="scene-grid">
           <div class="beat">
             <div class="lp-step" id="lp-stepno">01 / 04</div>
-            <div class="line lp-cur" data-i="0"><h2>하고 싶은 곡을 올리면서<br>그 곡에 필요한 파트를 적어두세요</h2><p>파트는 곡마다 직접 정하시면 됩니다. 보컬이 둘인 곡이면 둘, 기타가 없는 곡이면 빼고. 적어둔 만큼 빈 자리가 생깁니다.</p></div>
-            <div class="line" data-i="1"><h2>각자 하고 싶은 곡에<br>원하는 자리를 눌러서 잡습니다</h2><p>누른 자리에는 내 이름이 붙습니다. 그 순간 다른 사람이 보고 있던 화면에서도 같은 자리가 찬 것으로 바뀌니, 뒤늦게 같은 자리를 노리던 사람이 헛걸음하지 않습니다.</p></div>
-            <div class="line" data-i="2"><h2>어느 곡이 먼저 찰지<br>보이기 시작합니다</h2><p>한 자리만 남은 곡, 절반쯤 찬 곡, 아직 혼자인 곡이 한 줄에 같이 놓입니다. 곡을 고를 때 제일 하고 싶은 곡 말고도 기준이 하나 더 생깁니다.</p></div>
-            <div class="line" data-i="3"><h2>자리가 다 차면<br>합주<span class="gak">각</span>이 나옵니다</h2><p>합주실에 가서 누가 무슨 곡에 참여하는지, 어떤 곡들을 합주할지 이야기하며 시간을 낭비할 일이 없어집니다! 모이면 바로 시작!</p></div>
+            <div class="line lp-cur" data-i="0"><h2>“이 곡 칠 사람?”<br>하고 싶은 곡과 필요한 파트만 쓱 올려주세요</h2><p>투 보컬 체제? 키보드 없는 곡? 괜찮습니다. 곡에 딱 맞는 파트 구성만 골라서 세팅해 두면, 그만큼 빈자리가 열리며 멤버들을 기다리게 됩니다.</p></div>
+            <div class="line" data-i="1"><h2>“내 자리는 내가 찜!”<br>원하는 파트를 빠르게 낚아채세요</h2><p>맘에 드는 곡의 빈 파트를 누르면 즉시 내 이름이 박힙니다. 실시간으로 다른 멤버들의 화면에도 자리가 찬 것으로 업데이트되니, 같은 자리를 노리다가 한발 늦어 헛걸음할 일은 없겠죠?</p></div>
+            <div class="line" data-i="2"><h2>“오, 이 곡은 베이스만 오면 출발!”<br>실시간 눈치싸움의 묘미</h2><p>한 자리만 남은 곡, 반쯤 찬 곡이 화면에 나란히 보이기 시작합니다. 무조건 내가 치고 싶은 곡을 고르는 것도 좋지만, 당장 출발 직전인 곡에 잽싸게 탑승해 곡을 완성시키는 재미도 쏠쏠합니다.</p></div>
+            <div class="line" data-i="3"><h2>모든 자리가 채워지면,<br>비로소 완벽한 ‘합주<span class="gak">각</span>’ 완성!</h2><p>비싼 돈 주고 빌린 합주실에서 “오늘 뭐부터 칠까?” 하며 금쪽같은 대관 시간 날리지 마세요. 이미 모든 세팅은 끝났습니다. 앰프에 기타 잭 꽂고 신디사이저 라인 연결하고, 모이자마자 바로 카운트 들어갑니다!</p></div>
             <div class="track"><i class="lp-cur"></i><i></i><i></i><i></i></div>
           </div>
 
@@ -2479,40 +2518,40 @@ html.lp-on body{overflow:hidden}
 <div class="barline"><b></b><b></b><b></b></div>
 
 <section class="lp-wrap" id="lp-how">
-  <h2 class="rise">어떤 것들이 편해질까요?</h2>
-  <p class="s-lede rise">여기까지가 곡 하나가 성사되기까지의 과정이었습니다.<br class="lp-lb">
-  아래는 그 과정을 몇 달 돌렸을 때 모임에서 달라지는 것들입니다.</p>
+  <h2 class="rise">합주각을 쓰면,<br>우리 밴드 단톡방에 평화가 찾아옵니다.</h2>
+  <p class="s-lede rise">단톡방 스크롤 올리며 스트레스 받던 날들은 안녕.<br class="lp-lb">
+  합주각과 함께라면 연습 준비부터 셋리스트 관리까지 이렇게 달라집니다.</p>
 
   <div class="how">
     <div class="rise">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 13.5h8M8 16.5h5"/></svg>
-      <h3>올린 곡이 묻히지 않습니다</h3>
-      <p>단톡방에 올린 곡은 다음 메시지 몇 개면 스크롤 위로 사라집니다. 여기서는 합주 날짜마다 곡 목록이 통째로 남아서, 이번에 후보가 몇 곡인지 세어볼 수 있습니다.</p>
+      <h3>“그때 그 곡 어디 갔지?” 스크롤 지옥 탈출</h3>
+      <p>잡담에 묻혀버린 투표와 유튜브 링크들, 이제 찾지 마세요. 합주 날짜별로 후보 곡들이 깔끔하게 보관되어 셋리스트 짜기가 훨씬 수월해집니다.</p>
     </div>
     <div class="rise">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8.5" cy="8" r="3.2"/><path d="M2.6 19a5.9 5.9 0 0 1 11.8 0"/><path d="M17 8.5h5M19.5 6v5"/></svg>
-      <h3>누가 어느 파트인지 물어볼 일이 줄어듭니다</h3>
-      <p>곡마다 파트 자리가 그려져 있고, 찬 자리에는 이름이 붙어 있습니다. 베이스를 누가 하기로 했는지 단톡방에 다시 올리지 않아도 됩니다.</p>
+      <h3>“이 곡 베이스가 누구였더라?” 파트 혼선 제로</h3>
+      <p>곡마다 직관적인 파트 보드가 생깁니다. 헷갈리게 공지사항을 뒤적일 필요 없이, 누가 어떤 악기를 잡았는지 한눈에 쫙 펼쳐집니다.</p>
     </div>
     <div class="rise">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="2.6"/><path d="M7.4 7.4a6.5 6.5 0 0 0 0 9.2M16.6 16.6a6.5 6.5 0 0 0 0-9.2M4.2 4.2a11 11 0 0 0 0 15.6M19.8 19.8a11 11 0 0 0 0-15.6"/></svg>
-      <h3>자리가 겹치지 않습니다</h3>
-      <p>한 자리를 두 사람이 같은 순간에 눌러도 한 명만 들어갑니다. 누가 먼저였는지 따지거나 서로 양보하다 둘 다 빠지는 일이 생기지 않습니다.</p>
+      <h3>“어, 나도 치려고 했는데…” 파트 쟁탈전 평정</h3>
+      <p>정확한 선착순 시스템으로 자리가 겹칠 일이 없습니다. 눈치 보며 서로 양보하다가 이도 저도 안 되는 피곤한 상황, 시스템이 깔끔하게 정리해 드립니다.</p>
     </div>
     <div class="rise">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.4" y="8.8" width="3.7" height="6.4" rx="1.4" fill="currentColor" stroke="none"/><rect x="5.9" y="8.8" width="3.7" height="6.4" rx="1.4" fill="currentColor" stroke="none"/><rect x="10.4" y="8.8" width="3.7" height="6.4" rx="1.4" fill="currentColor" stroke="none"/><rect x="14.9" y="8.8" width="3.7" height="6.4" rx="1.4" fill="currentColor" stroke="none"/><rect x="19.4" y="8.8" width="3.2" height="6.4" rx="1.4"/></svg>
-      <h3>새로 온 멤버도 바로 낄 수 있습니다</h3>
-      <p>동아리에 막 들어온 사람에게 지금 뭘 하고 있는지부터 설명하지 않아도 됩니다. 곡 목록을 열고 비어 있는 자리를 하나 누르면 그게 첫 합주가 됩니다.</p>
+      <h3>신입 멤버도 뻘쭘함 없이 즉시 투입!</h3>
+      <p>새로 온 멤버에게 구구절절 상황 설명할 필요 없습니다. 그냥 링크 하나 던져주면 끝! 비어있는 파트 쓱 보고 바로 합주에 합류할 수 있습니다.</p>
     </div>
     <div class="rise">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8h12l-3-3M20 16H8l3 3"/></svg>
-      <h3>갑자기 못 가게 되셨나요?</h3>
-      <p>자리를 양도 가능으로 바꿔두면 다른 사람이 넘겨받습니다. 한 명 빠질 때마다 그 곡을 처음부터 다시 짜지 않아도 됩니다.</p>
+      <h3>갑작스러운 불참? 쿨하게 대타 모집</h3>
+      <p>급한 일로 합주를 빠지게 되어도 미안해하며 판을 엎을 필요가 없습니다. ‘양도’ 상태로 바꿔두기만 하면, 다른 멤버가 자연스럽게 그 자리를 이어받아 곡이 굴러갑니다.</p>
     </div>
     <div class="rise">
       <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3.5 14.6 9l6 .9-4.3 4.2 1 6-5.3-2.8-5.3 2.8 1-6L3.4 9.9l6-.9z"/></svg>
-      <h3>지난 합주가 남습니다</h3>
-      <p>끝난 합주는 기록으로 넘어갑니다. 지난달에 무슨 곡을 누구랑 했는지, 아직 못 해본 곡이 뭔지 거슬러 볼 수 있습니다.</p>
+      <h3>우리 밴드의 레퍼토리가 자동 아카이빙</h3>
+      <p>다음 공연 셋리스트 짤 때 “우리 예전에 뭐뭐 했었지?” 고민하지 마세요. 지난 합주 기록이 고스란히 남아있어, 언제든 꺼내볼 수 있는 든든한 플레이리스트 자산이 됩니다.</p>
     </div>
   </div>
 </section>
@@ -2668,7 +2707,15 @@ function heldInstrument(slots, part, uid){
 }
 const AREAS = ["서울","경기","인천","부산","대구","대전","광주","거제"];
 const MY_PARTS = ["보컬","통기타","일렉기타","베이스기타","드럼","건반"];
-const GENRES = ["J-POP","애니송","보컬로이드","J-록","K-록·K-POP","게임음악","혼합·자유"];
+/* 목록에 없는 장르를 적을 길이 없어서 맨 끝에 「직접 입력」을 둡니다.
+   첫 항목이 새 합주의 기본값이 되므로, 비어 있는 칸이 열리는 「직접 입력」은
+   맨 끝에 둡니다. */
+const GENRE_FREE = "직접 입력";
+const GENRES = ["팝 (Pop)","록 (Rock)","발라드 (Ballad)","힙합 (Hip-Hop)",
+                "R&B (Rhythm & Blues)","재즈 (Jazz)","블루스 (Blues)","펑크 (Funk)",
+                "EDM (Electronic Dance Music)","클래식 (Classical)","메탈 (Metal)",
+                "제이팝/제이록 (J-POP/J-ROCK)","보컬로이드 (VOCALOID)","애니송",
+                "게임음악","기타 서브컬쳐음악","혼합/자유", GENRE_FREE];
 
 /* 관리자 목록은 서버가 돌려주는 role에서 채워집니다. 하드코딩하지 않습니다. */
 const ADMIN_UIDS = [];
@@ -2761,8 +2808,13 @@ async function call(method, path, body){
 /* ---------- 이름 번역 ---------- */
 /* 서버도 이제 자리를 이름으로 주고받습니다. 옮겨 적을 표가 필요 없습니다.
    일정의 기본 편성(defaultParts)만 아직 종류(enum)라 이 표를 씁니다. */
-const DEFAULT_PART_LABEL = { VOCAL:"보컬", ACOUSTIC:"통기타", GUITAR1:"기타1", GUITAR2:"기타2",
-                             BASS:"베이스", DRUM:"드럼", KEY1:"키보드1", KEY2:"키보드2" };
+/* GUITAR2·KEY2 는 고르는 칸에서 뺐지만 표에는 남겨 둡니다.
+   예전에 「기타2」로 열어둔 합주가 아직 있어서, 표에서 지우면 그 합주를
+   편집하는 순간 그 파트가 조용히 사라집니다. */
+const DEFAULT_PART_LABEL = { VOCAL:"보컬", ACOUSTIC:"통기타", GUITAR1:"기타", GUITAR2:"기타2",
+                             BASS:"베이스", DRUM:"드럼", KEY1:"키보드", KEY2:"키보드2" };
+/* 새로 고를 수 있는 것은 이 여섯 가지입니다. */
+const DEFAULT_PART_PICK = ["보컬","통기타","기타","베이스","드럼","키보드"];
 const DEFAULT_PART_API = {};
 for (const [api, label] of Object.entries(DEFAULT_PART_LABEL)) DEFAULT_PART_API[label] = api;
 
@@ -3694,7 +3746,7 @@ function renderAdminFab(){
 function renderAuth(u){
   const slot = $("#auth-slot"); slot.innerHTML = "";
   const nav = $("#btn-nav");
-  nav?.querySelector(".me-dot")?.remove();
+  nav?.setAttribute("aria-label", "메뉴 열기");
 
   if (!u){
     const b = el("button","btn sm","로그인");
@@ -3708,19 +3760,23 @@ function renderAuth(u){
     slot.append(b);
     return;
   }
-  /* 삼선 단추 모서리에 작은 사진을 붙입니다. 로그인됐다는 표시입니다. */
-  if (nav){
-    const mark = myProfile.photo ? document.createElement("img") : el("i","me-dot");
-    if (myProfile.photo){
-      mark.className = "me-dot"; mark.src = myProfile.photo; mark.alt = "";
-    } else {
-      mark.textContent = (myProfile.name || "?").trim().charAt(0) || "?";
-      mark.style.cssText = "display:grid;place-items:center;font-size:9px;font-weight:800;" +
-                           "font-style:normal;color:var(--cta-ink);background:var(--accent)";
-    }
-    nav.append(mark);
-    nav.setAttribute("aria-label", myProfile.name + " · 메뉴 열기");
-  }
+
+  /* 삼선 옆에 사진과 이름을 둡니다. 눌러도 같은 메뉴가 열립니다 —
+     로그인 표시일 뿐 눌리지 않는 그림이면 한 번씩 눌러보고 헛걸음합니다. */
+  const chip = document.createElement("button");
+  chip.type = "button";
+  chip.className = "me";
+  chip.setAttribute("aria-haspopup", "true");
+  chip.setAttribute("aria-expanded", "false");
+  chip.setAttribute("aria-label", myProfile.name + " · 메뉴 열기");
+
+  const face = myProfile.photo ? document.createElement("img") : el("i","face");
+  if (myProfile.photo){ face.className = "face"; face.src = myProfile.photo; face.alt = ""; }
+  else face.textContent = (myProfile.name || "?").trim().charAt(0) || "?";
+
+  chip.append(face, el("span","nm", myProfile.name || ""));
+  chip.onclick = () => toggleMenu(chip, $("#nav-menu"), buildNavMenu);
+  slot.append(chip);
 }
 
 function blankAvatar(name){
@@ -5166,7 +5222,12 @@ async function deleteEventFlow(e){
 /* ── 추억 저장소 ─────────────────────────────────
    합주 완료로 표시된 일정을 최근 순으로 모아 보여줍니다. */
 function renderMemories(){
-  const list = allEvents.filter(eventDone).filter(canSeeInList)
+  /* 「추억」이라는 이름이 붙은 자리에 남이 친 합주까지 섞여 있었습니다.
+     내가 자리를 잡았던 합주와 내가 연 합주만 남깁니다.
+     주최자도 포함합니다 — 자리를 안 잡고 판만 깔았어도 그날 거기 있었습니다. */
+  const me = auth.user?.uid;
+  const mine = e => !!me && (iHaveSeat(e) || String(e.hostUid) === String(me));
+  const list = allEvents.filter(eventDone).filter(canSeeInList).filter(mine)
     .sort((a,b) => (b.date||"").localeCompare(a.date||"") || (b.completedAt || 0) - (a.completedAt || 0));
 
   const stats = $("#mem-stats");
@@ -5174,7 +5235,9 @@ function renderMemories(){
   stats.innerHTML = ""; box.innerHTML = "";
 
   if (!list.length){
-    box.append(el("div","empty-note","아직 마친 합주가 없습니다. 합주를 끝내고 일정에서 '합주 완료로 표시'를 누르면 여기에 쌓입니다."));
+    box.append(el("div","empty-note", auth.user
+      ? "아직 마친 합주가 없습니다. 참가했던 합주가 완료로 표시되면 여기에 쌓입니다."
+      : "로그인하면 참가했던 합주가 여기에 쌓입니다."));
     return;
   }
 
@@ -6435,7 +6498,12 @@ function eventModal(ev){
   /* 전에는 일주일 뒤 날짜를 미리 넣어 뒀습니다. 「비우면 미정」으로 바꾼 뒤로는
      미리 채워 두면 아무도 미정으로 열 수 없게 됩니다. 빈 칸으로 시작합니다. */
   let cover = ev?.cover || "";
-  const defaults = new Set(ev?.defaultParts || ["Vocal","Guitar1","Guitar2","Bass","Drum","Key1"]);
+  /* 전에는 ["Vocal","Guitar1",…] 이라 적혀 있었는데, 아래 단추는 「보컬」·「기타」
+     같은 한글 이름으로 견줍니다. 한 글자도 안 맞아서 새 합주를 열면 기본 파트가
+     하나도 안 켜진 채로 시작했습니다. */
+  const defaults = new Set(ev?.defaultParts || DEFAULT_PART_PICK);
+  const genrePick = (ev?.genre && !GENRES.includes(ev.genre)) ? GENRE_FREE
+                  : (ev?.genre || GENRES[0]);
 
   modal(`
     <div class="form-wide">
@@ -6447,10 +6515,18 @@ function eventModal(ev){
       <div class="fstep on" data-step="1">
       <div class="fstep-in">
       <div class="form-sec">기본 정보</div>
+      <div class="field"><label>공개 범위</label><select id="f-vis">
+        <option value="public"${ev?.visibility !== "private" ? " selected" : ""}>공개 — 목록에 표시</option>
+        <option value="private"${ev?.visibility === "private" ? " selected" : ""}>비공개 — 링크로만 참가</option>
+      </select></div>
       <div class="field"><label>합주 이름 <b class="req">필수</b></label>
         <input id="f-title" placeholder="예: 3번째 홍대 합주" maxlength="60" value="${esc(ev?.title || "")}"></div>
       <div class="field"><label>장르</label>
-        <select id="f-genre">${GENRES.map(g => `<option${ev?.genre === g ? " selected" : ""}>${g}</option>`).join("")}</select></div>
+        <select id="f-genre">${GENRES.map(g => `<option${g === genrePick ? " selected" : ""}>${g}</option>`).join("")}</select></div>
+      <div class="reveal${genrePick === GENRE_FREE ? " on" : ""}" id="f-genre-wrap">
+        <div class="field"><input id="f-genre-free" maxlength="30"
+          placeholder="예: 시티팝, 포스트록" value="${esc(genrePick === GENRE_FREE ? (ev?.genre || "") : "")}"></div>
+      </div>
       <div class="field"><label>소개</label>
         <textarea id="f-desc" placeholder="어떤 합주인지, 어떤 분들이 오면 좋을지 적어주세요">${esc(ev?.description || "")}</textarea></div>
       </div>
@@ -6503,15 +6579,6 @@ function eventModal(ev){
             ${[2,3,4,5,6,8,10].map(n => `<option value="${n}"${ev?.maxSongsPerUser === n ? " selected" : ""}>${n}곡까지</option>`).join("")}
           </select></div>
       </div>
-      <div class="row2">
-        <div class="field"><label>뒤풀이</label><select id="f-after">
-          ${["미정","있음","없음"].map(x => `<option${ev?.afterparty === x ? " selected" : ""}>${x}</option>`).join("")}
-        </select></div>
-        <div class="field"><label>공개 범위</label><select id="f-vis">
-          <option value="public"${ev?.visibility !== "private" ? " selected" : ""}>공개 — 목록에 표시</option>
-          <option value="private"${ev?.visibility === "private" ? " selected" : ""}>비공개 — 링크로만 참가</option>
-        </select></div>
-      </div>
       </div>
       </div>
       <div class="fstep" data-step="4">
@@ -6555,7 +6622,7 @@ function eventModal(ev){
     root.querySelector("#f-cancel").onclick = closeModal;
 
     const pbox = root.querySelector("#f-parts");
-    Object.values(DEFAULT_PART_LABEL).forEach(x => {
+    DEFAULT_PART_PICK.forEach(x => {
       const b = el("button","" + (defaults.has(x) ? "on" : ""), x);
       b.type = "button";
       b.onclick = () => { defaults.has(x) ? defaults.delete(x) : defaults.add(x); b.classList.toggle("on"); };
@@ -6611,7 +6678,7 @@ function eventModal(ev){
       /* 일정·장소를 하나라도 건드리면 참가 조건이, 거기서 또 건드리면 나머지가 열립니다. */
       ["#f-date","#f-start","#f-end","#f-region","#f-studio"]
         .forEach(sel => root.querySelector(sel)?.addEventListener("change", bump(3)));
-      ["#f-cap","#f-fee-amount","#f-fee-note","#f-deadline","#f-maxsongs","#f-after","#f-vis"]
+      ["#f-cap","#f-fee-amount","#f-fee-note","#f-deadline","#f-maxsongs"]
         .forEach(sel => root.querySelector(sel)?.addEventListener("change", bump(5)));
     }
 
@@ -6620,6 +6687,15 @@ function eventModal(ev){
 
     /* 합주실을 적으면 그 아래에 방 이름 칸이 열립니다. 합주실도 안 정했는데
        몇 번 방이냐고 먼저 묻는 건 순서가 뒤집힌 것입니다. */
+    const genreEl   = root.querySelector("#f-genre");
+    const genreWrap = root.querySelector("#f-genre-wrap");
+    const genreFree = root.querySelector("#f-genre-free");
+    genreEl.addEventListener("change", () => {
+      const on = genreEl.value === GENRE_FREE;
+      genreWrap.classList.toggle("on", on);
+      if (on) setTimeout(() => genreFree.focus(), 180); else genreFree.value = "";
+    });
+
     const studioEl = root.querySelector("#f-studio");
     const roomWrap = root.querySelector("#f-room-wrap");
     const syncRoom = () => {
@@ -6651,7 +6727,9 @@ function eventModal(ev){
       const base = {
         title, date,
         timeStart: start, timeEnd: end,
-        genre: root.querySelector("#f-genre").value,
+        genre: genreEl.value === GENRE_FREE
+               ? genreFree.value.trim().replace(/\s+/g, " ")
+               : genreEl.value,
         region: root.querySelector("#f-region").value,
         studio: q("#f-studio"),
         room: q("#f-room"),
@@ -6660,9 +6738,8 @@ function eventModal(ev){
         feeNote: q("#f-fee-note"),
         entryDeadline: deadline,
         maxSongsPerUser: Number(root.querySelector("#f-maxsongs").value) || 0,
-        afterparty: root.querySelector("#f-after").value,
         visibility: root.querySelector("#f-vis").value,
-        defaultParts: Object.values(DEFAULT_PART_LABEL).filter(x => defaults.has(x)),
+        defaultParts: DEFAULT_PART_PICK.filter(x => defaults.has(x)),
         description: q("#f-desc"),
         tags: q("#f-tags").split(",").map(t => t.trim()).filter(Boolean).slice(0,8),
         cover
@@ -7062,6 +7139,26 @@ function showView(v){
 
 function route(){
   const h = location.hash;
+
+  /* ⑫ 창을 닫았다 열어야만 소개 화면을 다시 볼 수 있었습니다.
+     #/intro 를 소개 화면의 주소로 두면 두 가지가 한꺼번에 풀립니다.
+       · 메뉴의 「소개 화면 보기」가 갈 곳이 생기고,
+       · 소개에서 본문으로 들어올 때 남긴 기록으로 뒤로 가면 그대로 돌아옵니다.
+     이미 덮여 있으면 아무 것도 하지 않습니다 — 들어오자마자 한 번 더 그리면
+     애써 띄운 화면이 깜빡입니다. */
+  if (h === "#/intro"){
+    if (!$("#landing")){
+      window.__lpWant = true;
+      try { sessionStorage.removeItem(LANDING_KEY); } catch(e){}
+      window.scrollTo(0, 0);
+      bootLanding();
+    }
+    return;
+  }
+  /* 소개 화면이 덮여 있는 채로 다른 주소가 되면(앞으로 가기 등) 걷고,
+     아래에서 그 주소의 화면을 이어서 그립니다. 여기서 return 하면
+     덮개만 걷히고 본문이 안 그려집니다. */
+  if ($("#landing")) enterApp(null);
   /* #/e/7              공개 일정
      #/e/7/Kx3f9_aQ2LmP   비공개 일정 — 뒤에 붙는 것이 초대 키
      키를 주소에 넣는 이유는 링크 하나만 건네면 끝나게 하려는 것입니다.
@@ -7180,6 +7277,7 @@ function buildNavMenu(box){
   }
   menuItem(box, "추억 보관소", { href:"#/memories", onclick: closeMenu });
   menuItem(box, "사용법", { href:"#/guide", onclick: closeMenu });
+  menuItem(box, "소개 화면 보기", { href:"#/intro", onclick: closeMenu });
   if (!auth.user){
     box.append(document.createElement("hr"));
     menuItem(box, "로그인", { onclick: () => { closeMenu(); auth.signIn(); } });
@@ -7238,7 +7336,7 @@ auth.onChange(async u => {
    html 의 data-theme 하나만 바꾸면 색은 토큰이 알아서 따라옵니다. */
 const THEME_KEY = "hapjugak.theme";
 function readTheme(){
-  try { return localStorage.getItem(THEME_KEY) || ""; } catch(e){ return ""; }
+  try { return sessionStorage.getItem(THEME_KEY) || ""; } catch(e){ return ""; }
 }
 function systemDark(){
   return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -7263,7 +7361,7 @@ applyTheme(readTheme() || "dark");
 $("#theme-toggle").onclick = () => {
   const now = readTheme() || "dark";
   const next = now === "dark" ? "light" : "dark";
-  try { localStorage.setItem(THEME_KEY, next); } catch(e){ /* 저장이 막혀도 이번 세션에는 적용됩니다 */ }
+  try { sessionStorage.setItem(THEME_KEY, next); } catch(e){ /* 저장이 막혀도 이번 세션에는 적용됩니다 */ }
   applyTheme(next);
 };
 
@@ -7319,6 +7417,13 @@ function bootLanding(){
   host.appendChild(tpl.content.cloneNode(true));
   document.body.appendChild(host);
   document.documentElement.classList.add("lp-on");
+
+  /* 소개 화면을 #/intro 라는 제 주소에 앉힙니다. replace 라 기록이 늘지 않고,
+     지금 있는 칸의 주소만 바뀝니다. 「합주 둘러보기」가 #/ 로 밀고 들어가면
+     기록은 [#/intro, #/] 가 되어, 뒤로 가기 한 번이면 여기로 돌아옵니다.
+     새로고침해도 주소가 #/intro 라 소개 화면이 그대로 다시 뜹니다. */
+  const h0 = location.hash;
+  if (h0 === "" || h0 === "#" || h0 === "#/") location.replace("#/intro");
 
   const LP  = host;
   const $L1 = id => host.querySelector("#" + id);
@@ -7501,21 +7606,24 @@ function bootLanding(){
        포인터 이벤트는 1초에 수백 번 들어옵니다. 그때마다 그리라고 하면
        밀립니다. 프레임당 한 번만 옮기고, 위치 계산에 쓰는 사각형도
        스크롤·창 크기가 바뀔 때만 다시 잽니다. */
-    var spot=$L1('lp-spot'),hero=$LQ('.lp-hero'),beam=$LQ('.spot .beam');
-    var hr=null, pmx=0, pmy=0, praf=0;
+    var spot=$L1('lp-spot'),hero=$LQ('.lp-hero');
+    var hr=null, praf=0;
     function hrect(){ hr=hero.getBoundingClientRect() }
     hrect();
     LP.addEventListener('scroll',hrect,{passive:true});
     addEventListener('resize',hrect);
+
+    /* 커서 뒤를 따르는 불씨. 머리 하나가 커서를 조금 늦게 쫓아가고,
+       그 자리에서 작은 불씨가 하나씩 떨어져 흩어지며 꺼집니다.
+       손가락으로 쓰는 화면에서는 커서가 없으니 아예 만들지 않습니다. */
+    var sparks=[], hx=null, hy=null, tx=0, ty=0, lastSpawn=0, movedAt=0;
     hero.addEventListener('pointermove',function(ev){
       if(ev.pointerType!=='mouse') return;
-      pmx=ev.clientX; pmy=ev.clientY;
-      if(praf) return;
-      praf=requestAnimationFrame(function(){
-        praf=0;
-        beam.style.transform='translate3d('+(pmx-hr.left)+'px,'+(pmy-hr.top)+'px,0)';
-      });
+      tx=ev.clientX-hr.left; ty=ev.clientY-hr.top;
+      movedAt=performance.now();
+      if(hx===null){ hx=tx; hy=ty; }
     },{passive:true});
+    hero.addEventListener('pointerleave',function(){ hx=null; hy=null; },{passive:true});
 
     /* ⑦ 조명 속 먼지 — 합주실에 불 켜면 보이는 그것 */
     var cv=$L1('lp-dust'),cx=cv.getContext('2d'),bits=[],w,h,raf;
@@ -7524,16 +7632,53 @@ function bootLanding(){
         return{x:Math.random()*w,y:Math.random()*h,r:Math.random()*1.5+.4,
                vy:-(Math.random()*.18+.05),vx:(Math.random()-.5)*.12,a:Math.random()*.4+.12}});
     }
-    function tick(){
+    function tick(now){
       cx.clearRect(0,0,w,h);
       bits.forEach(function(b){
         b.y+=b.vy; b.x+=b.vx; if(b.y<-4){b.y=h+4;b.x=Math.random()*w}
         cx.beginPath(); cx.arc(b.x,b.y,b.r,0,6.284);
         cx.fillStyle='rgba(255,196,107,'+b.a+')'; cx.fill();
       });
+
+      /* 불씨는 겹칠수록 밝아져야 반딧불이처럼 보입니다 — 더하기로 합성합니다. */
+      if(hx!==null){
+        hx += (tx-hx)*0.22; hy += (ty-hy)*0.22;          // 살짝 늦게 따라붙는 머리
+        var moved = Math.abs(tx-hx) + Math.abs(ty-hy);
+        /* 커서가 멈춰 있으면 불씨를 더 만들지 않습니다. 가만히 둔 자리에
+           계속 쌓이면 불씨가 아니라 얼룩이 됩니다. */
+        if(now-movedAt < 120 && now-lastSpawn > 16 && sparks.length < 90){
+          lastSpawn = now;
+          var n = moved > 6 ? 2 : 1;
+          for(var k=0;k<n;k++) sparks.push({
+            x:hx+(Math.random()-.5)*6, y:hy+(Math.random()-.5)*6,
+            vx:(Math.random()-.5)*.9, vy:-(Math.random()*.5+.12),
+            r:Math.random()*1.6+.7, life:1, dec:Math.random()*.016+.012
+          });
+        }
+      }
+      if(sparks.length){
+        cx.globalCompositeOperation='lighter';
+        for(var i=sparks.length-1;i>=0;i--){
+          var s2=sparks[i];
+          s2.x+=s2.vx; s2.y+=s2.vy; s2.vy+=.004; s2.vx*=.985;
+          s2.life=Math.max(0,s2.life-s2.dec);
+          if(s2.life<=0){ sparks.splice(i,1); continue; }
+          cx.beginPath();
+          cx.arc(s2.x,s2.y,s2.r*s2.life,0,6.284);
+          cx.fillStyle='rgba(255,166,74,'+(s2.life*.75)+')';
+          cx.fill();
+        }
+        if(hx!==null){                                    // 커서 자리의 은은한 핵
+          var g=cx.createRadialGradient(hx,hy,0,hx,hy,26);
+          g.addColorStop(0,'rgba(255,150,60,.30)');
+          g.addColorStop(1,'rgba(255,150,60,0)');
+          cx.fillStyle=g; cx.beginPath(); cx.arc(hx,hy,26,0,6.284); cx.fill();
+        }
+        cx.globalCompositeOperation='source-over';
+      }
       raf=requestAnimationFrame(tick);
     }
-    size(); tick(); addEventListener('resize',size);
+    size(); tick(performance.now()); addEventListener('resize',size);
 
     /* 본문으로 넘어갈 때 호출됩니다. 넘어가는 동안에도 먼지·입자·편성표가
        계속 돌면 그 프레임을 같이 나눠 써서 전환이 끊겨 보입니다. */
@@ -7546,14 +7691,15 @@ function bootLanding(){
     // 히어로가 화면 밖으로 나가면 그리기를 멈춘다
     new IntersectionObserver(function(es){
       if(es[0].isIntersecting){ if(!raf) raf=requestAnimationFrame(tick); }
-      else { cancelAnimationFrame(raf); raf=0; }
+      else { cancelAnimationFrame(raf); raf=0; sparks.length=0; hx=null; hy=null; }
     }).observe(hero);
   })();
 
 }
 
 function enterApp(hash){
-  const lp = $("#landing"); if (!lp) return;
+  const lp = $("#landing"); if (!lp || lp.__leaving) return;
+  lp.__leaving = true;
   try { sessionStorage.setItem(LANDING_KEY, "1"); } catch(e){}
 
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
