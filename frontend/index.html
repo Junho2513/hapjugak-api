@@ -12,7 +12,7 @@
 <link rel="preload" as="image" href="img/logo.png">
 <!-- 본문 글꼴입니다. CSS 를 다 읽은 뒤에야 받으러 가면 그만큼 늦게 적용됩니다.
      여기서 미리 보내두면 HTML 을 읽는 동안 같이 받아옵니다. -->
-<link rel="preload" as="font" type="font/woff2" href="/api/fonts/PretendardVariable.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="/api/fonts/Pretendard-ko.woff2" crossorigin>
 <link rel="preload" as="font" type="font/woff2" href="/api/fonts/BMJUA.woff2" crossorigin>
 <!-- 소개 화면 글꼴은 구글에서 받습니다. 연결을 미리 터두면 그만큼 빨라집니다. -->
 
@@ -220,33 +220,54 @@ h2{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
 
    모양은 그대로 알약입니다. 이 화면의 다른 칸들과 같은 말을 쓰고,
    구별은 굵기와 색으로만 냅니다. */
-.chip{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;
-  border-radius:999px;font-size:13px;white-space:nowrap;
-  background:var(--surface-2);color:var(--ink-2);border:1.5px solid transparent}
-.chip .pt{font-weight:700;letter-spacing:-.01em}
-.chip .nm,.chip .st{font-style:normal;font-weight:500;color:var(--muted)}
-.chip.on .nm{color:var(--ink);opacity:.78}
+/* 칸 안의 것들을 같은 가운데 선에 맞춥니다. 글자 크기가 서로 달라도
+   line-height 를 1 로 묶어두면 상자 높이가 글자 높이와 같아져서,
+   flex 가운데 정렬이 글자 가운데를 잡습니다. 전에는 상자마다 여백이
+   달라서 파트 이름과 「비어 있음」이 서로 다른 높이에 놓였습니다. */
+.chip{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 15px;
+  border-radius:999px;font-size:13.5px;white-space:nowrap;line-height:1;
+  background:var(--surface-2);color:var(--ink-2);border:1.5px solid var(--rule-2)}
+.chip > *{display:inline-flex;align-items:center;line-height:1}
+.chip .ico{width:17px;height:17px;flex:none;opacity:.9;display:block}
+.chip .pt{font-weight:700;letter-spacing:-.01em;color:var(--ink)}
+.chip .nm,.chip .st{font-style:normal;font-weight:500;color:var(--muted);font-size:13px}
+.chip .plus{width:17px;height:17px;flex:none;margin-left:1px;margin-right:-3px;display:block}
 
-/* 빈 자리 — 눌러서 들어가는 곳입니다 */
-.chip.open{background:rgba(247,130,46,.09);border-color:rgba(247,130,46,.55);
+/* 빈 자리 — 눌러서 들어가는 곳. 이 줄에서 가장 잘 보여야 합니다. */
+.chip.open{background:rgba(247,130,46,.11);border-color:rgba(247,130,46,.62);
   color:var(--accent);cursor:pointer}
-.chip.open .pt{color:var(--accent)}
-.chip.open .st{color:var(--accent);opacity:.72}
-.chip.open::before{content:"＋";font-size:13px;line-height:1;opacity:.85;margin-right:-1px}
-.chip.open:hover{background:rgba(247,130,46,.16);border-color:var(--accent)}
+.chip.open .ico,.chip.open .pt,.chip.open .st,.chip.open .plus{color:var(--accent)}
+.chip.open .st{opacity:.78}
+.chip.open:hover{background:rgba(247,130,46,.19);border-color:var(--accent)}
 
 .chip.managing{outline:1.5px dashed var(--accent);outline-offset:2px}
 @media (min-width:760px){
-  /* PC 에서 보는 사람이 대부분입니다. 30px 짜리 칸은 넓은 화면에서 띠처럼 보입니다. */
-  .chip{height:42px;padding:0 17px;font-size:14.5px;gap:9px}
-  .chip .nm,.chip .st{font-size:13.5px}
-  .chip.open::before{font-size:15px}
+  /* PC 로 보는 사람이 대부분입니다. 38px 은 넓은 화면에서 띠처럼 보입니다. */
+  .chip{height:46px;padding:0 19px;font-size:15px;gap:10px}
+  .chip .ico,.chip .plus{width:19px;height:19px}
+  .chip .nm,.chip .st{font-size:14px}
 }
 
-.tag{display:inline-flex;align-items:center;height:23px;padding:0 9px;border-radius:7px;flex:none;
-  font-size:11.5px;font-weight:700;background:var(--surface-2);color:var(--muted)}
-.tag.ok{background:var(--accent-soft);color:var(--accent)}
-.done .tag.ok{background:var(--done-tag);color:var(--done-tag-ink)}
+/* 곡의 상태 딱지. 「N자리 남음」은 지나가며 읽는 정보라 조용하게 둡니다.
+   「각 나왔습니다」는 다릅니다 — 곡 하나가 완성되는 순간이고, 이 서비스가
+   존재하는 이유입니다. 그 하나만 금색으로 크게 띄웁니다.
+
+   주황을 쓰지 않는 이유: 이 카드 안에서 주황은 이미 「눌러서 들어갈 수 있는
+   빈 자리」라는 뜻으로 쓰고 있습니다. 같은 색에 두 가지 뜻을 얹으면 둘 다
+   약해집니다. 금색은 로고의 크림색 쪽 계열이라 같은 집안으로 보입니다. */
+.tag{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 11px;
+  border-radius:999px;flex:none;line-height:1;
+  font-size:12px;font-weight:700;background:var(--surface-2);color:var(--muted);
+  border:1px solid var(--rule-2)}
+.tag.ok,.done .tag.ok{height:32px;padding:0 15px;font-size:13.5px;letter-spacing:-.01em;
+  background:var(--gold-soft);color:var(--gold);border-color:var(--gold-line)}
+.tag.ok svg{width:15px;height:15px;flex:none;display:block}
+.done .tag{background:var(--done-tag);color:var(--done-tag-ink);border-color:transparent}
+@media (min-width:760px){
+  .tag{height:28px;font-size:12.5px}
+  .tag.ok,.done .tag.ok{height:36px;padding:0 17px;font-size:15px;gap:7px}
+  .tag.ok svg{width:17px;height:17px}
+}
 
 .song-desc{font-size:13.5px;color:var(--muted);margin-top:8px;line-height:1.6;white-space:pre-wrap;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
@@ -514,7 +535,10 @@ h2{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
   width:18px;height:18px;flex:none;margin:0;accent-color:var(--accent);cursor:pointer;
 }
 .field label.unset-toggle:has(input:checked){border-color:var(--accent);background:var(--surface-2)}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--ok);outline:none}
+/* 「지금 손댄 칸」은 이 사이트 어디서나 주황입니다. 여기만 초록이라 혼자 튀었고,
+   초록은 다른 뜻(성공·완료)으로도 안 쓰고 있어서 의미도 없었습니다. */
+.field input:focus,.field select:focus,.field textarea:focus{
+  border-color:var(--accent);outline:none;box-shadow:0 0 0 3px rgba(247,130,46,.15)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 /* 조건이 맞을 때만 열리는 칸. 높이와 투명도를 같이 움직여서 끼어드는 느낌 없이 펴집니다. */
 .reveal{display:grid;grid-template-rows:0fr;opacity:0;margin-bottom:0;
@@ -534,8 +558,10 @@ h2{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
   font-family:inherit;font-size:14px;font-weight:600;color:var(--ink);
   display:inline-flex;align-items:center;gap:7px;transition:.15s}
 .partpick button:hover{border-color:var(--rule-2);background:var(--surface-2)}
-.partpick button.on{background:var(--ok-soft);border-color:var(--ok);color:var(--ok);
-  box-shadow:inset 0 0 0 1px var(--ok)}
+/* 고른 파트. 이 사이트에서 「켜진 것」은 어디서나 주황입니다 —
+   자리 칸, 검색칸, 단추 전부. 여기만 초록이면 다른 뜻이 있는 줄 알게 됩니다. */
+.partpick button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);
+  box-shadow:inset 0 0 0 1px var(--accent)}
 /* 직접 적은 파트 — 기본 목록과 구분되게 점선으로 두고, 지우는 ✕ 를 답니다. */
 .partpick button.custom{border-style:dashed}
 .partpick button.custom.on{border-style:solid}
@@ -552,7 +578,8 @@ h2{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
 .part-add .btn.sm{height:42px;flex:none}
 .part-add input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--rule);color:var(--ink);
   border-radius:9px;padding:0 15px;height:42px;font-family:inherit;font-size:14px}
-.part-add input:focus{outline:none;border-color:var(--ok)}
+.part-add input:focus{outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(247,130,46,.15)}
 .err.sm{font-size:12.5px;min-height:0;margin-top:6px}
 @media (max-width:620px){.partpick button{min-height:38px;padding:0 14px;font-size:13px}}
 /* 높이는 둘 다 40px 인데 폭이 달라서 취소 쪽이 작아 보였습니다.
@@ -566,10 +593,16 @@ h2{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
 .err{color:var(--danger);font-size:13px;margin-top:10px;min-height:18px}
 /* ── 로그인 · 회원가입 ────────────────────────────────── */
 .modal:has(.auth-box){max-width:420px}
-.auth-box .auth-head{text-align:center;margin-bottom:22px}
-.auth-box .auth-logo{width:54px;height:54px;border-radius:15px;display:block;margin:0 auto 14px}
-.auth-box .auth-head h3{font-weight:900;font-size:30px;letter-spacing:.04em;margin:0 0 6px}
-.auth-box .auth-head p{font-size:13px;color:var(--muted);margin:0}
+/* 아이콘 밑에 「합주각」을 글자로 적어 두었는데, 머리말에서는 로고타이프를
+   쓰면서 여기만 다른 모양이면 같은 서비스로 안 보입니다. 같은 그림으로 맞춥니다.
+   가로로 나란히 두는 이유 — 로그인 창은 세로로 긴 편이라, 위를 덜 먹는 쪽이 낫습니다. */
+.auth-box .auth-head{text-align:center;margin-bottom:26px}
+.auth-box .auth-mark{display:flex;align-items:center;justify-content:center;gap:13px;
+  margin:0 0 12px}
+.auth-box .auth-mark .mk-ico{width:52px;height:52px;border-radius:14px;display:block;flex:none}
+.auth-box .auth-mark .mk-word{height:34px;width:auto;display:block;flex:none;
+  transform:translateY(-8.7%)}
+.auth-box .auth-head p{font-size:13.5px;color:var(--muted);margin:0}
 
 .auth-box .field{margin-bottom:11px}
 .auth-box .field input{padding:12px 13px}
@@ -583,6 +616,8 @@ h2{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
   cursor:pointer;font-size:15px;line-height:1;border-radius:7px;
 }
 .pw-eye:hover{color:var(--ink);background:var(--surface-2)}
+.pw-eye svg{width:19px;height:19px;display:block;margin:auto}
+.pw-eye.off svg{opacity:.5}
 
 .auth-rule{font-size:12px;color:var(--muted);margin:-3px 0 13px;padding-left:2px}
 .auth-rule.ok{color:var(--ok)}
@@ -780,6 +815,7 @@ footer{border-top:1px solid var(--rule);margin-top:56px;padding:46px 0 28px;
   --shadow-lg:0 1px 2px rgba(20,18,23,.04), 0 24px 56px rgba(20,18,23,.10);
   --done-bg:#FFF6EE; --done-border:#F3D3B2; --done-track:#F7DFC8;
   --done-chip:#FBE8D6; --done-chip-ink:#2B1A0D;
+  --gold:#B8791C; --gold-ink:#3A2305; --gold-soft:#FBEFD6; --gold-line:#E8C98A;
   --done-tag:#F7D8BB; --done-tag-ink:#9C4509; --rail:#C2560A;
   --r-sm:9px; --r:14px; --r-lg:20px;
 }
@@ -797,6 +833,7 @@ footer{border-top:1px solid var(--rule);margin-top:56px;padding:46px 0 28px;
     --shadow-md:0 18px 40px rgba(0,0,0,.45);
   --done-bg:#2A1A0E; --done-border:#56331A; --done-track:#4A2B14;
   --done-chip:#3B2514; --done-chip-ink:#F8E3CF;
+  --gold:#F5C96B; --gold-ink:#2E1D04; --gold-soft:#3A2B12; --gold-line:#6E5424;
   --done-tag:#5A3416; --done-tag-ink:#FFC48F; --rail:#F7822E;
     --shadow-lg:0 30px 70px rgba(0,0,0,.55);
   }
@@ -814,6 +851,7 @@ footer{border-top:1px solid var(--rule);margin-top:56px;padding:46px 0 28px;
   --shadow-md:0 18px 40px rgba(0,0,0,.45);
   --done-bg:#2A1A0E; --done-border:#56331A; --done-track:#4A2B14;
   --done-chip:#3B2514; --done-chip-ink:#F8E3CF;
+  --gold:#F5C96B; --gold-ink:#2E1D04; --gold-soft:#3A2B12; --gold-line:#6E5424;
   --done-tag:#5A3416; --done-tag-ink:#FFC48F; --rail:#F7822E;
   --shadow-lg:0 30px 70px rgba(0,0,0,.55);
 }
@@ -837,7 +875,22 @@ footer{border-top:1px solid var(--rule);margin-top:56px;padding:46px 0 28px;
    swap 은 「우선 있는 글꼴로 그려두고, 오면 바꿔라」입니다. 글자가 즉시 보입니다.
    대신 글꼴이 도착하는 순간 한 번 바뀝니다. 처음 한 번뿐이고(그 뒤로는 캐시),
    2초간 빈 화면을 보는 것보다는 낫습니다. */
+/* 처음 들어왔을 때 0.5초쯤 기본 글꼴이 보였다가 뒤늦게 바뀌던 것의 원인은
+   이 파일이 2MB 라는 것이었습니다. 미리 받으라고 걸어둬도, 시드니에서
+   2MB 를 끌어오는 동안은 브라우저가 기다려 주지 않습니다(font-display:swap).
+
+   그래서 두 벌로 나눕니다.
+     Pretendard       — 상용 한글 2,350자(KS X 1001)와 라틴·기호만 담은 415KB.
+                        이것만 미리 받습니다. 닉네임·곡 제목에 쓰는 글자는 거의 다 여기 있습니다.
+     Pretendard Full  — 11,172자가 다 든 원본. 서브셋에 없는 글자가 나올 때만 받습니다.
+   글꼴 목록에 둘을 나란히 적어두면, 브라우저가 글자 단위로 앞엣것에 없는 것만
+   뒤엣것에서 찾습니다. 나중에 문구를 고쳐 새 글자가 들어와도 깨지지 않고,
+   그 글자가 실제로 쓰일 때까지 2MB 는 아예 받지 않습니다. */
 @font-face{font-family:Pretendard;
+  src:url('/api/fonts/Pretendard-ko.woff2') format('woff2-variations'),
+      url('fonts/Pretendard-ko.woff2') format('woff2-variations');
+  font-weight:45 920;font-style:normal;font-display:swap}
+@font-face{font-family:"Pretendard Full";
   src:url('/api/fonts/PretendardVariable.woff2') format('woff2-variations'),
       url('fonts/PretendardVariable.woff2') format('woff2-variations');
   font-weight:45 920;font-style:normal;font-display:swap}
@@ -853,7 +906,7 @@ footer{border-top:1px solid var(--rule);margin-top:56px;padding:46px 0 28px;
       url('fonts/BMJUA.woff2') format('woff2');
   font-weight:400;font-style:normal;font-display:swap}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Pretendard,system-ui,sans-serif;background:var(--bg);color:var(--ink);
+body{font-family:Pretendard,"Pretendard Full",system-ui,sans-serif;background:var(--bg);color:var(--ink);
   -webkit-font-smoothing:antialiased;letter-spacing:-0.015em}
 .wrap{max-width:860px;margin:0 auto;padding:0 20px}
 
@@ -875,10 +928,7 @@ header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1
    전에는 삼선 단추 모서리에 16px 짜리 점으로 붙어 있어서, 로그인한 줄 모르고
    다시 로그인을 누르는 일이 있었습니다. */
 .me{display:flex;align-items:center;gap:9px;padding:3px 14px 3px 3px;border-radius:999px;
-  border:1px solid var(--rule-2);background:var(--surface-2);cursor:pointer;
-  transition:border-color .15s,background .15s}
-.me:hover{border-color:var(--accent)}
-.me:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  border:1px solid var(--rule-2);background:var(--surface-2)}
 .me .face{width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;
   object-fit:cover;background:var(--accent);color:var(--cta-ink);
   font-size:14px;font-weight:800;font-style:normal;
@@ -907,9 +957,7 @@ header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1
    뒤에 오는 이쪽이 이겨서, 위에서 무엇을 고쳐도 화면은 그대로였습니다.
    한 벌만 남깁니다. .chips 는 쓰는 곳이 없어서 같이 지웁니다. */
 
-.tag{display:inline-flex;align-items:center;height:23px;padding:0 9px;border-radius:7px;
-  font-size:11.5px;font-weight:700;background:var(--accent-soft);color:var(--accent)}
-.tag.ok{background:var(--ok-soft);color:var(--ok)}
+/* .tag 도 .chip 처럼 두 벌이었습니다. 위쪽 한 벌만 남깁니다. */
 .meta{font-size:13.5px;color:var(--muted);line-height:1.65}
 
 /* 로고 + 워드마크 묶음 */
@@ -984,7 +1032,11 @@ header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1
 /* ── ① 다크 히어로 밴드 ───────────────────────── */
 .band{background:#141217;color:#F2EEE8;padding:44px 0 46px;margin-bottom:26px}
 .band .in{max-width:880px;margin:0 auto;padding:0 20px;display:flex;align-items:flex-end;gap:36px}
-.band h1{flex:1;font-size:36px;font-weight:800;letter-spacing:-0.05em;line-height:1.22}
+/* 이 줄은 들어오자마자 보는 첫 문장입니다. 넓은 화면에서 36px 은 작습니다 —
+   같은 판에 있는 D-day 가 40px 이라 제목보다 숫자가 더 커 보였습니다.
+   화면 폭을 따라 46~62px 로 키웁니다. */
+.band h1{flex:1;font-size:clamp(34px,3.4vw,46px);font-weight:800;
+  letter-spacing:-0.05em;line-height:1.2;word-break:keep-all}
 .band h1 span{color:var(--accent)}
 /* 사이트 이름이 여기서 나왔습니다. 그 글자만 주황으로 둡니다. */
 .band h1 .gak{font-style:normal;color:var(--accent);
@@ -1134,8 +1186,9 @@ header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1
   background:var(--done-bg);border-color:var(--done-border)}
 .done .bar{background:var(--done-track)}
 .done .bar i{background:var(--accent)}
-.done .chip.on{background:var(--done-chip);color:var(--done-chip-ink)}
-.done .chip .dot{background:var(--accent)}
+.done .chip.on{background:var(--done-chip);color:var(--done-chip-ink);border-color:transparent}
+.done .chip.on .ico,.done .chip.on .pt{color:var(--done-chip-ink)}
+.done .chip.on .nm{color:var(--done-chip-ink);opacity:.72}
 .done .tag{background:var(--done-tag);color:var(--done-tag-ink)}
 
 .pad{padding:17px 19px 18px}
@@ -1146,9 +1199,9 @@ header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1
 .s1 .by{font-size:13px;color:var(--muted);margin-top:2px}
 .slots{display:flex;flex-wrap:wrap;gap:8px;margin:15px 0 0 0}
 @media (min-width:760px){.slots{gap:10px;margin-top:17px}}
-/* 찬 자리는 조용하게. 왼쪽 점 하나로 「찼다」를 말합니다. */
-.chip.on{background:var(--surface-2);color:var(--ink);border-color:var(--rule)}
-.chip .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none;opacity:.75}
+/* 찬 자리는 조용하게 — 다만 카드 바탕(--surface)과 같은 색이면 칸이 있는 줄도
+   모릅니다. 한 단계 밝은 바탕에 또렷한 테두리를 둡니다. */
+.chip.on{background:var(--surface-2);color:var(--ink);border-color:var(--rule-2)}
 
 /* 물드는 경계 — 글자를 가리지 않게 아주 옅게 */
 .edge{position:absolute;top:0;bottom:0;width:140px;z-index:3;pointer-events:none;opacity:0;
@@ -1301,7 +1354,7 @@ img.link-mark.social-google{
   :root{--shell:1560px}
   .cols{grid-template-columns:1fr 342px;gap:30px}
   .band.panel{margin-left:30px;margin-right:30px}
-  .band h1{font-size:40px}
+  .band h1{font-size:clamp(46px,3.2vw,54px)}
 }
 @media (min-width:1960px){
   :root{--shell:1700px}
@@ -1312,7 +1365,7 @@ img.link-mark.social-google{
   :root{--shell:1840px}
   .cols{grid-template-columns:1fr 384px;gap:34px}
   .band.panel{margin-left:40px;margin-right:40px}
-  .band h1{font-size:43px}
+  .band h1{font-size:62px}
 }
 
 /* ── 밴드 높이를 화면 폭에 묶습니다 ──
@@ -1374,23 +1427,28 @@ body{overflow-x:hidden}
 .song-unset p{font-size:13.5px;color:var(--muted)}
 .song .acts{display:flex;gap:6px;flex:none}
 .song .acts .btn{height:30px;padding:0 11px;border-radius:8px;font-size:12.5px;font-weight:600}
-/* 목업에서 「내 것」은 주황입니다 (list.css 의 .op.mine 과 같은 말) */
-/* 내 자리 — 이 줄에서 가장 센 칸입니다. 주황을 꽉 채웁니다. */
-.chip.mine{background:var(--accent);border-color:var(--accent);color:var(--cta-ink)}
-.chip.mine .pt{color:var(--cta-ink)}
-.chip.mine .nm{color:var(--cta-ink);opacity:.76}
-.chip.mine .dot{background:var(--cta-ink);opacity:.6}
+/* 내 자리 — 주황을 꽉 채웁니다.
+   앞에 .done .chip.on (0,3,0) 이 있어서, 자리가 다 찬 곡에서는 그쪽이 이기고
+   내 자리가 갈색으로 덮였습니다. 테두리만 주황으로 남아서 「찬 자리」와
+   거의 구별이 안 됐습니다. 같은 무게(.done 까지 붙인 선택자)로 되돌립니다. */
+.chip.mine,.done .chip.mine{background:var(--accent);border-color:var(--accent);
+  color:var(--cta-ink)}
+.chip.mine .ico,.chip.mine .pt,.done .chip.mine .ico,.done .chip.mine .pt{color:var(--cta-ink)}
+.chip.mine .nm,.done .chip.mine .nm{color:var(--cta-ink);opacity:.8}
+.chip.mine .ico{opacity:1}
 /* 다른 악기를 이미 맡아서 못 들어가는 자리. 가장 흐리게, 누를 수 없게. */
 .chip.locked{background:transparent;border:1.5px dashed var(--rule);color:var(--ph);
   cursor:not-allowed}
-.chip.locked .pt,.chip.locked .st{color:var(--ph);font-weight:600}
+.chip.locked .ico,.chip.locked .pt,.chip.locked .st{color:var(--ph)}
+.chip.locked .pt{font-weight:600}
+.chip.locked .ico{opacity:.6}
 .chip.managing{outline:1.5px dashed var(--accent);outline-offset:1px}
-/* 양도 가능 표시. 전에는 이름 뒤에 작은 글리프 하나라 무슨 뜻인지 알 수 없었습니다.
-   작은 알약으로 만들어 「넘겨받을 수 있다」가 읽히게 합니다. */
-.chip .yield-mark{font-style:normal;margin-left:6px;display:inline-flex;align-items:center;
-  height:19px;padding:0 7px;border-radius:999px;font-size:11px;font-weight:700;
-  background:rgba(247,130,46,.17);color:var(--accent);opacity:1;line-height:1}
-.chip.mine .yield-mark{background:rgba(0,0,0,.17);color:var(--cta-ink);opacity:.8}
+/* 양도 가능 표시. 전에는 이름 뒤에 「⇄」 글리프 하나라 무슨 뜻인지 알 수 없었습니다. */
+.chip .yield-mark{font-style:normal;margin-left:7px;display:inline-flex;align-items:center;
+  height:21px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:700;
+  background:rgba(247,130,46,.18);color:var(--accent);opacity:1;line-height:1}
+.chip.mine .yield-mark,.done .chip.mine .yield-mark{background:rgba(0,0,0,.2);
+  color:var(--cta-ink);opacity:.85}
 #songs-note{font-size:13px;color:var(--muted);margin:-4px 0 12px}
 #songs-note.note-closed{color:var(--accent)}
 .ev-done{margin-top:10px;display:inline-flex;align-items:center;height:26px;padding:0 11px;
@@ -1442,11 +1500,16 @@ body{overflow-x:hidden}
 }
 
 /* ── 밴드 안의 버튼 두 개 ── */
-.bandacts{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
-.bandacts .btn{height:46px;padding:0 20px 0 17px;border-radius:13px;font-size:15px;font-weight:700;
-  display:inline-flex;align-items:center;gap:8px;
+.bandacts{display:flex;flex-wrap:wrap;gap:11px;margin-top:26px}
+.bandacts .btn{height:52px;padding:0 24px 0 20px;border-radius:14px;font-size:16px;font-weight:700;
+  display:inline-flex;align-items:center;gap:9px;
   box-shadow:0 2px 4px rgba(0,0,0,.22), 0 10px 24px rgba(0,0,0,.26)}
-.bandacts .btn svg{width:17px;height:17px;flex:none}
+.bandacts .btn svg{width:19px;height:19px;flex:none}
+@media (min-width:1280px){
+  .bandacts{gap:13px;margin-top:30px}
+  .bandacts .btn{height:58px;padding:0 28px 0 23px;border-radius:16px;font-size:17.5px}
+  .bandacts .btn svg{width:21px;height:21px}
+}
 /* 밴드는 라이트 모드에서도 어둡습니다. 그 위의 ghost 버튼은 밝은 테두리라야 보입니다. */
 .bandacts .btn.ghost{background:rgba(255,255,255,.10);color:#F4F0EA;
   border:1px solid rgba(255,255,255,.22);box-shadow:none}
@@ -1523,15 +1586,31 @@ body{overflow-x:hidden}
 .partpick2.dimmed{opacity:.45;pointer-events:none}
 
 /* ── 곡 카드 오른쪽 버튼 묶음. 이 규칙이 없어서 글자만 덩그러니 놓여 있었습니다. ── */
-.acts,.song-tools{display:flex;align-items:center;gap:8px;flex:none}
-.song-yt{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:8px;
-  background:#FF0033;color:#fff;font-size:12px;font-weight:700;white-space:nowrap;transition:background .15s}
-.song-yt:hover{background:#D9002B}
-.song-yt svg{width:11px;height:13px;flex:none}
-.song-edit{display:inline-flex;align-items:center;height:28px;padding:0 11px;border-radius:8px;
-  border:1px solid var(--rule);background:var(--surface);color:var(--muted);cursor:pointer;
-  font-family:inherit;font-size:12px;font-weight:600;white-space:nowrap;transition:.15s}
-.song-edit:hover{color:var(--ink);border-color:var(--rule-2);background:var(--surface-2)}
+/* 곡 카드의 도구들.
+   전에는 제목·상태딱지와 한 줄에 욱여넣느라 셋 다 28px 로 쪼그라들었고,
+   빨간 YouTube 단추가 카드에서 제일 눈에 띄었습니다. 이 카드에서 가장
+   중요한 것은 곡과 자리지, 바깥 링크가 아닙니다.
+
+   도구는 한 묶음으로 오른쪽에 모읍니다. YouTube 는 빨강을 빼고 다른 둘과
+   같은 모양으로 두되 재생 그림으로 구분합니다 — 누를 사람은 그림으로 찾습니다. */
+.acts,.song-tools{display:flex;align-items:center;gap:6px;flex:none}
+.song-yt,.song-edit{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 13px;
+  border-radius:10px;border:1px solid var(--rule-2);background:var(--surface-2);
+  color:var(--ink-2);cursor:pointer;white-space:nowrap;line-height:1;
+  font-family:inherit;font-size:13px;font-weight:600;transition:.15s}
+.song-yt:hover,.song-edit:hover{color:var(--ink);border-color:var(--accent);
+  background:var(--accent-soft)}
+.song-yt svg{width:11px;height:13px;flex:none;color:#FF0033}
+.song-yt:hover svg{color:#FF2D55}
+@media (min-width:760px){
+  .song-yt,.song-edit{height:36px;padding:0 15px;font-size:13.5px}
+}
+@media (max-width:620px){
+  /* 좁은 화면에서는 글자를 빼고 그림만 남깁니다. 셋이 줄을 넘기면
+     제목보다 단추가 더 커 보입니다. */
+  .song-yt{width:36px;padding:0;justify-content:center}
+  .song-yt span{display:none}
+}
 
 /* ── 참가자 얼굴 ── */
 .pr img{width:30px;height:30px;border-radius:50%;object-fit:cover;flex:none;display:block}
@@ -1554,7 +1633,7 @@ img,svg{-webkit-user-drag:none;user-drag:none}
   .band.panel,.cover{margin-left:16px;margin-right:16px;border-radius:20px}
   .band .in,.cover .in{flex-direction:column;align-items:stretch;gap:22px}
   .band .next{width:100%}
-  .band h1,.cover h1{font-size:29px}
+  .band h1,.cover h1{font-size:32px}
   .cover{min-height:0}
   .cover .acts{justify-content:flex-start}
 
@@ -1580,7 +1659,7 @@ img,svg{-webkit-user-drag:none;user-drag:none}
 
   .band.panel,.cover{margin-left:12px;margin-right:12px;padding:30px 0 32px}
   .band .in,.cover .in{padding-left:16px;padding-right:16px}
-  .band h1,.cover h1{font-size:25px}
+  .band h1,.cover h1{font-size:28px}
   .head3{padding:14px}
   .head3 .thumb{height:170px}
   .h3top{flex-direction:column;gap:14px}
@@ -1984,8 +2063,8 @@ html.lp-on body{overflow:hidden}
   /* 카드를 바닥에서 띄우는 그림자. 위쪽 1px 하이라이트가 두께를 만든다. */
   --lift:inset 0 1px 0 rgba(255,255,255,.07), 0 16px 38px rgba(0,0,0,.45);
 
-  --display:"BM JUA","Pretendard",system-ui,sans-serif;
-  --body:"Pretendard",system-ui,sans-serif;
+  --display:"BM JUA","Pretendard","Pretendard Full",system-ui,sans-serif;
+  --body:"Pretendard","Pretendard Full",system-ui,sans-serif;
 
   /* 모션 토큰 ─ 직접 조작 피드백은 200ms 아래, 기능성 전환은 500ms를 넘기지 않는다. */
   --t-fast:110ms; --t-norm:220ms; --t-slow:320ms; --t-cele:460ms;
@@ -2498,7 +2577,7 @@ html.lp-on body{overflow:hidden}
 <div class="barline"><b></b><b></b><b></b></div>
 
 <section class="lp-wrap" id="lp-about">
-  <h2 class="rise">그래서, 무슨 사이트인가요?</h2>
+  <h2 class="rise">합주각은 무슨 사이튼가요?</h2>
   <p class="s-lede rise">오프라인 합주 파트매칭 서비스, <span class="hl">합주각</span>입니다!</p>
 
   <div class="define rise">
@@ -3391,8 +3470,10 @@ function authModal(mode = "login"){
   modal(`
     <div class="auth-box">
       <div class="auth-head">
-        <img class="auth-logo" src="img/logo.png" alt="">
-        <h3>합주각</h3>
+        <div class="auth-mark">
+          <img class="mk-ico" src="img/logo.png" alt="">
+          <img class="mk-word" src="img/wordmark.png" alt="합주각" width="336" height="150">
+        </div>
         <p>${signup ? "가입하고 합주에 참가하세요" : "로그인하고 합주에 참가하세요"}</p>
       </div>
 
@@ -3408,7 +3489,12 @@ function authModal(mode = "login"){
           <input id="au-pw" type="password" maxlength="72"
                  autocomplete="${signup ? "new-password" : "current-password"}"
                  placeholder="${signup ? "8자 이상" : "비밀번호"}">
-          <button type="button" class="pw-eye" id="au-eye" title="비밀번호 보기">👁</button>
+          <button type="button" class="pw-eye" id="au-eye" title="비밀번호 보기" aria-label="비밀번호 보기">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M2.2 12S5.8 5.5 12 5.5 21.8 12 21.8 12 18.2 18.5 12 18.5 2.2 12 2.2 12Z"/>
+              <circle cx="12" cy="12" r="3.1"/></svg>
+          </button>
         </div>
       </div>
       ${signup ? `<p class="auth-rule" id="au-rule">영문·숫자 섞어 8자 이상</p>` : ""}
@@ -3443,8 +3529,13 @@ function authModal(mode = "login"){
 
     const fail = m => { err.textContent = m; };
 
-    root.querySelector("#au-eye").onclick = () => {
-      pw.type = pw.type === "password" ? "text" : "password";
+    const eye = root.querySelector("#au-eye");
+    eye.onclick = () => {
+      const show = pw.type === "password";
+      pw.type = show ? "text" : "password";
+      /* 눈을 끈 모양으로 바꿔서 지금 보이는 중인지 알 수 있게 합니다. */
+      eye.classList.toggle("off", show);
+      eye.title = eye.ariaLabel = show ? "비밀번호 가리기" : "비밀번호 보기";
       pw.focus();
     };
 
@@ -3829,21 +3920,19 @@ function renderAuth(u){
     return;
   }
 
-  /* 삼선 옆에 사진과 이름을 둡니다. 눌러도 같은 메뉴가 열립니다 —
-     로그인 표시일 뿐 눌리지 않는 그림이면 한 번씩 눌러보고 헛걸음합니다. */
-  const chip = document.createElement("button");
-  chip.type = "button";
+  /* 삼선 옆에 사진과 이름을 둡니다. 「로그인되어 있다」만 알려주는 표시입니다.
+     전에는 눌러도 메뉴가 열리게 해뒀는데, 바로 옆 삼선과 똑같은 메뉴가
+     하나 더 열리는 꼴이라 같은 것이 두 개 있는 것처럼 보였습니다.
+     메뉴로 가는 문은 삼선 하나면 됩니다. */
+  const chip = document.createElement("div");
   chip.className = "me";
-  chip.setAttribute("aria-haspopup", "true");
-  chip.setAttribute("aria-expanded", "false");
-  chip.setAttribute("aria-label", myProfile.name + " · 메뉴 열기");
 
   const face = myProfile.photo ? document.createElement("img") : el("i","face");
   if (myProfile.photo){ face.className = "face"; face.src = myProfile.photo; face.alt = ""; }
   else face.textContent = (myProfile.name || "?").trim().charAt(0) || "?";
 
   chip.append(face, el("span","nm", myProfile.name || ""));
-  chip.onclick = () => toggleMenu(chip, $("#nav-menu"), buildNavMenu);
+  chip.title = myProfile.name + " 님으로 로그인되어 있습니다";
   slot.append(chip);
 }
 
@@ -4788,7 +4877,7 @@ function songTools(song){
     a.title = "유튜브에서 원곡 열기";
     a.innerHTML = '<svg viewBox="0 0 12 14" aria-hidden="true" focusable="false">'
       + '<path d="M1.5 1.3 11 7l-9.5 5.7V1.3Z" fill="currentColor"/></svg>';
-    a.append(document.createTextNode("YouTube"));
+    a.append(el("span","","YouTube"));
     tools.append(a);
   }
   const log = el("button","song-edit","로그");
@@ -4807,6 +4896,34 @@ function songTools(song){
 
 /* 파트 칸. 모집하지 않는 파트는 아예 그리지 않습니다 —
    예전에는 빗금으로 남겨뒀는데, 칸이 길어지기만 하고 읽을 것은 없었습니다. */
+/* 파트 칸에 붙는 악기 그림.
+   소개 화면 편성표에서 쓰는 것과 같은 그림입니다 — 두 화면이 같은 말을 씁니다.
+   파트 이름은 자유 문자열이라 「일렉기타」·「기타2」 같은 것이 들어옵니다.
+   partKind() 가 이미 그 이름들을 여섯 종류로 묶고 있어서 그대로 씁니다. */
+const INST_ICON = {
+  보컬:'<rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>',
+  기타:'<circle cx="9" cy="15" r="6"/><circle cx="9" cy="15" r="1.8"/><path d="M13.5 10.5 20 4M17.5 2.5 21.5 6.5"/>',
+  통기타:'<circle cx="9.5" cy="15" r="6.2"/><circle cx="9.5" cy="13.6" r="2.1"/><path d="M14.2 10.6 20 4.8M18.4 3 21.8 6.4"/>',
+  베이스:'<ellipse cx="9" cy="15.5" rx="6" ry="5.5"/><path d="M13.8 11.5 20 3.5M4 15.5h10"/>',
+  드럼:'<path d="M4 13h16l-1.5 7h-13z"/><ellipse cx="12" cy="13" rx="8" ry="3"/><path d="M6 4.5 10 11M18 4.5 14 11"/>',
+  키보드:'<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M7 6v7M11 6v7M15 6v7M19 6v7M2.5 13h19"/>'
+};
+/* 종류를 모르는 파트(직접 적은 것)에는 음표를 둡니다 —
+   그림이 없다고 칸만 비워두면 줄이 들쭉날쭉해집니다. */
+const INST_ICON_ETC = '<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.6"/><circle cx="17.5" cy="16" r="2.6"/>';
+function instIcon(part){
+  const d = INST_ICON[partKind(part)] || INST_ICON_ETC;
+  return '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+       + 'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+       + d + '</svg>';
+}
+/* 빈 자리 오른쪽 끝의 「들어가기」 표시. 전에는 전각 더하기(＋) 글자를
+   ::before 로 박아 뒀는데, 글자라 크기도 작고 다른 글자와 높이도 안 맞았습니다. */
+const PLUS_SVG = '<svg class="plus" viewBox="0 0 20 20" fill="none" stroke="currentColor" '
+  + 'stroke-width="2.1" stroke-linecap="round" aria-hidden="true">'
+  + '<circle cx="10" cy="10" r="8.1" stroke-width="1.5" opacity=".45"/>'
+  + '<path d="M10 6.3v7.4M6.3 10h7.4"/></svg>';
+
 function songSlots(song){
   const box = el("div","slots");
   const req = song.requiredParts || [];
@@ -4819,16 +4936,17 @@ function songSlots(song){
 
     const cls = mine ? "chip on mine" : taken ? "chip on" : held ? "chip locked" : "chip open";
     const c = el("span", cls);
-    if (taken) c.append(el("span","dot"));
-    /* 파트 이름과 사람 이름을 각각 감쌉니다. 전에는 둘이 맨 글자로 이어 붙어서
-       「보컬 령이아빠」가 한 덩어리로 읽혔습니다. */
+    /* 왼쪽부터 — 무슨 악기인가 / 어느 파트인가 / 누가 맡았나.
+       그림이 맨 앞에 있어서 글자를 읽기 전에 줄이 먼저 눈에 들어옵니다. */
+    c.insertAdjacentHTML("beforeend", instIcon(p));
     c.append(el("b","pt", p));
     if (taken){
       const em = el("em","nm", taken.name);
-      if (yieldable) em.append(el("span","yield-mark","⇄ 양도"));
+      if (yieldable) em.append(el("span","yield-mark","양도 가능"));
       c.append(em);
     } else {
       c.append(el("span","st", held ? "들어갈 수 없음" : "비어 있음"));
+      if (!held) c.insertAdjacentHTML("beforeend", PLUS_SVG);
     }
 
     const managing = manageMode && canManageSlots();
@@ -4861,7 +4979,13 @@ function songBadge(song, done){
   if (isUnset(song)) return el("span","tag","편성 미정");
   const req = song.requiredParts || [];
   const left = req.filter(p => !song.slots?.[p]).length;
-  return done ? el("span","tag ok","각 나왔습니다") : el("span","tag", `${left}자리 남음`);
+  if (!done) return el("span","tag", `${left}자리 남음`);
+  /* 별 하나를 붙입니다. 글자만 있으면 다른 딱지와 같은 무게로 보입니다. */
+  const ok = el("span","tag ok");
+  ok.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
+    + '<path d="M12 2.6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.45 6.2 20.5l1.1-6.45-4.7-4.6 6.5-.95z"/></svg>';
+  ok.append(document.createTextNode("각 나왔습니다"));
+  return ok;
 }
 
 /* ── 자리(파트) 고르기 ────────────────────────────────────────────
@@ -5894,7 +6018,7 @@ function profileModal({first = false} = {}){
           paintParts();
         };
         if (custom){
-          const x2 = el("span","rm","✕");
+          const x2 = el("span","rm","×");
           x2.title = "지우기";
           b.append(x2);
         }

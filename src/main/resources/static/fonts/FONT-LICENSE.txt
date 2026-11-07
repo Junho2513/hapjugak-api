@@ -15,3 +15,7 @@ Pretendard
 저작권자: 길형진 (orioncactus)
 출처: https://github.com/orioncactus/pretendard
 라이선스: SIL Open Font License 1.1
+
+── Pretendard-sub.woff2 ─────────────────────────────────────
+위 Pretendard 를 상용 한글 2,350자(KS X 1001)와 라틴·기호만
+남겨 서브셋한 것입니다. 라이선스와 저작권자는 원본과 같습니다.
